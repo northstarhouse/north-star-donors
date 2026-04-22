@@ -1,11 +1,13 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
+import { Heart } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Donor, Donation, DonorWithStats } from '@/lib/types'
 import { getTier, getStatus } from '@/lib/tiers'
 import DonorList from '@/components/DonorList'
 import DonorPanel from '@/components/DonorPanel'
 import FilterBar, { Filters } from '@/components/FilterBar'
+import Sidebar from '@/components/Sidebar'
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -130,40 +132,76 @@ export default function Home() {
 
   const selectedFresh = selected ? donors.find(d => d.id === selected.id) ?? selected : null
 
+  const currentYear = new Date().getFullYear()
+  const ytdTotal = donors.reduce((sum, d) => sum + d.current_year_total, 0)
+  const currentCount = donors.filter(d => d.status === 'current').length
+  const memberCount = donors.filter(d => d.status === 'current' && d.tier !== 'none').length
+  const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b px-6 py-4 flex items-center gap-3">
-        <span className="text-2xl">✦</span>
-        <div>
-          <h1 className="text-lg font-bold text-gray-900 leading-tight">North Star House</h1>
-          <p className="text-xs text-gray-500">Donor Database</p>
+    <div className="flex min-h-screen">
+      <Sidebar />
+
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
+        {/* Page header */}
+        <div className="px-8 pt-8 pb-4">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
+              <Heart size={16} className="text-stone-400" strokeWidth={1.5} />
+            </div>
+            <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
+              Donors
+            </h1>
+          </div>
+
+          {/* Stats cards */}
+          {!loading && !error && (
+            <div className="grid grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
+                <p className="text-xs text-stone-400 font-medium mb-1">Total Raised</p>
+                <p className="text-2xl font-semibold text-stone-800">{fmt(ytdTotal)}</p>
+                <p className="text-xs text-stone-400 mt-0.5">{currentYear} YTD</p>
+              </div>
+              <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
+                <p className="text-xs text-stone-400 font-medium mb-1">Current Donors</p>
+                <p className="text-2xl font-semibold text-stone-800">{currentCount}</p>
+                <p className="text-xs text-stone-400 mt-0.5">gave in {currentYear - 1}–{currentYear}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
+                <p className="text-xs text-stone-400 font-medium mb-1">Members</p>
+                <p className="text-2xl font-semibold text-stone-800">{memberCount}</p>
+                <p className="text-xs text-stone-400 mt-0.5">active tier this year</p>
+              </div>
+              <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
+                <p className="text-xs text-stone-400 font-medium mb-1">Total Records</p>
+                <p className="text-2xl font-semibold text-stone-800">{donors.length}</p>
+                <p className="text-xs text-stone-400 mt-0.5">all time</p>
+              </div>
+            </div>
+          )}
         </div>
-      </header>
 
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-        onExport={handleExport}
-        count={filtered.length}
-      />
+        {/* Table card */}
+        <div className="mx-8 mb-8 bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden flex-1">
+          <FilterBar filters={filters} onChange={setFilters} onExport={handleExport} count={filtered.length} />
 
-      <main className="bg-white shadow-sm mx-4 my-4 rounded-xl overflow-hidden border">
-        {loading ? (
-          <div className="flex items-center justify-center py-24 text-gray-400">
-            Loading donors...
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-2">
-            <p className="text-red-600 font-medium">Failed to load donors</p>
-            <p className="text-sm text-gray-500">{error}</p>
-            <button onClick={loadDonors} className="mt-2 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600">
-              Retry
-            </button>
-          </div>
-        ) : (
-          <DonorList donors={filtered} onSelect={setSelected} />
-        )}
-      </main>
+          {loading ? (
+            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">
+              Loading donors...
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-24 gap-2">
+              <p className="text-red-500 font-medium text-sm">Failed to load donors</p>
+              <p className="text-xs text-stone-400">{error}</p>
+              <button onClick={loadDonors} className="mt-2 px-4 py-2 text-white text-sm rounded-lg" style={{ background: 'var(--gold)' }}>
+                Retry
+              </button>
+            </div>
+          ) : (
+            <DonorList donors={filtered} onSelect={setSelected} />
+          )}
+        </div>
+      </div>
 
       {selectedFresh && (
         <DonorPanel
