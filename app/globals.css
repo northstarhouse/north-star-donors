@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  --sidebar-bg: #1C1B1A;
-  --page-bg: #EDE8DC;
-  --gold: #B5922A;
-  --gold-dark: #8a6e1e;
+  --sidebar-bg: #2a2a2e;
+  --page-bg: #f8f4ec;
+  --gold: #886c44;
+  --gold-dark: #6b5535;
 }
 
 body {

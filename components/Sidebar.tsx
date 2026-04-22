@@ -2,41 +2,37 @@
 import { Heart } from 'lucide-react'
 
 const NAV = [
-  { label: 'Donations', icon: Heart, active: true },
+  { id: 'donors', label: 'Donations', icon: Heart, active: true },
 ]
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 min-h-screen flex-shrink-0 flex flex-col" style={{ background: 'var(--sidebar-bg)' }}>
-      {/* Logo */}
-      <div className="px-6 py-7 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full border border-white/30 flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-base leading-none">✦</span>
-          </div>
-          <div>
-            <p className="text-white font-semibold text-sm leading-tight" style={{ fontFamily: 'var(--font-serif)' }}>
-              North Star House
-            </p>
-            <p className="text-white/40 text-[10px] leading-tight mt-0.5">Julia Morgan · Est 1905</p>
-          </div>
-        </div>
+    <aside style={{ width: 220, background: '#2a2a2e', minHeight: '100vh', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '20px 20px 14px' }}>
+        <img src="/north-star-donors/assets/logo.png" alt="North Star House" style={{ width: 195 }} />
       </div>
-
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5">
-        {NAV.map(({ label, icon: Icon, active }) => (
-          <button
-            key={label}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
-              active
-                ? 'bg-white text-[#1C1B1A] font-medium'
-                : 'text-white/60 hover:text-white hover:bg-white/10'
-            }`}
+      <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)' }} />
+      <nav style={{ flex: 1, padding: '8px 8px 0' }}>
+        {NAV.map(({ id, label, icon: Icon, active }) => (
+          <div
+            key={id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 9,
+              padding: '9px 12px',
+              borderRadius: 7,
+              marginBottom: 2,
+              fontSize: 12,
+              fontWeight: active ? 600 : 400,
+              background: active ? 'rgba(181,161,133,0.15)' : 'transparent',
+              color: active ? '#f0ebe3' : 'rgba(255,255,255,0.5)',
+              cursor: 'default',
+            }}
           >
-            <Icon size={16} strokeWidth={1.75} />
+            <Icon size={15} strokeWidth={1.75} />
             {label}
-          </button>
+          </div>
         ))}
       </nav>
     </aside>
