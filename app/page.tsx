@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
-import { Heart } from 'lucide-react'
+import { Heart, UserPlus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Donor, Donation, DonorWithStats } from '@/lib/types'
 import { getTier, getStatus } from '@/lib/tiers'
@@ -8,6 +8,7 @@ import DonorList from '@/components/DonorList'
 import DonorPanel from '@/components/DonorPanel'
 import FilterBar, { Filters } from '@/components/FilterBar'
 import Sidebar from '@/components/Sidebar'
+import AddDonorModal from '@/components/AddDonorModal'
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -44,6 +45,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<DonorWithStats | null>(null)
+  const [showAddDonor, setShowAddDonor] = useState(false)
   const [filters, setFilters] = useState<Filters>({
     search: '',
     status: 'all',
@@ -145,13 +147,23 @@ export default function Home() {
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
         {/* Page header */}
         <div className="px-8 pt-8 pb-4">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
-              <Heart size={16} className="text-stone-400" strokeWidth={1.5} />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
+                <Heart size={16} className="text-stone-400" strokeWidth={1.5} />
+              </div>
+              <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
+                Donors
+              </h1>
             </div>
-            <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
-              Donors
-            </h1>
+            <button
+              onClick={() => setShowAddDonor(true)}
+              className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm"
+              style={{ background: 'var(--gold)' }}
+            >
+              <UserPlus size={15} />
+              Add Donor
+            </button>
           </div>
 
           {/* Stats cards */}
@@ -208,6 +220,13 @@ export default function Home() {
           donor={selectedFresh}
           onClose={() => setSelected(null)}
           onUpdated={handleUpdated}
+        />
+      )}
+
+      {showAddDonor && (
+        <AddDonorModal
+          onClose={() => setShowAddDonor(false)}
+          onCreated={handleUpdated}
         />
       )}
     </div>
