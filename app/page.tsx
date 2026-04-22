@@ -40,6 +40,7 @@ function buildDonorWithStats(donor: Donor, donations: Donation[]): DonorWithStat
 export default function Home() {
   const [donors, setDonors] = useState<DonorWithStats[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<DonorWithStats | null>(null)
   const [filters, setFilters] = useState<Filters>({
     search: '',
@@ -49,26 +50,34 @@ export default function Home() {
   })
 
   async function loadDonors() {
-    const { data: donorRows } = await supabase
-      .from('donors')
-      .select('*')
-      .order('formal_name')
+    try {
+      const { data: donorRows, error: donorErr } = await supabase
+        .from('donors')
+        .select('*')
+        .order('formal_name')
 
-    const { data: donationRows } = await supabase
-      .from('donations')
-      .select('*')
+      if (donorErr) throw new Error(donorErr.message)
 
-    if (!donorRows) return
+      const { data: donationRows, error: donationErr } = await supabase
+        .from('donations')
+        .select('*')
 
-    const donationsByDonor = (donationRows ?? []).reduce<Record<string, Donation[]>>((acc, d) => {
-      if (!acc[d.donor_id]) acc[d.donor_id] = []
-      acc[d.donor_id].push(d)
-      return acc
-    }, {})
+      if (donationErr) throw new Error(donationErr.message)
 
-    const built = donorRows.map(d => buildDonorWithStats(d, donationsByDonor[d.id] ?? []))
-    setDonors(built)
-    setLoading(false)
+      const donationsByDonor = (donationRows ?? []).reduce<Record<string, Donation[]>>((acc, d) => {
+        if (!acc[d.donor_id]) acc[d.donor_id] = []
+        acc[d.donor_id].push(d)
+        return acc
+      }, {})
+
+      const built = (donorRows ?? []).map(d => buildDonorWithStats(d, donationsByDonor[d.id] ?? []))
+      setDonors(built)
+      setError(null)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load donors')
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { loadDonors() }, [])
@@ -142,6 +151,14 @@ export default function Home() {
         {loading ? (
           <div className="flex items-center justify-center py-24 text-gray-400">
             Loading donors...
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-2">
+            <p className="text-red-600 font-medium">Failed to load donors</p>
+            <p className="text-sm text-gray-500">{error}</p>
+            <button onClick={loadDonors} className="mt-2 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm hover:bg-amber-600">
+              Retry
+            </button>
           </div>
         ) : (
           <DonorList donors={filtered} onSelect={setSelected} />
