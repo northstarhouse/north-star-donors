@@ -1,11 +1,12 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { List, Trash2, X, Users, ChevronLeft, Download, Star } from 'lucide-react'
+import { List, Trash2, X, Users, ChevronLeft, Download, Star, Tags } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { DonorList, DonorWithStats, Donor, Donation } from '@/lib/types'
 import { getTier, getStatus } from '@/lib/tiers'
 import Sidebar from '@/components/Sidebar'
 import DonorPanel from '@/components/DonorPanel'
+import AddToListModal from '@/components/AddToListModal'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
@@ -49,6 +50,8 @@ export default function ListsPage() {
   const [listLoading, setListLoading] = useState(false)
   const [selected, setSelected] = useState<DonorWithStats | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showAddToList, setShowAddToList] = useState(false)
 
   useEffect(() => { loadLists() }, [])
 
@@ -72,6 +75,7 @@ export default function ListsPage() {
   async function openList(list: DonorList) {
     setActiveList(list)
     setListLoading(true)
+    setSelectedIds(new Set())
 
     const { data: linkRows } = await supabase
       .from('list_donors')
@@ -226,10 +230,34 @@ export default function ListsPage() {
               </div>
             ) : (
               <div className="overflow-x-auto">
+                {/* Selection bar */}
+                {selectedIds.size > 0 && (
+                  <div className="flex items-center gap-3 px-6 py-3 border-b border-amber-200 bg-amber-50">
+                    <span className="text-sm font-medium text-stone-700">{selectedIds.size} selected</span>
+                    <button
+                      onClick={() => setShowAddToList(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs rounded-lg font-medium"
+                      style={{ background: 'var(--gold)' }}
+                    >
+                      <Tags size={12} /> Add to a new or existing list…
+                    </button>
+                    <button onClick={() => setSelectedIds(new Set())} className="text-xs text-stone-400 hover:text-stone-600 ml-auto">
+                      Clear
+                    </button>
+                  </div>
+                )}
+
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-stone-100">
-                      <th className="px-6 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Donor</th>
+                      <th className="px-4 py-3 w-8">
+                        <input type="checkbox"
+                          className="rounded border-stone-300 text-amber-500 focus:ring-amber-300 cursor-pointer"
+                          checked={selectedIds.size === listDonors.length && listDonors.length > 0}
+                          onChange={e => setSelectedIds(e.target.checked ? new Set(listDonors.map(d => d.id)) : new Set())}
+                        />
+                      </th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Donor</th>
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Status</th>
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">This Year</th>
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Lifetime</th>
@@ -241,7 +269,18 @@ export default function ListsPage() {
                       <tr key={donor.id}
                         className={`border-b border-stone-100 group ${donor.starred ? 'bg-amber-50/60 hover:bg-amber-50' : 'hover:bg-stone-50/60'}`}
                         style={donor.starred ? { boxShadow: 'inset 3px 0 0 #b5a185' } : {}}>
-                        <td className="px-6 py-3 cursor-pointer" onClick={() => setSelected(donor)}>
+                        <td className="px-4 py-3">
+                          <input type="checkbox"
+                            className="rounded border-stone-300 text-amber-500 focus:ring-amber-300 cursor-pointer"
+                            checked={selectedIds.has(donor.id)}
+                            onChange={e => setSelectedIds(prev => {
+                              const next = new Set(prev)
+                              e.target.checked ? next.add(donor.id) : next.delete(donor.id)
+                              return next
+                            })}
+                          />
+                        </td>
+                        <td className="px-4 py-3 cursor-pointer" onClick={() => setSelected(donor)}>
                           <div className="flex items-center gap-2">
                             {donor.starred && <Star size={13} fill="#b5a185" stroke="#b5a185" className="flex-shrink-0" />}
                             <div>
@@ -290,6 +329,14 @@ export default function ListsPage() {
           donor={selectedFresh}
           onClose={() => setSelected(null)}
           onUpdated={handleUpdated}
+        />
+      )}
+
+      {showAddToList && (
+        <AddToListModal
+          donorIds={[...selectedIds]}
+          onClose={() => setShowAddToList(false)}
+          onDone={() => { setSelectedIds(new Set()); setShowAddToList(false) }}
         />
       )}
     </div>
