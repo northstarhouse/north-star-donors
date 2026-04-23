@@ -1,13 +1,27 @@
 'use client'
 import Link from 'next/link'
-import { LayoutDashboard, Heart, List, Award, GitMerge } from 'lucide-react'
+import { LayoutDashboard, Heart, List, Award } from 'lucide-react'
+
+function CoordIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3" />
+      <circle cx="12" cy="3"  r="2" />
+      <circle cx="4"  cy="20" r="2" />
+      <circle cx="20" cy="20" r="2" />
+      <line x1="12"  y1="9"    x2="12"  y2="5" />
+      <line x1="9.6" y1="14.2" x2="5.7" y2="18" />
+      <line x1="14.4" y1="14.2" x2="18.3" y2="18" />
+    </svg>
+  )
+}
 
 const NAV = [
-  { id: 'dashboard', label: 'Development', icon: LayoutDashboard, href: '/' },
-  { id: 'donations', label: 'Donations', icon: Heart, href: '/donations/' },
-  { id: 'sponsors', label: 'Sponsors', icon: Award, href: '/sponsors/' },
-  { id: 'lists', label: 'Lists', icon: List, href: '/lists/' },
-  { id: 'coordination', label: 'Cross-Coordination', icon: GitMerge, href: '/coordination/' },
+  { id: 'dashboard',   label: 'Development',       icon: LayoutDashboard, href: '/' },
+  { id: 'donations',   label: 'Donations',          icon: Heart,           href: '/donations/' },
+  { id: 'sponsors',    label: 'Sponsors',           icon: Award,           href: '/sponsors/' },
+  { id: 'lists',       label: 'Lists',              icon: List,            href: '/lists/' },
+  { id: 'coordination', label: 'Cross-Coordination', icon: CoordIcon,      href: '/coordination/' },
 ]
 
 interface Props {
