@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronDown, Paperclip, FileText, User } from 'lucide-react'
+import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Paperclip, FileText, User } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
@@ -110,53 +110,58 @@ function TaskRow({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Claim button / assignee badge */}
+          {task.assigned_to ? (
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-stone-200 bg-stone-50 text-[11px] font-medium text-stone-500">
+              <User size={10} />{task.assigned_to}
+            </span>
+          ) : claiming ? (
+            <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+              <input autoFocus className="border border-stone-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 w-28"
+                placeholder="Your name…" value={claimInput} onChange={e => setClaimInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && claimInput.trim()) { onClaim(task.id, claimInput.trim()); setClaiming(false); setClaimInput('') }
+                  if (e.key === 'Escape') { setClaiming(false); setClaimInput('') }
+                }} />
+              <button onClick={() => { if (claimInput.trim()) { onClaim(task.id, claimInput.trim()); setClaiming(false); setClaimInput('') } }}
+                disabled={!claimInput.trim()}
+                className="px-2 py-1 text-white text-xs rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>✓</button>
+              <button onClick={() => { setClaiming(false); setClaimInput('') }} className="p-1 text-stone-300 hover:text-stone-500"><X size={12} /></button>
+            </div>
+          ) : (
+            <button onClick={e => { e.stopPropagation(); setClaiming(true) }}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-stone-300 text-[11px] text-stone-400 hover:border-amber-300 hover:text-amber-600 transition-colors">
+              <User size={10} /> Take on
+            </button>
+          )}
+
+          {/* Edit / delete */}
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button onClick={e => { e.stopPropagation(); onStartEdit(task.id, task.title) }} className="p-1 text-stone-300 hover:text-stone-600 hover:bg-stone-100 rounded"><Pencil size={11} /></button>
             <button onClick={e => { e.stopPropagation(); onDelete(task.id) }} className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded"><X size={11} /></button>
           </div>
-          <button onClick={() => onToggleExpand(task)} className="p-1 text-stone-300 hover:text-stone-500 rounded">
-            <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+
+          {/* Expand */}
+          <button onClick={() => onToggleExpand(task)} className="p-1 text-stone-400 hover:text-stone-600 rounded">
+            <ChevronRight size={17} className={`transition-transform ${expanded ? 'rotate-90' : ''}`} />
           </button>
         </div>
       </div>
 
       {expanded && (
         <div className="px-4 pb-4 pt-0 pl-11 space-y-3">
-          {/* Assignee */}
-          <div className="flex items-center gap-2">
-            {task.assigned_to ? (
-              <>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-stone-200 bg-stone-50 text-xs font-medium text-stone-600">
-                  <User size={11} className="text-stone-400" />{task.assigned_to}
-                </span>
-                <button onClick={() => onUnclaim(task.id)}
-                  className="text-[10px] text-stone-300 hover:text-red-400 transition-colors">
-                  Unassign
-                </button>
-              </>
-            ) : claiming ? (
-              <div className="flex items-center gap-1.5">
-                <input autoFocus className="border border-stone-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 w-36"
-                  placeholder="Your name…" value={claimInput} onChange={e => setClaimInput(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && claimInput.trim()) { onClaim(task.id, claimInput.trim()); setClaiming(false); setClaimInput('') }
-                    if (e.key === 'Escape') { setClaiming(false); setClaimInput('') }
-                  }} />
-                <button onClick={() => { if (claimInput.trim()) { onClaim(task.id, claimInput.trim()); setClaiming(false); setClaimInput('') } }}
-                  disabled={!claimInput.trim()}
-                  className="px-2.5 py-1 text-white text-xs rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                  Confirm
-                </button>
-                <button onClick={() => { setClaiming(false); setClaimInput('') }} className="text-xs text-stone-400 hover:text-stone-600">Cancel</button>
-              </div>
-            ) : (
-              <button onClick={() => setClaiming(true)}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-stone-300 text-xs text-stone-400 hover:border-amber-300 hover:text-amber-600 transition-colors">
-                <User size={11} /> Take on this task
+          {/* Unassign (only shown when assigned) */}
+          {task.assigned_to && (
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-stone-200 bg-stone-50 text-xs font-medium text-stone-600">
+                <User size={11} className="text-stone-400" />{task.assigned_to}
+              </span>
+              <button onClick={() => onUnclaim(task.id)} className="text-[10px] text-stone-300 hover:text-red-400 transition-colors">
+                Unassign
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           <textarea
             className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 bg-stone-50"
