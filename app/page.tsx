@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronDown, Paperclip, FileText } from 'lucide-react'
+import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronDown, Paperclip, FileText, User } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
@@ -16,6 +16,7 @@ interface Task {
   due_date: string | null
   notes: string | null
   attachment_url: string | null
+  assigned_to: string | null
   created_at: string
 }
 
@@ -36,22 +37,159 @@ const STATUS_CYCLE: Record<TaskStatus, TaskStatus> = { todo: 'in_progress', in_p
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
 
-/* ── Component ───────────────────────────────────────────── */
+/* ── TaskRow (outside Dashboard to prevent remount on re-render) ── */
+interface TaskRowProps {
+  task: Task
+  expandedId: string | null
+  editingId: string | null
+  editTitle: string
+  notesDraft: Record<string, string>
+  uploadingTaskId: string | null
+  onCycleStatus: (task: Task) => void
+  onDelete: (id: string) => void
+  onToggleExpand: (task: Task) => void
+  onStartEdit: (id: string, title: string) => void
+  onCancelEdit: () => void
+  onSaveEdit: (id: string) => void
+  onEditTitleChange: (v: string) => void
+  onNotesDraftChange: (id: string, v: string) => void
+  onSaveNotes: (id: string) => void
+  onTriggerUpload: (id: string) => void
+}
+
+function StatusIcon({ status }: { status: TaskStatus }) {
+  if (status === 'done') return <Check size={15} className="text-emerald-500" />
+  if (status === 'in_progress') return <Circle size={15} className="text-amber-500 fill-amber-100" />
+  return <Circle size={15} className="text-stone-300" />
+}
+
+function TaskRow({
+  task, expandedId, editingId, editTitle, notesDraft, uploadingTaskId,
+  onCycleStatus, onDelete, onToggleExpand, onStartEdit, onCancelEdit,
+  onSaveEdit, onEditTitleChange, onNotesDraftChange, onSaveNotes, onTriggerUpload,
+}: TaskRowProps) {
+  const expanded = expandedId === task.id
+  const editing  = editingId  === task.id
+
+  return (
+    <div className={`border-b border-stone-100 last:border-0 ${task.status === 'done' ? 'opacity-55' : ''}`}>
+      <div className="flex items-start gap-3 px-4 py-3 group">
+        <button onClick={e => { e.stopPropagation(); onCycleStatus(task) }} className="mt-0.5 flex-shrink-0 hover:scale-110 transition-transform">
+          <StatusIcon status={task.status} />
+        </button>
+
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onToggleExpand(task)}>
+          {editing ? (
+            <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
+              <input autoFocus className="flex-1 border border-stone-200 rounded-lg px-2 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                value={editTitle} onChange={e => onEditTitleChange(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(task.id); if (e.key === 'Escape') onCancelEdit() }} />
+              <button onClick={() => onSaveEdit(task.id)} className="px-2 py-0.5 text-white text-xs rounded-lg" style={goldBtn}>Save</button>
+              <button onClick={onCancelEdit} className="px-2 py-0.5 bg-stone-100 text-stone-500 text-xs rounded-lg">✕</button>
+            </div>
+          ) : (
+            <p className={`text-sm text-stone-800 ${task.status === 'done' ? 'line-through' : ''}`}>{task.title}</p>
+          )}
+
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {task.label && <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium ${LABEL_COLORS[task.label as TaskLabel]}`}>{task.label}</span>}
+            {task.assigned_to && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium bg-stone-100 text-stone-500 border-stone-200">
+                <User size={9} />{task.assigned_to}
+              </span>
+            )}
+            {task.due_date && <span className="text-[10px] text-stone-400">Due {new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+            {task.status === 'in_progress' && <span className="text-[10px] text-amber-600 font-medium">In Progress</span>}
+            {task.notes && !expanded && <span className="text-[10px] text-stone-400 italic">has notes</span>}
+            {task.attachment_url && !expanded && <span className="text-[10px] text-stone-400 flex items-center gap-0.5"><Paperclip size={9} />attachment</span>}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={e => { e.stopPropagation(); onStartEdit(task.id, task.title) }} className="p-1 text-stone-300 hover:text-stone-600 hover:bg-stone-100 rounded"><Pencil size={11} /></button>
+            <button onClick={e => { e.stopPropagation(); onDelete(task.id) }} className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded"><X size={11} /></button>
+          </div>
+          <button onClick={() => onToggleExpand(task)} className="p-1 text-stone-300 hover:text-stone-500 rounded">
+            <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-4 pt-0 pl-11 space-y-3">
+          <textarea
+            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 bg-stone-50"
+            rows={4}
+            placeholder="Add notes..."
+            value={notesDraft[task.id] ?? task.notes ?? ''}
+            onChange={e => onNotesDraftChange(task.id, e.target.value)}
+            onBlur={() => onSaveNotes(task.id)}
+          />
+          <p className="text-[10px] text-stone-300 -mt-1">Auto-saves when you click away</p>
+
+          {task.status === 'done' && (
+            task.attachment_url ? (
+              <TaskAttachment url={task.attachment_url} onReplace={() => onTriggerUpload(task.id)} uploading={uploadingTaskId === task.id} />
+            ) : (
+              <button onClick={() => onTriggerUpload(task.id)} disabled={uploadingTaskId === task.id}
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-dashed border-stone-300 text-stone-400 hover:border-amber-300 hover:text-amber-600 transition-colors disabled:opacity-40">
+                <Paperclip size={12} />{uploadingTaskId === task.id ? 'Uploading…' : 'Attach a file'}
+              </button>
+            )
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function TaskAttachment({ url, onReplace, uploading }: { url: string; onReplace: () => void; uploading: boolean }) {
+  const filename = decodeURIComponent(url.split('/').pop() ?? 'attachment').replace(/^\d+-/, '')
+  const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(filename)
+  return (
+    <div className="flex items-center gap-2 p-2 rounded-lg border border-stone-200 bg-stone-50 group">
+      {isImage ? (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0">
+          <img src={url} alt={filename} className="h-10 w-10 object-cover rounded border border-stone-200 flex-shrink-0" />
+          <span className="text-xs text-stone-600 truncate hover:underline">{filename}</span>
+        </a>
+      ) : (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0">
+          <div className="h-8 w-8 rounded border border-stone-200 bg-white flex items-center justify-center flex-shrink-0">
+            <FileText size={14} className="text-stone-400" />
+          </div>
+          <span className="text-xs text-stone-600 truncate hover:underline">{filename}</span>
+        </a>
+      )}
+      <button onClick={onReplace} disabled={uploading}
+        className="opacity-0 group-hover:opacity-100 text-[10px] text-stone-400 hover:text-amber-600 px-2 py-1 rounded border border-stone-200 hover:border-amber-300 transition-all flex-shrink-0 disabled:opacity-40">
+        {uploading ? 'Uploading…' : 'Replace'}
+      </button>
+    </div>
+  )
+}
+
+/* ── Dashboard ───────────────────────────────────────────── */
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
+  const [taskTab, setTaskTab] = useState<TaskStatus>('todo')
+
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newLabel, setNewLabel] = useState<TaskLabel | ''>('')
   const [newDue, setNewDue] = useState('')
   const [newNotes, setNewNotes] = useState('')
+  const [newAssignee, setNewAssignee] = useState('')
   const [saving, setSaving] = useState(false)
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editTitle, setEditTitle] = useState('')
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({})
+
   const [filterLabel, setFilterLabel] = useState<TaskLabel | 'all'>('all')
-  const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all')
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null)
   const attachmentInputRef = useRef<HTMLInputElement>(null)
   const pendingUploadTaskId = useRef<string | null>(null)
@@ -67,8 +205,12 @@ export default function Dashboard() {
   async function addTask() {
     if (!newTitle.trim()) return
     setSaving(true)
-    await supabase.from('tasks').insert({ title: newTitle.trim(), label: newLabel || null, due_date: newDue || null, notes: newNotes.trim() || null, status: 'todo' })
-    setNewTitle(''); setNewLabel(''); setNewDue(''); setNewNotes('')
+    await supabase.from('tasks').insert({
+      title: newTitle.trim(), label: newLabel || null,
+      due_date: newDue || null, notes: newNotes.trim() || null,
+      assigned_to: newAssignee.trim() || null, status: 'todo',
+    })
+    setNewTitle(''); setNewLabel(''); setNewDue(''); setNewNotes(''); setNewAssignee('')
     setShowAdd(false); setSaving(false)
     await loadTasks()
   }
@@ -100,7 +242,10 @@ export default function Dashboard() {
 
   function toggleExpand(task: Task) {
     if (expandedId === task.id) { setExpandedId(null) }
-    else { setExpandedId(task.id); setNotesDraft(prev => ({ ...prev, [task.id]: task.notes ?? '' })) }
+    else {
+      setExpandedId(task.id)
+      setNotesDraft(prev => ({ ...prev, [task.id]: task.notes ?? '' }))
+    }
   }
 
   function triggerAttachmentUpload(taskId: string) {
@@ -125,85 +270,25 @@ export default function Dashboard() {
     e.target.value = ''
   }
 
-  const filtered = tasks.filter(t => {
-    if (filterLabel !== 'all' && t.label !== filterLabel) return false
-    if (filterStatus !== 'all' && t.status !== filterStatus) return false
-    return true
-  })
-  const todo = filtered.filter(t => t.status === 'todo')
-  const inProgress = filtered.filter(t => t.status === 'in_progress')
-  const done = filtered.filter(t => t.status === 'done')
+  const filtered = filterLabel === 'all' ? tasks : tasks.filter(t => t.label === filterLabel)
+  const byTab = filtered.filter(t => t.status === taskTab)
 
-  function StatusIcon({ status }: { status: TaskStatus }) {
-    if (status === 'done') return <Check size={15} className="text-emerald-500" />
-    if (status === 'in_progress') return <Circle size={15} className="text-amber-500 fill-amber-100" />
-    return <Circle size={15} className="text-stone-300" />
-  }
+  const todoCnt      = filtered.filter(t => t.status === 'todo').length
+  const inProgCnt    = filtered.filter(t => t.status === 'in_progress').length
+  const doneCnt      = filtered.filter(t => t.status === 'done').length
 
-  function TaskRow({ task }: { task: Task }) {
-    const expanded = expandedId === task.id
-    return (
-      <div className={`border-b border-stone-100 last:border-0 ${task.status === 'done' ? 'opacity-50' : ''}`}>
-        <div className="flex items-start gap-3 px-4 py-3 group">
-          <button onClick={(e) => { e.stopPropagation(); cycleStatus(task) }} className="mt-0.5 flex-shrink-0 hover:scale-110 transition-transform">
-            <StatusIcon status={task.status} />
-          </button>
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => toggleExpand(task)}>
-            {editingId === task.id ? (
-              <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
-                <input autoFocus className="flex-1 border border-stone-200 rounded-lg px-2 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                  value={editTitle} onChange={e => setEditTitle(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') saveEdit(task.id); if (e.key === 'Escape') setEditingId(null) }} />
-                <button onClick={() => saveEdit(task.id)} className="px-2 py-0.5 text-white text-xs rounded-lg" style={goldBtn}>Save</button>
-                <button onClick={() => setEditingId(null)} className="px-2 py-0.5 bg-stone-100 text-stone-500 text-xs rounded-lg">✕</button>
-              </div>
-            ) : (
-              <p className={`text-sm text-stone-800 ${task.status === 'done' ? 'line-through' : ''}`}>{task.title}</p>
-            )}
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              {task.label && <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium ${LABEL_COLORS[task.label as TaskLabel]}`}>{task.label}</span>}
-              {task.due_date && <span className="text-[10px] text-stone-400">Due {new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
-              {task.status === 'in_progress' && <span className="text-[10px] text-amber-600 font-medium">In Progress</span>}
-              {task.notes && !expanded && <span className="text-[10px] text-stone-400 italic">has notes</span>}
-              {task.attachment_url && !expanded && <span className="text-[10px] text-stone-400 flex items-center gap-0.5"><Paperclip size={9} />attachment</span>}
-            </div>
-          </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <button onClick={(e) => { e.stopPropagation(); setEditingId(task.id); setEditTitle(task.title) }} className="p-1 text-stone-300 hover:text-stone-600 hover:bg-stone-100 rounded"><Pencil size={11} /></button>
-              <button onClick={(e) => { e.stopPropagation(); deleteTask(task.id) }} className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded"><X size={11} /></button>
-            </div>
-            <button onClick={() => toggleExpand(task)} className="p-1 text-stone-300 hover:text-stone-500 rounded">
-              <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
-            </button>
-          </div>
-        </div>
-        {expanded && (
-          <div className="px-4 pb-3 pt-0 pl-11 space-y-2">
-            <textarea
-              className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 bg-stone-50"
-              rows={4} placeholder="Add notes..."
-              value={notesDraft[task.id] ?? ''}
-              onChange={e => setNotesDraft(prev => ({ ...prev, [task.id]: e.target.value }))}
-              onBlur={() => saveNotes(task.id)}
-            />
-            <p className="text-[10px] text-stone-300">Auto-saves when you click away</p>
-            {task.status === 'done' && (
-              <div className="pt-1">
-                {task.attachment_url ? (
-                  <TaskAttachment url={task.attachment_url} onReplace={() => triggerAttachmentUpload(task.id)} uploading={uploadingTaskId === task.id} />
-                ) : (
-                  <button onClick={() => triggerAttachmentUpload(task.id)} disabled={uploadingTaskId === task.id}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-dashed border-stone-300 text-stone-400 hover:border-amber-300 hover:text-amber-600 transition-colors disabled:opacity-40">
-                    <Paperclip size={12} />{uploadingTaskId === task.id ? 'Uploading…' : 'Attach a file'}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    )
+  const rowProps = {
+    expandedId, editingId, editTitle, notesDraft, uploadingTaskId,
+    onCycleStatus: cycleStatus,
+    onDelete: deleteTask,
+    onToggleExpand: toggleExpand,
+    onStartEdit: (id: string, title: string) => { setEditingId(id); setEditTitle(title) },
+    onCancelEdit: () => setEditingId(null),
+    onSaveEdit: saveEdit,
+    onEditTitleChange: setEditTitle,
+    onNotesDraftChange: (id: string, v: string) => setNotesDraft(prev => ({ ...prev, [id]: v })),
+    onSaveNotes: saveNotes,
+    onTriggerUpload: triggerAttachmentUpload,
   }
 
   return (
@@ -211,7 +296,7 @@ export default function Dashboard() {
       <Sidebar activePage="dashboard" />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
-        <div className="px-8 pt-8 pb-4">
+        <div className="px-8 pt-8 pb-6">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
@@ -225,31 +310,10 @@ export default function Dashboard() {
               <Plus size={15} /> Add Task
             </button>
           </div>
-        </div>
-
-        <div className="px-8 pb-8 flex-1 flex flex-col gap-5">
-          {/* Filters */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <select className="border border-stone-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-600"
-              value={filterStatus} onChange={e => setFilterStatus(e.target.value as TaskStatus | 'all')}>
-              <option value="all">All Statuses</option>
-              <option value="todo">To Do</option>
-              <option value="in_progress">In Progress</option>
-              <option value="done">Done</option>
-            </select>
-            <select className="border border-stone-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-600"
-              value={filterLabel} onChange={e => setFilterLabel(e.target.value as TaskLabel | 'all')}>
-              <option value="all">All Labels</option>
-              {LABELS.map(l => <option key={l} value={l}>{l}</option>)}
-            </select>
-            {(filterLabel !== 'all' || filterStatus !== 'all') && (
-              <button onClick={() => { setFilterLabel('all'); setFilterStatus('all') }} className="text-xs text-stone-400 hover:text-stone-600 px-2 py-1.5">Clear filters</button>
-            )}
-          </div>
 
           {/* Add task form */}
           {showAdd && (
-            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4 space-y-3">
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4 space-y-3 mb-5">
               <h3 className="text-sm font-semibold text-stone-700">New Task</h3>
               <input autoFocus className={inputCls} placeholder="Task title..." value={newTitle} onChange={e => setNewTitle(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) addTask() }} />
@@ -262,12 +326,16 @@ export default function Dashboard() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs text-stone-400 mb-1 block">Due Date (optional)</label>
+                  <label className="text-xs text-stone-400 mb-1 block">Assign To</label>
+                  <input className={inputCls} placeholder="Your name…" value={newAssignee} onChange={e => setNewAssignee(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs text-stone-400 mb-1 block">Due Date</label>
                   <input type="date" className={inputCls} value={newDue} onChange={e => setNewDue(e.target.value)} />
                 </div>
               </div>
               <div>
-                <label className="text-xs text-stone-400 mb-1 block">Notes (optional)</label>
+                <label className="text-xs text-stone-400 mb-1 block">Notes</label>
                 <textarea className={inputCls + ' resize-none'} rows={3} placeholder="Any notes..." value={newNotes} onChange={e => setNewNotes(e.target.value)} />
               </div>
               <div className="flex gap-2">
@@ -279,31 +347,47 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Task columns */}
+          {/* Task box */}
           {loading ? (
             <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading...</div>
           ) : (
-            <div className="grid grid-cols-3 gap-5">
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
-                  <h3 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">To Do</h3>
-                  <span className="text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-full">{todo.length}</span>
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+              {/* Tab bar */}
+              <div className="flex items-center border-b border-stone-100 px-2 pt-2">
+                {([
+                  ['todo',        'To Do',       todoCnt],
+                  ['in_progress', 'In Progress', inProgCnt],
+                  ['done',        'Done',        doneCnt],
+                ] as const).map(([status, label, count]) => (
+                  <button key={status} onClick={() => setTaskTab(status)}
+                    className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold border-b-2 transition-colors mr-1 ${
+                      taskTab === status
+                        ? 'border-amber-400 text-stone-800'
+                        : 'border-transparent text-stone-400 hover:text-stone-600'
+                    }`}>
+                    {label}
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] ${
+                      taskTab === status ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-400'
+                    }`}>{count}</span>
+                  </button>
+                ))}
+
+                {/* Label filter */}
+                <div className="ml-auto mb-1.5 pr-1">
+                  <select className="border border-stone-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none text-stone-500"
+                    value={filterLabel} onChange={e => setFilterLabel(e.target.value as TaskLabel | 'all')}>
+                    <option value="all">All Labels</option>
+                    {LABELS.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
                 </div>
-                <div>{todo.length === 0 ? <p className="px-4 py-6 text-xs text-stone-300 text-center italic">No tasks</p> : todo.map(t => <TaskRow key={t.id} task={t} />)}</div>
               </div>
-              <div className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-amber-100 flex items-center justify-between bg-amber-50/50">
-                  <h3 className="text-xs font-semibold text-amber-600 uppercase tracking-wider">In Progress</h3>
-                  <span className="text-xs text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">{inProgress.length}</span>
-                </div>
-                <div>{inProgress.length === 0 ? <p className="px-4 py-6 text-xs text-stone-300 text-center italic">No tasks</p> : inProgress.map(t => <TaskRow key={t.id} task={t} />)}</div>
-              </div>
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
-                  <h3 className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Done</h3>
-                  <span className="text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">{done.length}</span>
-                </div>
-                <div>{done.length === 0 ? <p className="px-4 py-6 text-xs text-stone-300 text-center italic">No tasks</p> : done.map(t => <TaskRow key={t.id} task={t} />)}</div>
+
+              {/* Task list */}
+              <div>
+                {byTab.length === 0
+                  ? <p className="px-4 py-10 text-xs text-stone-300 text-center italic">No {taskTab === 'in_progress' ? 'in-progress' : taskTab} tasks.</p>
+                  : byTab.map(t => <TaskRow key={t.id} task={t} {...rowProps} />)
+                }
               </div>
             </div>
           )}
@@ -311,32 +395,6 @@ export default function Dashboard() {
       </div>
 
       <input ref={attachmentInputRef} type="file" className="hidden" onChange={handleAttachmentUpload} />
-    </div>
-  )
-}
-
-function TaskAttachment({ url, onReplace, uploading }: { url: string; onReplace: () => void; uploading: boolean }) {
-  const filename = decodeURIComponent(url.split('/').pop() ?? 'attachment').replace(/^\d+-/, '')
-  const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(filename)
-  return (
-    <div className="flex items-center gap-2 p-2 rounded-lg border border-stone-200 bg-stone-50 group">
-      {isImage ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0">
-          <img src={url} alt={filename} className="h-10 w-10 object-cover rounded border border-stone-200 flex-shrink-0" />
-          <span className="text-xs text-stone-600 truncate hover:underline">{filename}</span>
-        </a>
-      ) : (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="h-8 w-8 rounded border border-stone-200 bg-white flex items-center justify-center flex-shrink-0">
-            <FileText size={14} className="text-stone-400" />
-          </div>
-          <span className="text-xs text-stone-600 truncate hover:underline">{filename}</span>
-        </a>
-      )}
-      <button onClick={onReplace} disabled={uploading}
-        className="opacity-0 group-hover:opacity-100 text-[10px] text-stone-400 hover:text-amber-600 px-2 py-1 rounded border border-stone-200 hover:border-amber-300 transition-all flex-shrink-0 disabled:opacity-40">
-        {uploading ? 'Uploading…' : 'Replace'}
-      </button>
     </div>
   )
 }
