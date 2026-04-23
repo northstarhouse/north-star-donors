@@ -20,6 +20,8 @@ export interface Donor {
   donor_notes: string | null
   historical_lifetime_giving: number
   historical_donation_count: number
+  starred: boolean
+  star_note: string | null
   created_at: string
   updated_at: string
 }

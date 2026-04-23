@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { X, MapPin, Mail, Phone, Briefcase, Plus, DollarSign, Pencil, Trash2, Check, GitMerge } from 'lucide-react'
+import { X, MapPin, Mail, Phone, Briefcase, Plus, DollarSign, Pencil, Trash2, Check, GitMerge, Star } from 'lucide-react'
 import { DonorWithStats, Donation } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import TierBadge from './TierBadge'
@@ -23,6 +23,10 @@ type DonationEdit = { amount: string; date: string; type: Donation['type']; dona
 export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
   const [notes, setNotes] = useState(donor.donor_notes ?? '')
   const [saving, setSaving] = useState(false)
+  const [starred, setStarred] = useState(donor.starred ?? false)
+  const [starNote, setStarNote] = useState(donor.star_note ?? '')
+  const [showStarNote, setShowStarNote] = useState(false)
+  const [starSaving, setStarSaving] = useState(false)
   const [showAddDonation, setShowAddDonation] = useState(false)
   const [newAmount, setNewAmount] = useState('')
   const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 10))
@@ -45,6 +49,22 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
     setSaving(true)
     await supabase.from('donors').update({ donor_notes: notes, updated_at: new Date().toISOString() }).eq('id', donor.id)
     setSaving(false)
+    onUpdated()
+  }
+
+  async function confirmStar() {
+    setStarSaving(true)
+    await supabase.from('donors').update({ starred: true, star_note: starNote.trim() || null }).eq('id', donor.id)
+    setStarred(true)
+    setShowStarNote(false)
+    setStarSaving(false)
+    onUpdated()
+  }
+
+  async function removeStar() {
+    await supabase.from('donors').update({ starred: false, star_note: null }).eq('id', donor.id)
+    setStarred(false)
+    setStarNote('')
     onUpdated()
   }
 
@@ -119,29 +139,74 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
       <div className="relative w-full max-w-xl bg-white h-full overflow-y-auto shadow-2xl flex flex-col">
 
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-stone-100 px-6 py-4 flex items-start justify-between z-10">
-          <div>
-            <h2 className="text-xl font-semibold text-stone-800" style={{ fontFamily: 'var(--font-serif)' }}>
-              {donor.formal_name}
-            </h2>
-            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-              <TierBadge tier={donor.tier} />
-              <StatusBadge status={donor.status} />
+        <div className="sticky top-0 bg-white border-b border-stone-100 px-6 py-4 z-10">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold text-stone-800" style={{ fontFamily: 'var(--font-serif)' }}>
+                  {donor.formal_name}
+                </h2>
+                {starred && (
+                  <Star size={16} fill="#b5a185" stroke="#b5a185" className="flex-shrink-0 mt-0.5" />
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <TierBadge tier={donor.tier} />
+                <StatusBadge status={donor.status} />
+              </div>
+            </div>
+            <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+              <button
+                onClick={() => setShowMerge(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
+                title="Merge with another donor"
+              >
+                <GitMerge size={13} />
+                Merge
+              </button>
+              <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-400">
+                <X size={18} />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-            <button
-              onClick={() => setShowMerge(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
-              title="Merge with another donor"
-            >
-              <GitMerge size={13} />
-              Merge
+
+          {/* Star controls */}
+          {starred ? (
+            <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+              <Star size={13} fill="#b5a185" stroke="#b5a185" className="flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                {starNote && <p className="text-xs text-stone-600 leading-relaxed">{starNote}</p>}
+                {!starNote && <p className="text-xs text-stone-400 italic">No note</p>}
+              </div>
+              <button onClick={removeStar} className="text-[10px] text-stone-300 hover:text-red-400 flex-shrink-0 transition-colors">Remove</button>
+            </div>
+          ) : showStarNote ? (
+            <div className="mt-3 space-y-2">
+              <textarea
+                autoFocus
+                className="w-full border border-amber-300 rounded-xl px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 bg-amber-50/50"
+                rows={2}
+                placeholder="Add a note about this donor… (optional)"
+                value={starNote}
+                onChange={e => setStarNote(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <button onClick={confirmStar} disabled={starSaving}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs rounded-lg font-medium disabled:opacity-50"
+                  style={{ background: 'var(--gold)' }}>
+                  <Star size={11} fill="white" stroke="white" />
+                  {starSaving ? 'Saving…' : 'Star Donor'}
+                </button>
+                <button onClick={() => { setShowStarNote(false); setStarNote('') }}
+                  className="px-3 py-1.5 bg-stone-100 text-stone-600 text-xs rounded-lg hover:bg-stone-200">Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={() => setShowStarNote(true)}
+              className="mt-2.5 flex items-center gap-1.5 text-xs text-stone-400 hover:text-amber-600 transition-colors">
+              <Star size={12} /> Star this donor
             </button>
-            <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-400">
-              <X size={18} />
-            </button>
-          </div>
+          )}
         </div>
 
         <div className="flex-1 px-6 py-5 space-y-6">
