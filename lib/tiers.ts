@@ -25,8 +25,8 @@ export function getStatus(lastGiftDate: string | null): DonorStatus {
   if (!lastGiftDate) return 'non_donor'
   const year = new Date(lastGiftDate).getFullYear()
   const currentYear = new Date().getFullYear()
-  if (year >= currentYear - 1) return 'current'
-  if (year === currentYear - 2) return 'recently_lapsed'
+  if (year === currentYear) return 'current'
+  if (year === currentYear - 1) return 'recently_lapsed'
   return 'long_lapsed'
 }
 
