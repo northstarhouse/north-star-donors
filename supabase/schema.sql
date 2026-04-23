@@ -63,6 +63,7 @@ create table if not exists tasks (
   label text,
   status text not null default 'todo',
   due_date date,
+  notes text,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
