@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { List, Trash2, X, Users, ChevronLeft, Download } from 'lucide-react'
+import { List, Trash2, X, Users, ChevronLeft, Download, Star } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { DonorList, DonorWithStats, Donor, Donation } from '@/lib/types'
 import { getTier, getStatus } from '@/lib/tiers'
@@ -237,11 +237,19 @@ export default function ListsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {listDonors.map(donor => (
-                      <tr key={donor.id} className="border-b border-stone-100 hover:bg-amber-50/50 group">
+                    {[...listDonors].sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0)).map(donor => (
+                      <tr key={donor.id}
+                        className={`border-b border-stone-100 group ${donor.starred ? 'bg-amber-50/60 hover:bg-amber-50' : 'hover:bg-stone-50/60'}`}
+                        style={donor.starred ? { boxShadow: 'inset 3px 0 0 #b5a185' } : {}}>
                         <td className="px-6 py-3 cursor-pointer" onClick={() => setSelected(donor)}>
-                          <p className="font-medium text-stone-800">{donor.formal_name}</p>
-                          {donor.informal_first_name && <p className="text-xs text-stone-400">{donor.informal_first_name}</p>}
+                          <div className="flex items-center gap-2">
+                            {donor.starred && <Star size={13} fill="#b5a185" stroke="#b5a185" className="flex-shrink-0" />}
+                            <div>
+                              <p className={`font-medium ${donor.starred ? 'text-stone-900' : 'text-stone-800'}`}>{donor.formal_name}</p>
+                              {donor.star_note && <p className="text-xs mt-0.5" style={{ color: 'var(--gold)' }}>{donor.star_note}</p>}
+                              {!donor.star_note && donor.informal_first_name && <p className="text-xs text-stone-400">{donor.informal_first_name}</p>}
+                            </div>
+                          </div>
                         </td>
                         <td className="px-4 py-3" onClick={() => setSelected(donor)}>
                           <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_PILL[donor.status]}`}>
