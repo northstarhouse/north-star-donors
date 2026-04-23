@@ -5,13 +5,10 @@ import { LayoutDashboard, Heart, List, Award } from 'lucide-react'
 function CoordIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; strokeWidth?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <circle cx="12" cy="3"  r="2" />
-      <circle cx="4"  cy="20" r="2" />
-      <circle cx="20" cy="20" r="2" />
-      <line x1="12"  y1="9"    x2="12"  y2="5" />
-      <line x1="9.6" y1="14.2" x2="5.7" y2="18" />
-      <line x1="14.4" y1="14.2" x2="18.3" y2="18" />
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="4"  r="2" />
+      <circle cx="19" cy="16" r="2" />
+      <circle cx="5"  cy="16" r="2" />
     </svg>
   )
 }
