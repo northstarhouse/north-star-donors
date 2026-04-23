@@ -1,6 +1,17 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { GitMerge, Plus, X, Pencil, Trash2, MessageSquare } from 'lucide-react'
+import { Plus, X, Pencil, Trash2, MessageSquare } from 'lucide-react'
+
+function CoordIcon({ size = 16 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="4"  r="2" />
+      <circle cx="19" cy="16" r="2" />
+      <circle cx="5"  cy="16" r="2" />
+    </svg>
+  )
+}
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
@@ -153,10 +164,10 @@ export default function CoordinationPage() {
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
         {/* Header */}
         <div className="px-8 pt-8 pb-4">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-start justify-between mb-6 gap-8">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
-                <GitMerge size={16} className="text-stone-400" strokeWidth={1.5} />
+              <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm text-stone-400">
+                <CoordIcon size={16} />
               </div>
               <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
                 Cross-Coordination
