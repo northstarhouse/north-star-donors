@@ -20,6 +20,7 @@ interface Sponsor {
   'Date Recieved': string | null
   'Acknowledged': string | null
   logo_url: string | null
+  is_current: boolean | null
 }
 
 interface InKind {
@@ -116,8 +117,8 @@ export default function SponsorsPage() {
     return allInKind.filter(e => e.sponsor_id === sponsorId).reduce((s, e) => s + (Number(e.value) || 0), 0)
   }
 
-  const currentSponsors = sponsors?.filter(s => s['Date Recieved'] && new Date(s['Date Recieved']).getFullYear() === CURRENT_YEAR) ?? []
-  const pastSponsors = sponsors?.filter(s => !s['Date Recieved'] || new Date(s['Date Recieved']).getFullYear() < CURRENT_YEAR) ?? []
+  const currentSponsors = sponsors?.filter(s => s.is_current || (s['Date Recieved'] && new Date(s['Date Recieved']).getFullYear() === CURRENT_YEAR)) ?? []
+  const pastSponsors = sponsors?.filter(s => !s.is_current && (!s['Date Recieved'] || new Date(s['Date Recieved']).getFullYear() < CURRENT_YEAR)) ?? []
   const visibleSponsors = tab === 'current' ? currentSponsors : pastSponsors
 
   const totalInKindAll = allInKind.reduce((s, e) => s + (Number(e.value) || 0), 0)
@@ -164,6 +165,14 @@ export default function SponsorsPage() {
     setShowAdd(false)
     setAddForm(EMPTY_FORM)
     setAddSaving(false)
+  }
+
+  async function toggleCurrent(s: Sponsor, e: React.MouseEvent) {
+    e.stopPropagation()
+    const next = !s.is_current
+    await supabase.from('Sponsors').update({ is_current: next }).eq('id', s.id)
+    setSponsors(prev => prev?.map(sp => sp.id === s.id ? { ...sp, is_current: next } : sp) ?? null)
+    if (selected?.id === s.id) setSelected(prev => prev ? { ...prev, is_current: next } : null)
   }
 
   async function submitInKind(e: React.FormEvent) {
@@ -278,21 +287,33 @@ export default function SponsorsPage() {
                   const total = inKindTotal(s.id)
                   const tier = getTier(total)
                   return (
-                    <button key={s.id} onClick={() => selectSponsor(s)}
-                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border text-left transition-colors ${isSelected ? 'border-amber-300 bg-amber-50/80' : 'border-stone-200 bg-white hover:bg-stone-50'}`}>
-                      <SponsorAvatar sponsor={s} size={44} />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-stone-800 text-sm truncate">{s['Business Name']}</p>
-                        <div className="flex gap-3 mt-0.5">
-                          {s['Main Contact'] && <span className="text-xs text-stone-400 truncate">{s['Main Contact']}</span>}
-                          {s['Area Supported'] && <span className="text-xs text-stone-300">{s['Area Supported']}</span>}
+                    <div key={s.id}
+                      className={`flex items-center gap-3 px-4 py-3.5 rounded-xl border transition-colors ${isSelected ? 'border-amber-300 bg-amber-50/80' : 'border-stone-200 bg-white hover:bg-stone-50'}`}>
+                      <button className="flex-1 flex items-center gap-4 text-left min-w-0" onClick={() => selectSponsor(s)}>
+                        <SponsorAvatar sponsor={s} size={44} />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-stone-800 text-sm truncate">{s['Business Name']}</p>
+                          <div className="flex gap-3 mt-0.5">
+                            {s['Main Contact'] && <span className="text-xs text-stone-400 truncate">{s['Main Contact']}</span>}
+                            {s['Area Supported'] && <span className="text-xs text-stone-300">{s['Area Supported']}</span>}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                        {total > 0 && <span className="text-sm font-semibold" style={{ color: 'var(--gold)' }}>{fmt(total)}</span>}
-                        {tier && <TierBadge tier={tier} />}
-                      </div>
-                    </button>
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                          {total > 0 && <span className="text-sm font-semibold" style={{ color: 'var(--gold)' }}>{fmt(total)}</span>}
+                          {tier && <TierBadge tier={tier} />}
+                        </div>
+                      </button>
+                      <label className="flex items-center gap-1.5 flex-shrink-0 cursor-pointer group/cur" title="Mark as current">
+                        <input
+                          type="checkbox"
+                          className="accent-amber-600 cursor-pointer"
+                          checked={!!s.is_current}
+                          onChange={() => {}}
+                          onClick={e => toggleCurrent(s, e)}
+                        />
+                        <span className="text-[10px] text-stone-400 group-hover/cur:text-stone-600">Current</span>
+                      </label>
+                    </div>
                   )
                 })}
               </div>
