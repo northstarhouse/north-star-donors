@@ -317,7 +317,7 @@ export default function SponsorsPage() {
 
               {/* Detail panel */}
               {selected ? (
-                <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-6 self-start sticky top-6 max-h-[calc(100vh-120px)] overflow-y-auto">
+                <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-6 sticky top-6 h-[calc(100vh-100px)] overflow-y-auto">
                   {/* Header */}
                   <div className="flex items-start justify-between mb-5">
                     <div className="flex items-center gap-3">
