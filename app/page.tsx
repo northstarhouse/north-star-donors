@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useMemo } from 'react'
-import { Heart, UserPlus } from 'lucide-react'
+import { Heart, UserPlus, Tags, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { Donor, Donation, DonorWithStats } from '@/lib/types'
 import { getTier, getStatus } from '@/lib/tiers'
@@ -9,6 +9,7 @@ import DonorPanel from '@/components/DonorPanel'
 import FilterBar, { Filters } from '@/components/FilterBar'
 import Sidebar from '@/components/Sidebar'
 import AddDonorModal from '@/components/AddDonorModal'
+import AddToListModal from '@/components/AddToListModal'
 
 const CURRENT_YEAR = new Date().getFullYear()
 
@@ -46,6 +47,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<DonorWithStats | null>(null)
   const [showAddDonor, setShowAddDonor] = useState(false)
+  const [showAddToList, setShowAddToList] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [filters, setFilters] = useState<Filters>({
     search: '',
     status: 'all',
@@ -132,6 +135,24 @@ export default function Home() {
     URL.revokeObjectURL(url)
   }
 
+  function handleToggle(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function handleToggleAll(ids: string[]) {
+    const allChecked = ids.every(id => selectedIds.has(id))
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (allChecked) ids.forEach(id => next.delete(id))
+      else ids.forEach(id => next.add(id))
+      return next
+    })
+  }
+
   const selectedFresh = selected ? donors.find(d => d.id === selected.id) ?? selected : null
 
   const currentYear = new Date().getFullYear()
@@ -210,10 +231,38 @@ export default function Home() {
               </button>
             </div>
           ) : (
-            <DonorList donors={filtered} onSelect={setSelected} />
+            <DonorList
+              donors={filtered}
+              onSelect={setSelected}
+              selectedIds={selectedIds}
+              onToggle={handleToggle}
+              onToggleAll={handleToggleAll}
+            />
           )}
         </div>
       </div>
+
+      {/* Selection action bar */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-stone-900 text-white px-5 py-3 rounded-2xl shadow-2xl">
+          <span className="text-sm font-medium">{selectedIds.size} selected</span>
+          <div className="w-px h-4 bg-white/20" />
+          <button
+            onClick={() => setShowAddToList(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-white/10"
+            style={{ color: '#f0ebe3' }}
+          >
+            <Tags size={14} />
+            Add to a new or existing list...
+          </button>
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="p-1 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {selectedFresh && (
         <DonorPanel
@@ -227,6 +276,14 @@ export default function Home() {
         <AddDonorModal
           onClose={() => setShowAddDonor(false)}
           onCreated={handleUpdated}
+        />
+      )}
+
+      {showAddToList && (
+        <AddToListModal
+          donorIds={[...selectedIds]}
+          onClose={() => setShowAddToList(false)}
+          onDone={() => setSelectedIds(new Set())}
         />
       )}
     </div>

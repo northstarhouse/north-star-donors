@@ -30,9 +30,15 @@ const STATUS_LABEL: Record<string, string> = {
   current: 'Current', recently_lapsed: 'Lapsed', long_lapsed: 'Long Lapsed', non_donor: 'Non-donor',
 }
 
-interface Props { donors: DonorWithStats[]; onSelect: (d: DonorWithStats) => void }
+interface Props {
+  donors: DonorWithStats[]
+  onSelect: (d: DonorWithStats) => void
+  selectedIds: Set<string>
+  onToggle: (id: string) => void
+  onToggleAll: (ids: string[]) => void
+}
 
-export default function DonorList({ donors, onSelect }: Props) {
+export default function DonorList({ donors, onSelect, selectedIds, onToggle, onToggleAll }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('lifetime_total')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
@@ -54,6 +60,10 @@ export default function DonorList({ donors, onSelect }: Props) {
     }
     return sortDir === 'asc' ? cmp : -cmp
   }), [donors, sortKey, sortDir])
+
+  const allVisibleIds = sorted.map(d => d.id)
+  const allChecked = allVisibleIds.length > 0 && allVisibleIds.every(id => selectedIds.has(id))
+  const someChecked = allVisibleIds.some(id => selectedIds.has(id))
 
   function SortIcon({ k }: { k: SortKey }) {
     if (sortKey !== k) return <ChevronsUpDown size={12} className="text-stone-300" />
@@ -82,6 +92,15 @@ export default function DonorList({ donors, onSelect }: Props) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-stone-100">
+            <th className="pl-4 pr-2 py-3 w-8">
+              <input
+                type="checkbox"
+                className="rounded border-stone-300 accent-amber-600 cursor-pointer"
+                checked={allChecked}
+                ref={el => { if (el) el.indeterminate = someChecked && !allChecked }}
+                onChange={() => onToggleAll(allVisibleIds)}
+              />
+            </th>
             <Th label="Donor" k="formal_name" />
             <Th label="Status" k="status" />
             <Th label="Tier" k="tier" />
@@ -93,18 +112,24 @@ export default function DonorList({ donors, onSelect }: Props) {
         <tbody>
           {sorted.map(donor => {
             const tierInfo = getTierInfo(donor.tier)
+            const checked = selectedIds.has(donor.id)
             return (
               <tr
                 key={donor.id}
-                className="border-b border-stone-100 hover:bg-amber-50/50 cursor-pointer transition-colors group"
-                onClick={() => onSelect(donor)}
+                className={`border-b border-stone-100 cursor-pointer transition-colors group ${checked ? 'bg-amber-50/70' : 'hover:bg-amber-50/50'}`}
               >
-                <td className="px-4 py-3">
+                <td className="pl-4 pr-2 py-3 w-8" onClick={e => { e.stopPropagation(); onToggle(donor.id) }}>
+                  <input
+                    type="checkbox"
+                    className="rounded border-stone-300 accent-amber-600 cursor-pointer"
+                    checked={checked}
+                    onChange={() => onToggle(donor.id)}
+                    onClick={e => e.stopPropagation()}
+                  />
+                </td>
+                <td className="px-4 py-3" onClick={() => onSelect(donor)}>
                   <div className="flex items-center gap-2.5">
-                    <span
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: TIER_DOTS[donor.tier] }}
-                    />
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: TIER_DOTS[donor.tier] }} />
                     <div>
                       <p className="font-medium text-stone-800 group-hover:text-amber-800">{donor.formal_name}</p>
                       {donor.informal_first_name && (
@@ -113,12 +138,12 @@ export default function DonorList({ donors, onSelect }: Props) {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" onClick={() => onSelect(donor)}>
                   <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_PILL[donor.status]}`}>
                     {STATUS_LABEL[donor.status]}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3" onClick={() => onSelect(donor)}>
                   {donor.tier === 'none'
                     ? <span className="text-stone-300 text-xs">—</span>
                     : <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium border ${tierInfo.color}`}>
@@ -126,13 +151,13 @@ export default function DonorList({ donors, onSelect }: Props) {
                       </span>
                   }
                 </td>
-                <td className="px-4 py-3 text-right font-medium text-stone-700">
+                <td className="px-4 py-3 text-right font-medium text-stone-700" onClick={() => onSelect(donor)}>
                   {donor.current_year_total > 0 ? fmt(donor.current_year_total) : <span className="text-stone-300">—</span>}
                 </td>
-                <td className="px-4 py-3 text-right text-stone-600">
+                <td className="px-4 py-3 text-right text-stone-600" onClick={() => onSelect(donor)}>
                   {fmt(Math.max(donor.lifetime_total, donor.historical_lifetime_giving))}
                 </td>
-                <td className="px-4 py-3 text-right text-stone-500 text-xs">
+                <td className="px-4 py-3 text-right text-stone-500 text-xs" onClick={() => onSelect(donor)}>
                   {fmtDate(donor.last_gift_date)}
                 </td>
               </tr>

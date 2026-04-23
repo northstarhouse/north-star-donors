@@ -34,6 +34,13 @@ export interface Donation {
   created_at: string
 }
 
+export interface DonorList {
+  id: string
+  name: string
+  created_at: string
+  donor_count?: number
+}
+
 export interface DonorWithStats extends Donor {
   donations: Donation[]
   current_year_total: number

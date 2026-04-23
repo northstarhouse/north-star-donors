@@ -35,3 +35,23 @@ alter table donations enable row level security;
 
 create policy "Allow all" on donors for all using (true) with check (true);
 create policy "Allow all" on donations for all using (true) with check (true);
+
+-- Donor lists / segments
+create table if not exists lists (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  created_at timestamptz default now()
+);
+
+create table if not exists list_donors (
+  list_id uuid references lists(id) on delete cascade,
+  donor_id uuid references donors(id) on delete cascade,
+  added_at timestamptz default now(),
+  primary key (list_id, donor_id)
+);
+
+alter table lists enable row level security;
+alter table list_donors enable row level security;
+
+create policy "Allow all" on lists for all using (true) with check (true);
+create policy "Allow all" on list_donors for all using (true) with check (true);
