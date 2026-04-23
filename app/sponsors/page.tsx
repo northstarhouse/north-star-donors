@@ -281,9 +281,9 @@ export default function SponsorsPage() {
           {sponsors === null ? (
             <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading sponsors…</div>
           ) : (
-            <div className="grid gap-5 grid-cols-[320px_1fr]">
+            <div className="grid gap-5 grid-cols-[320px_1fr]" style={{ height: 'calc(100vh - 200px)' }}>
               {/* List */}
-              <div className="space-y-2">
+              <div className="space-y-2 overflow-y-auto pr-1">
                 {visibleSponsors.length === 0 && (
                   <div className="text-center py-16 text-stone-400 text-sm">
                     No {tab === 'current' ? `${CURRENT_YEAR}` : tab} sponsors yet.
@@ -317,7 +317,7 @@ export default function SponsorsPage() {
 
               {/* Detail panel */}
               {selected ? (
-                <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-6 sticky top-6 h-[calc(100vh-100px)] overflow-y-auto">
+                <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-6 overflow-y-auto h-full">
                   {/* Header */}
                   <div className="flex items-start justify-between mb-5">
                     <div className="flex items-center gap-3">
