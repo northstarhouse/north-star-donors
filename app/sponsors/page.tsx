@@ -20,7 +20,7 @@ interface Sponsor {
   'Date Recieved': string | null
   'Acknowledged': string | null
   logo_url: string | null
-  is_current: boolean | null
+  sponsor_status: 'current' | 'past' | 'potential' | null
 }
 
 interface InKind {
@@ -88,7 +88,7 @@ export default function SponsorsPage() {
 
   const [logoUploading, setLogoUploading] = useState(false)
   const logoRef = useRef<HTMLInputElement>(null)
-  const [tab, setTab] = useState<'current' | 'past'>('current')
+  const [tab, setTab] = useState<'current' | 'past' | 'potential'>('current')
 
   const CURRENT_YEAR = new Date().getFullYear()
 
@@ -117,15 +117,22 @@ export default function SponsorsPage() {
     return allInKind.filter(e => e.sponsor_id === sponsorId).reduce((s, e) => s + (Number(e.value) || 0), 0)
   }
 
-  const currentSponsors = sponsors?.filter(s => s.is_current || (s['Date Recieved'] && new Date(s['Date Recieved']).getFullYear() === CURRENT_YEAR)) ?? []
-  const pastSponsors = sponsors?.filter(s => !s.is_current && (!s['Date Recieved'] || new Date(s['Date Recieved']).getFullYear() < CURRENT_YEAR)) ?? []
-  const visibleSponsors = tab === 'current' ? currentSponsors : pastSponsors
+  function resolvedTab(s: Sponsor): 'current' | 'past' | 'potential' {
+    if (s.sponsor_status) return s.sponsor_status
+    if (s['Date Recieved'] && new Date(s['Date Recieved']).getFullYear() === CURRENT_YEAR) return 'current'
+    return 'past'
+  }
+
+  const currentSponsors  = sponsors?.filter(s => resolvedTab(s) === 'current') ?? []
+  const pastSponsors     = sponsors?.filter(s => resolvedTab(s) === 'past') ?? []
+  const potentialSponsors = sponsors?.filter(s => resolvedTab(s) === 'potential') ?? []
+  const visibleSponsors  = tab === 'current' ? currentSponsors : tab === 'past' ? pastSponsors : potentialSponsors
 
   const totalInKindAll = allInKind.reduce((s, e) => s + (Number(e.value) || 0), 0)
-  const tieredCount = (tab === 'current' ? currentSponsors : pastSponsors).filter(s => getTier(inKindTotal(s.id))).length
+  const tieredCount = visibleSponsors.filter(s => getTier(inKindTotal(s.id))).length
 
   /* ── Actions ───────────────────────────────────────────── */
-  function switchTab(t: 'current' | 'past') {
+  function switchTab(t: 'current' | 'past' | 'potential') {
     setTab(t)
     setSelected(null)
     setEditing(false)
@@ -167,12 +174,11 @@ export default function SponsorsPage() {
     setAddSaving(false)
   }
 
-  async function toggleCurrent(s: Sponsor, e: React.MouseEvent) {
+  async function setStatus(s: Sponsor, status: 'current' | 'past' | 'potential', e: React.ChangeEvent<HTMLSelectElement>) {
     e.stopPropagation()
-    const next = !s.is_current
-    await supabase.from('Sponsors').update({ is_current: next }).eq('id', s.id)
-    setSponsors(prev => prev?.map(sp => sp.id === s.id ? { ...sp, is_current: next } : sp) ?? null)
-    if (selected?.id === s.id) setSelected(prev => prev ? { ...prev, is_current: next } : null)
+    await supabase.from('Sponsors').update({ sponsor_status: status }).eq('id', s.id)
+    setSponsors(prev => prev?.map(sp => sp.id === s.id ? { ...sp, sponsor_status: status } : sp) ?? null)
+    if (selected?.id === s.id) setSelected(prev => prev ? { ...prev, sponsor_status: status } : null)
   }
 
   async function submitInKind(e: React.FormEvent) {
@@ -253,11 +259,11 @@ export default function SponsorsPage() {
 
           {/* Tabs */}
           <div className="flex gap-1 mb-5 bg-white border border-stone-200 rounded-xl p-1 shadow-sm w-fit">
-            {(['current', 'past'] as const).map(t => (
+            {([['current', `${CURRENT_YEAR} Sponsors`], ['past', 'Past Sponsors'], ['potential', 'Potential']] as const).map(([t, label]) => (
               <button key={t} onClick={() => switchTab(t)}
                 className={`px-5 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
                 style={tab === t ? goldBtn : {}}>
-                {t === 'current' ? `${CURRENT_YEAR} Sponsors` : 'Past Sponsors'}
+                {label}
               </button>
             ))}
           </div>
@@ -265,7 +271,7 @@ export default function SponsorsPage() {
           {/* Stats */}
           {sponsors !== null && (
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <StatCard label={tab === 'current' ? `${CURRENT_YEAR} Sponsors` : 'Past Sponsors'} value={String(visibleSponsors.length)} />
+              <StatCard label={tab === 'current' ? `${CURRENT_YEAR} Sponsors` : tab === 'past' ? 'Past Sponsors' : 'Potential Sponsors'} value={String(visibleSponsors.length)} />
               <StatCard label="Total In-Kind Value" value={fmt(totalInKindAll)} />
               <StatCard label="Tiered Sponsors" value={String(tieredCount)} />
             </div>
@@ -280,7 +286,9 @@ export default function SponsorsPage() {
               {/* List */}
               <div className="space-y-2">
                 {visibleSponsors.length === 0 && (
-                  <div className="text-center py-16 text-stone-400 text-sm">No {tab === 'current' ? `${CURRENT_YEAR}` : 'past'} sponsors yet.</div>
+                  <div className="text-center py-16 text-stone-400 text-sm">
+                    No {tab === 'current' ? `${CURRENT_YEAR}` : tab} sponsors yet.
+                  </div>
                 )}
                 {visibleSponsors.map(s => {
                   const isSelected = selected?.id === s.id
@@ -303,16 +311,16 @@ export default function SponsorsPage() {
                           {tier && <TierBadge tier={tier} />}
                         </div>
                       </button>
-                      <label className="flex items-center gap-1.5 flex-shrink-0 cursor-pointer group/cur" title="Mark as current">
-                        <input
-                          type="checkbox"
-                          className="accent-amber-600 cursor-pointer"
-                          checked={!!s.is_current}
-                          onChange={() => {}}
-                          onClick={e => toggleCurrent(s, e)}
-                        />
-                        <span className="text-[10px] text-stone-400 group-hover/cur:text-stone-600">Current</span>
-                      </label>
+                      <select
+                        className="text-xs border border-stone-200 rounded-lg px-2 py-1 bg-white text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-300 cursor-pointer flex-shrink-0"
+                        value={resolvedTab(s)}
+                        onClick={e => e.stopPropagation()}
+                        onChange={e => setStatus(s, e.target.value as 'current' | 'past' | 'potential', e)}
+                      >
+                        <option value="current">Current</option>
+                        <option value="past">Past</option>
+                        <option value="potential">Potential</option>
+                      </select>
                     </div>
                   )
                 })}
