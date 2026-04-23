@@ -15,6 +15,7 @@ interface OutreachEntry {
   date: string | null
   status: OutreachStatus
   notes: string | null
+  submitted_by: string | null
   created_at: string
 }
 
@@ -37,7 +38,7 @@ const STATUS_LABELS: Record<OutreachStatus, string> = {
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
 
-const EMPTY_FORM = { area: '', title: '', contact: '', date: '', status: 'planned' as OutreachStatus, notes: '' }
+const EMPTY_FORM = { area: '', title: '', contact: '', date: '', status: 'planned' as OutreachStatus, notes: '', submitted_by: '' }
 
 /* ── Component ───────────────────────────────────────────── */
 export default function OutreachPage() {
@@ -46,7 +47,7 @@ export default function OutreachPage() {
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set())
 
   const [showAdd, setShowAdd] = useState(false)
-  const [addForm, setAddForm] = useState(EMPTY_FORM)
+  const [addForm, setAddForm] = useState<typeof EMPTY_FORM>(EMPTY_FORM)
   const [addSaving, setAddSaving] = useState(false)
 
   const [editing, setEditing] = useState(false)
@@ -71,6 +72,7 @@ export default function OutreachPage() {
       area: addForm.area.trim(), title: addForm.title.trim(),
       contact: addForm.contact.trim() || null, date: addForm.date || null,
       status: addForm.status, notes: addForm.notes.trim() || null,
+      submitted_by: addForm.submitted_by.trim() || null,
     }).select().single()
     if (data) {
       setEntries(prev => {
@@ -231,6 +233,11 @@ export default function OutreachPage() {
                       {(Object.keys(STATUS_LABELS) as OutreachStatus[]).map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
                     </select>
                   </div>
+                  <div>
+                    <label className="text-xs text-stone-400 mb-1 block">Submitted By</label>
+                    <input className={inputCls} placeholder="Your name"
+                      value={addForm.submitted_by} onChange={e => setAddForm(f => ({ ...f, submitted_by: e.target.value }))} />
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs text-stone-400 mb-1 block">Notes</label>
@@ -284,6 +291,7 @@ export default function OutreachPage() {
                                   <div className="min-w-0">
                                     <p className="text-sm font-medium text-stone-800 truncate">{entry.title}</p>
                                     {entry.contact && <p className="text-xs text-stone-400 mt-0.5 truncate">{entry.contact}</p>}
+                                    {entry.submitted_by && <p className="text-xs text-stone-300 mt-0.5 truncate">by {entry.submitted_by}</p>}
                                   </div>
                                   <div className="flex items-center gap-2 flex-shrink-0">
                                     {entry.date && (
@@ -367,6 +375,11 @@ export default function OutreachPage() {
                           <input type="date" className={inputCls} value={editForm.date ?? ''}
                             onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} />
                         </div>
+                        <div>
+                          <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Submitted By</label>
+                          <input className={inputCls} value={editForm.submitted_by ?? ''}
+                            onChange={e => setEditForm(f => ({ ...f, submitted_by: e.target.value }))} />
+                        </div>
                       </div>
                       <div>
                         <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Notes</label>
@@ -386,6 +399,12 @@ export default function OutreachPage() {
                   {/* Detail fields */}
                   {!editing && (
                     <div className="space-y-3">
+                      {selected.submitted_by && (
+                        <div>
+                          <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Submitted By</p>
+                          <p className="text-sm text-stone-700">{selected.submitted_by}</p>
+                        </div>
+                      )}
                       {selected.contact && (
                         <div>
                           <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Contact</p>
@@ -406,7 +425,7 @@ export default function OutreachPage() {
                           <p className="text-sm text-stone-600 leading-relaxed whitespace-pre-wrap">{selected.notes}</p>
                         </div>
                       )}
-                      {!selected.contact && !selected.date && !selected.notes && (
+                      {!selected.submitted_by && !selected.contact && !selected.date && !selected.notes && (
                         <p className="text-xs text-stone-300 italic">No additional details. Click Edit to add more.</p>
                       )}
                     </div>
