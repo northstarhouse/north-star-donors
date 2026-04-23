@@ -4,8 +4,8 @@ import { usePathname } from 'next/navigation'
 import { Heart, List } from 'lucide-react'
 
 const NAV = [
-  { id: 'donors', label: 'Donations', icon: Heart, href: '/north-star-donors/' },
-  { id: 'lists', label: 'Lists', icon: List, href: '/north-star-donors/lists/' },
+  { id: 'donors', label: 'Donations', icon: Heart, href: '/' },
+  { id: 'lists', label: 'Lists', icon: List, href: '/lists/' },
 ]
 
 interface Props {
@@ -17,8 +17,7 @@ export default function Sidebar({ activePage }: Props) {
 
   function isActive(href: string) {
     if (activePage) {
-      if (activePage === 'lists') return href.includes('lists')
-      return !href.includes('lists')
+      return activePage === 'lists' ? href === '/lists/' : href === '/'
     }
     return pathname === href || pathname + '/' === href
   }
