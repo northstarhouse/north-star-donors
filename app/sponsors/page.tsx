@@ -160,7 +160,7 @@ export default function SponsorsPage() {
     const payload = { sponsor_id: selected.id, description: inkindForm.description, date: inkindForm.date, value: parseFloat(inkindForm.value) }
     const { data } = await supabase.from('Sponsor In-Kind').insert(payload).select().single()
     if (data) {
-      setInkind(prev => [data as InKind, ...prev])
+      setInkind(prev => [...prev, data as InKind].sort((a, b) => b.date.localeCompare(a.date)))
       setAllInKind(prev => [...prev, data as InKind])
     }
     setInkindForm({ description: '', date: today(), value: '' })
@@ -179,7 +179,7 @@ export default function SponsorsPage() {
     setAckSaving(true)
     const payload = { sponsor_id: selected.id, date: ackForm.date, method: ackForm.method || null, notes: ackForm.notes || null }
     const { data } = await supabase.from('Sponsor Acknowledgments').insert(payload).select().single()
-    if (data) setAcks(prev => [data as Ack, ...prev])
+    if (data) setAcks(prev => [...prev, data as Ack].sort((a, b) => b.date.localeCompare(a.date)))
     setAckForm({ date: today(), method: '', notes: '' })
     setAckSaving(false)
   }
