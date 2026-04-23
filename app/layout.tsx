@@ -7,7 +7,7 @@ const geistSans = Geist({ variable: "--font-sans", subsets: ["latin"] });
 const cardo = Cardo({ variable: "--font-serif", subsets: ["latin"], weight: ["400", "700"] });
 
 export const metadata: Metadata = {
-  title: "North Star House — Donor Database",
+  title: "North Star House",
   description: "Donor management for North Star House",
 };
 
