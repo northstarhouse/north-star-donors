@@ -1,291 +1,317 @@
 'use client'
-import { useState, useEffect, useMemo } from 'react'
-import { Heart, UserPlus, Tags, X } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { LayoutDashboard, Plus, X, Check, Circle, Pencil } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { Donor, Donation, DonorWithStats } from '@/lib/types'
-import { getTier, getStatus } from '@/lib/tiers'
-import DonorList from '@/components/DonorList'
-import DonorPanel from '@/components/DonorPanel'
-import FilterBar, { Filters } from '@/components/FilterBar'
 import Sidebar from '@/components/Sidebar'
-import AddDonorModal from '@/components/AddDonorModal'
-import AddToListModal from '@/components/AddToListModal'
 
-const CURRENT_YEAR = new Date().getFullYear()
+type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Other'
+type TaskStatus = 'todo' | 'in_progress' | 'done'
 
-function buildDonorWithStats(donor: Donor, donations: Donation[]): DonorWithStats {
-  const currentYearTotal = donations
-    .filter(d => new Date(d.date).getFullYear() === CURRENT_YEAR)
-    .reduce((sum, d) => sum + d.amount, 0)
-
-  const lifetimeFromDB = donations.reduce((sum, d) => sum + d.amount, 0)
-  const lifetimeTotal = Math.max(lifetimeFromDB, donor.historical_lifetime_giving)
-
-  const sortedDonations = [...donations].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  const lastGift = sortedDonations[0] ?? null
-
-  const status = getStatus(lastGift?.date ?? null)
-  const tier = getTier(currentYearTotal)
-  const totalDonationCount = Math.max(donations.length, donor.historical_donation_count)
-
-  return {
-    ...donor,
-    donations,
-    current_year_total: currentYearTotal,
-    lifetime_total: lifetimeTotal,
-    last_gift_amount: lastGift?.amount ?? null,
-    last_gift_date: lastGift?.date ?? null,
-    total_donation_count: totalDonationCount,
-    status,
-    tier,
-  }
+interface Task {
+  id: string
+  title: string
+  label: TaskLabel | null
+  status: TaskStatus
+  due_date: string | null
+  created_at: string
 }
 
-export default function Home() {
-  const [donors, setDonors] = useState<DonorWithStats[]>([])
+const LABELS: TaskLabel[] = ['Proof Reading', 'Graphic Design', 'Grant Writing', 'Blog Post', 'Brainstorming', 'Other']
+
+const LABEL_COLORS: Record<TaskLabel, string> = {
+  'Proof Reading':   'bg-purple-100 text-purple-700 border-purple-200',
+  'Graphic Design':  'bg-pink-100 text-pink-700 border-pink-200',
+  'Grant Writing':   'bg-blue-100 text-blue-700 border-blue-200',
+  'Blog Post':       'bg-emerald-100 text-emerald-700 border-emerald-200',
+  'Brainstorming':   'bg-amber-100 text-amber-700 border-amber-200',
+  'Other':           'bg-stone-100 text-stone-500 border-stone-200',
+}
+
+const STATUS_CYCLE: Record<TaskStatus, TaskStatus> = {
+  todo: 'in_progress',
+  in_progress: 'done',
+  done: 'todo',
+}
+
+const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
+const goldBtn = { background: 'var(--gold)' }
+
+export default function Dashboard() {
+  const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [selected, setSelected] = useState<DonorWithStats | null>(null)
-  const [showAddDonor, setShowAddDonor] = useState(false)
-  const [showAddToList, setShowAddToList] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [filters, setFilters] = useState<Filters>({
-    search: '',
-    status: 'all',
-    tier: 'all',
-    hasAddress: 'all',
+  const [showAdd, setShowAdd] = useState(false)
+  const [newTitle, setNewTitle] = useState('')
+  const [newLabel, setNewLabel] = useState<TaskLabel | ''>('')
+  const [newDue, setNewDue] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editTitle, setEditTitle] = useState('')
+  const [filterLabel, setFilterLabel] = useState<TaskLabel | 'all'>('all')
+  const [filterStatus, setFilterStatus] = useState<TaskStatus | 'all'>('all')
+
+  useEffect(() => { loadTasks() }, [])
+
+  async function loadTasks() {
+    const { data } = await supabase
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: false })
+    setTasks(data ?? [])
+    setLoading(false)
+  }
+
+  async function addTask() {
+    if (!newTitle.trim()) return
+    setSaving(true)
+    await supabase.from('tasks').insert({
+      title: newTitle.trim(),
+      label: newLabel || null,
+      due_date: newDue || null,
+      status: 'todo',
+    })
+    setNewTitle('')
+    setNewLabel('')
+    setNewDue('')
+    setShowAdd(false)
+    setSaving(false)
+    await loadTasks()
+  }
+
+  async function cycleStatus(task: Task) {
+    const next = STATUS_CYCLE[task.status]
+    await supabase.from('tasks').update({ status: next, updated_at: new Date().toISOString() }).eq('id', task.id)
+    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: next } : t))
+  }
+
+  async function deleteTask(id: string) {
+    await supabase.from('tasks').delete().eq('id', id)
+    setTasks(prev => prev.filter(t => t.id !== id))
+  }
+
+  async function saveEdit(id: string) {
+    if (!editTitle.trim()) return
+    await supabase.from('tasks').update({ title: editTitle.trim(), updated_at: new Date().toISOString() }).eq('id', id)
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, title: editTitle.trim() } : t))
+    setEditingId(null)
+  }
+
+  const filtered = tasks.filter(t => {
+    if (filterLabel !== 'all' && t.label !== filterLabel) return false
+    if (filterStatus !== 'all' && t.status !== filterStatus) return false
+    return true
   })
 
-  async function loadDonors() {
-    try {
-      const { data: donorRows, error: donorErr } = await supabase
-        .from('donors')
-        .select('*')
-        .order('formal_name')
+  const todo = filtered.filter(t => t.status === 'todo')
+  const inProgress = filtered.filter(t => t.status === 'in_progress')
+  const done = filtered.filter(t => t.status === 'done')
 
-      if (donorErr) throw new Error(donorErr.message)
-
-      const { data: donationRows, error: donationErr } = await supabase
-        .from('donations')
-        .select('*')
-
-      if (donationErr) throw new Error(donationErr.message)
-
-      const donationsByDonor = (donationRows ?? []).reduce<Record<string, Donation[]>>((acc, d) => {
-        if (!acc[d.donor_id]) acc[d.donor_id] = []
-        acc[d.donor_id].push(d)
-        return acc
-      }, {})
-
-      const built = (donorRows ?? []).map(d => buildDonorWithStats(d, donationsByDonor[d.id] ?? []))
-      setDonors(built)
-      setError(null)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to load donors')
-    } finally {
-      setLoading(false)
-    }
+  function StatusIcon({ status }: { status: TaskStatus }) {
+    if (status === 'done') return <Check size={15} className="text-emerald-500" />
+    if (status === 'in_progress') return <Circle size={15} className="text-amber-500 fill-amber-100" />
+    return <Circle size={15} className="text-stone-300" />
   }
 
-  useEffect(() => { loadDonors() }, [])
-
-  async function handleUpdated() {
-    await loadDonors()
+  function TaskRow({ task }: { task: Task }) {
+    return (
+      <div className={`flex items-start gap-3 px-4 py-3 border-b border-stone-100 last:border-0 group ${task.status === 'done' ? 'opacity-50' : ''}`}>
+        <button
+          onClick={() => cycleStatus(task)}
+          className="mt-0.5 flex-shrink-0 hover:scale-110 transition-transform"
+          title="Cycle status"
+        >
+          <StatusIcon status={task.status} />
+        </button>
+        <div className="flex-1 min-w-0">
+          {editingId === task.id ? (
+            <div className="flex gap-1.5">
+              <input
+                autoFocus
+                className="flex-1 border border-stone-200 rounded-lg px-2 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                value={editTitle}
+                onChange={e => setEditTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') saveEdit(task.id); if (e.key === 'Escape') setEditingId(null) }}
+              />
+              <button onClick={() => saveEdit(task.id)} className="px-2 py-0.5 text-white text-xs rounded-lg" style={goldBtn}>Save</button>
+              <button onClick={() => setEditingId(null)} className="px-2 py-0.5 bg-stone-100 text-stone-500 text-xs rounded-lg">✕</button>
+            </div>
+          ) : (
+            <p className={`text-sm text-stone-800 ${task.status === 'done' ? 'line-through' : ''}`}>{task.title}</p>
+          )}
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            {task.label && (
+              <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium ${LABEL_COLORS[task.label as TaskLabel]}`}>
+                {task.label}
+              </span>
+            )}
+            {task.due_date && (
+              <span className="text-[10px] text-stone-400">
+                Due {new Date(task.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              </span>
+            )}
+            {task.status === 'in_progress' && (
+              <span className="text-[10px] text-amber-600 font-medium">In Progress</span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <button
+            onClick={() => { setEditingId(task.id); setEditTitle(task.title) }}
+            className="p-1 text-stone-300 hover:text-stone-600 hover:bg-stone-100 rounded"
+          >
+            <Pencil size={11} />
+          </button>
+          <button
+            onClick={() => deleteTask(task.id)}
+            className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded"
+          >
+            <X size={11} />
+          </button>
+        </div>
+      </div>
+    )
   }
-
-  const filtered = useMemo(() => {
-    return donors.filter(d => {
-      if (filters.search) {
-        const q = filters.search.toLowerCase()
-        if (!d.formal_name.toLowerCase().includes(q) &&
-            !(d.informal_first_name ?? '').toLowerCase().includes(q) &&
-            !(d.email ?? '').toLowerCase().includes(q)) return false
-      }
-      if (filters.status !== 'all' && d.status !== filters.status) return false
-      if (filters.tier !== 'all' && d.tier !== filters.tier) return false
-      if (filters.hasAddress === 'yes' && !d.address) return false
-      if (filters.hasAddress === 'no' && d.address) return false
-      return true
-    })
-  }, [donors, filters])
-
-  function handleExport() {
-    const rows = [
-      ['Formal Name', 'Informal First Name', 'Address', 'Status', 'Member Tier', 'This Year', 'Lifetime', 'Last Gift Date', 'Email', 'Phone'],
-      ...filtered.map(d => [
-        d.formal_name,
-        d.informal_first_name ?? '',
-        d.address ?? '',
-        d.status.replace(/_/g, ' '),
-        d.tier.replace(/_/g, ' '),
-        d.current_year_total.toFixed(2),
-        Math.max(d.lifetime_total, d.historical_lifetime_giving).toFixed(2),
-        d.last_gift_date ?? '',
-        d.email ?? '',
-        d.phone ?? '',
-      ])
-    ]
-    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `north-star-donors-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  function handleToggle(id: string) {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id); else next.add(id)
-      return next
-    })
-  }
-
-  function handleToggleAll(ids: string[]) {
-    const allChecked = ids.every(id => selectedIds.has(id))
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (allChecked) ids.forEach(id => next.delete(id))
-      else ids.forEach(id => next.add(id))
-      return next
-    })
-  }
-
-  const selectedFresh = selected ? donors.find(d => d.id === selected.id) ?? selected : null
-
-  const currentYear = new Date().getFullYear()
-  const ytdTotal = donors.reduce((sum, d) => sum + d.current_year_total, 0)
-  const currentCount = donors.filter(d => d.status === 'current').length
-  const memberCount = donors.filter(d => d.status === 'current' && d.tier !== 'none').length
-  const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar activePage="donors" />
+      <Sidebar activePage="dashboard" />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
-        {/* Page header */}
         <div className="px-8 pt-8 pb-4">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
-                <Heart size={16} className="text-stone-400" strokeWidth={1.5} />
+                <LayoutDashboard size={16} className="text-stone-400" strokeWidth={1.5} />
               </div>
               <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
-                Donors
+                Development Dashboard
               </h1>
             </div>
             <button
-              onClick={() => setShowAddDonor(true)}
+              onClick={() => setShowAdd(true)}
               className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm"
-              style={{ background: 'var(--gold)' }}
+              style={goldBtn}
             >
-              <UserPlus size={15} />
-              Add Donor
+              <Plus size={15} />
+              Add Task
             </button>
           </div>
+        </div>
 
-          {/* Stats cards */}
-          {!loading && !error && (
-            <div className="grid grid-cols-4 gap-4 mb-6">
-              <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
-                <p className="text-xs text-stone-400 font-medium mb-1">Total Raised</p>
-                <p className="text-2xl font-semibold text-stone-800">{fmt(ytdTotal)}</p>
-                <p className="text-xs text-stone-400 mt-0.5">{currentYear} YTD</p>
+        <div className="px-8 pb-8 flex-1 flex flex-col gap-5">
+          {/* Filters */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              className="border border-stone-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-600"
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value as TaskStatus | 'all')}
+            >
+              <option value="all">All Statuses</option>
+              <option value="todo">To Do</option>
+              <option value="in_progress">In Progress</option>
+              <option value="done">Done</option>
+            </select>
+            <select
+              className="border border-stone-200 rounded-lg px-3 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-600"
+              value={filterLabel}
+              onChange={e => setFilterLabel(e.target.value as TaskLabel | 'all')}
+            >
+              <option value="all">All Labels</option>
+              {LABELS.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+            {(filterLabel !== 'all' || filterStatus !== 'all') && (
+              <button
+                onClick={() => { setFilterLabel('all'); setFilterStatus('all') }}
+                className="text-xs text-stone-400 hover:text-stone-600 px-2 py-1.5"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+
+          {/* Add task form */}
+          {showAdd && (
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-stone-700">New Task</h3>
+              <input
+                autoFocus
+                className={inputCls}
+                placeholder="Task title..."
+                value={newTitle}
+                onChange={e => setNewTitle(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addTask() }}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-stone-400 mb-1 block">Label</label>
+                  <select className={inputCls} value={newLabel} onChange={e => setNewLabel(e.target.value as TaskLabel | '')}>
+                    <option value="">No label</option>
+                    {LABELS.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-stone-400 mb-1 block">Due Date (optional)</label>
+                  <input type="date" className={inputCls} value={newDue} onChange={e => setNewDue(e.target.value)} />
+                </div>
               </div>
-              <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
-                <p className="text-xs text-stone-400 font-medium mb-1">Current Donors</p>
-                <p className="text-2xl font-semibold text-stone-800">{currentCount}</p>
-                <p className="text-xs text-stone-400 mt-0.5">gave in {currentYear - 1}–{currentYear}</p>
-              </div>
-              <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
-                <p className="text-xs text-stone-400 font-medium mb-1">Members</p>
-                <p className="text-2xl font-semibold text-stone-800">{memberCount}</p>
-                <p className="text-xs text-stone-400 mt-0.5">active tier this year</p>
-              </div>
-              <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
-                <p className="text-xs text-stone-400 font-medium mb-1">Total Records</p>
-                <p className="text-2xl font-semibold text-stone-800">{donors.length}</p>
-                <p className="text-xs text-stone-400 mt-0.5">all time</p>
+              <div className="flex gap-2">
+                <button onClick={addTask} disabled={!newTitle.trim() || saving} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
+                  {saving ? 'Adding...' : 'Add Task'}
+                </button>
+                <button onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
               </div>
             </div>
           )}
-        </div>
 
-        {/* Table card */}
-        <div className="mx-8 mb-8 bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden flex-1">
-          <FilterBar filters={filters} onChange={setFilters} onExport={handleExport} count={filtered.length} />
-
+          {/* Task columns */}
           {loading ? (
-            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">
-              Loading donors...
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center py-24 gap-2">
-              <p className="text-red-500 font-medium text-sm">Failed to load donors</p>
-              <p className="text-xs text-stone-400">{error}</p>
-              <button onClick={loadDonors} className="mt-2 px-4 py-2 text-white text-sm rounded-lg" style={{ background: 'var(--gold)' }}>
-                Retry
-              </button>
-            </div>
+            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading...</div>
           ) : (
-            <DonorList
-              donors={filtered}
-              onSelect={setSelected}
-              selectedIds={selectedIds}
-              onToggle={handleToggle}
-              onToggleAll={handleToggleAll}
-            />
+            <div className="grid grid-cols-3 gap-5">
+              {/* To Do */}
+              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
+                  <h3 className="text-xs font-semibold text-stone-500 uppercase tracking-wider">To Do</h3>
+                  <span className="text-xs text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-full">{todo.length}</span>
+                </div>
+                <div>
+                  {todo.length === 0
+                    ? <p className="px-4 py-6 text-xs text-stone-300 text-center italic">No tasks</p>
+                    : todo.map(t => <TaskRow key={t.id} task={t} />)
+                  }
+                </div>
+              </div>
+
+              {/* In Progress */}
+              <div className="bg-white rounded-xl border border-amber-200 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-amber-100 flex items-center justify-between bg-amber-50/50">
+                  <h3 className="text-xs font-semibold text-amber-600 uppercase tracking-wider">In Progress</h3>
+                  <span className="text-xs text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">{inProgress.length}</span>
+                </div>
+                <div>
+                  {inProgress.length === 0
+                    ? <p className="px-4 py-6 text-xs text-stone-300 text-center italic">No tasks</p>
+                    : inProgress.map(t => <TaskRow key={t.id} task={t} />)
+                  }
+                </div>
+              </div>
+
+              {/* Done */}
+              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between bg-stone-50/50">
+                  <h3 className="text-xs font-semibold text-emerald-600 uppercase tracking-wider">Done</h3>
+                  <span className="text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">{done.length}</span>
+                </div>
+                <div>
+                  {done.length === 0
+                    ? <p className="px-4 py-6 text-xs text-stone-300 text-center italic">No tasks</p>
+                    : done.map(t => <TaskRow key={t.id} task={t} />)
+                  }
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
-
-      {/* Selection action bar */}
-      {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 bg-stone-900 text-white px-5 py-3 rounded-2xl shadow-2xl">
-          <span className="text-sm font-medium">{selectedIds.size} selected</span>
-          <div className="w-px h-4 bg-white/20" />
-          <button
-            onClick={() => setShowAddToList(true)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-white/10"
-            style={{ color: '#f0ebe3' }}
-          >
-            <Tags size={14} />
-            Add to a new or existing list...
-          </button>
-          <button
-            onClick={() => setSelectedIds(new Set())}
-            className="p-1 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      {selectedFresh && (
-        <DonorPanel
-          donor={selectedFresh}
-          onClose={() => setSelected(null)}
-          onUpdated={handleUpdated}
-        />
-      )}
-
-      {showAddDonor && (
-        <AddDonorModal
-          onClose={() => setShowAddDonor(false)}
-          onCreated={handleUpdated}
-        />
-      )}
-
-      {showAddToList && (
-        <AddToListModal
-          donorIds={[...selectedIds]}
-          onClose={() => setShowAddToList(false)}
-          onDone={() => setSelectedIds(new Set())}
-        />
-      )}
     </div>
   )
 }

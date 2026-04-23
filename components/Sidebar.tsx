@@ -1,10 +1,10 @@
 'use client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { Heart, List } from 'lucide-react'
+import { LayoutDashboard, Heart, List } from 'lucide-react'
 
 const NAV = [
-  { id: 'donors', label: 'Donations', icon: Heart, href: '/' },
+  { id: 'dashboard', label: 'Development', icon: LayoutDashboard, href: '/' },
+  { id: 'donations', label: 'Donations', icon: Heart, href: '/donations/' },
   { id: 'lists', label: 'Lists', icon: List, href: '/lists/' },
 ]
 
@@ -13,15 +13,6 @@ interface Props {
 }
 
 export default function Sidebar({ activePage }: Props) {
-  const pathname = usePathname()
-
-  function isActive(href: string) {
-    if (activePage) {
-      return activePage === 'lists' ? href === '/lists/' : href === '/'
-    }
-    return pathname === href || pathname + '/' === href
-  }
-
   return (
     <aside style={{ width: 220, background: '#2a2a2e', minHeight: '100vh', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '20px 20px 14px' }}>
@@ -30,7 +21,7 @@ export default function Sidebar({ activePage }: Props) {
       <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)' }} />
       <nav style={{ flex: 1, padding: '8px 8px 0' }}>
         {NAV.map(({ id, label, icon: Icon, href }) => {
-          const active = isActive(href)
+          const active = activePage === id
           return (
             <Link
               key={id}
