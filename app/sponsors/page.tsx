@@ -174,11 +174,10 @@ export default function SponsorsPage() {
     setAddSaving(false)
   }
 
-  async function setStatus(s: Sponsor, status: 'current' | 'past' | 'potential', e: React.ChangeEvent<HTMLSelectElement>) {
-    e.stopPropagation()
+  async function setStatus(s: Sponsor, status: 'current' | 'past' | 'potential') {
     await supabase.from('Sponsors').update({ sponsor_status: status }).eq('id', s.id)
     setSponsors(prev => prev?.map(sp => sp.id === s.id ? { ...sp, sponsor_status: status } : sp) ?? null)
-    if (selected?.id === s.id) setSelected(prev => prev ? { ...prev, sponsor_status: status } : null)
+    setSelected(prev => prev?.id === s.id ? { ...prev, sponsor_status: status } : prev)
   }
 
   async function submitInKind(e: React.FormEvent) {
@@ -311,16 +310,6 @@ export default function SponsorsPage() {
                           {tier && <TierBadge tier={tier} />}
                         </div>
                       </button>
-                      <select
-                        className="text-xs border border-stone-200 rounded-lg px-2 py-1 bg-white text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-300 cursor-pointer flex-shrink-0"
-                        value={resolvedTab(s)}
-                        onClick={e => e.stopPropagation()}
-                        onChange={e => setStatus(s, e.target.value as 'current' | 'past' | 'potential', e)}
-                      >
-                        <option value="current">Current</option>
-                        <option value="past">Past</option>
-                        <option value="potential">Potential</option>
-                      </select>
                     </div>
                   )
                 })}
@@ -339,6 +328,15 @@ export default function SponsorsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                      <select
+                        className="text-xs border border-stone-200 rounded-lg px-2 py-1 bg-white text-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-300 cursor-pointer"
+                        value={resolvedTab(selected)}
+                        onChange={e => setStatus(selected, e.target.value as 'current' | 'past' | 'potential')}
+                      >
+                        <option value="current">Current</option>
+                        <option value="past">Past</option>
+                        <option value="potential">Potential</option>
+                      </select>
                       <button onClick={() => { setEditForm({ ...selected }); setEditing(true) }}
                         className="px-2.5 py-1 text-xs text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-50 flex items-center gap-1">
                         <Pencil size={11} /> Edit
