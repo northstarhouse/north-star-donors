@@ -129,17 +129,11 @@ export default function ListsPage() {
 
   function exportList() {
     const rows = [
-      ['Formal Name', 'Informal First Name', 'Email', 'Phone', 'Address', 'Status', 'This Year', 'Lifetime', 'Last Gift Date'],
+      ['Formal Name', 'Informal First Name', 'Address'],
       ...listDonors.map(d => [
         d.formal_name,
         d.informal_first_name ?? '',
-        d.email ?? '',
-        d.phone ?? '',
         d.address ?? '',
-        d.status.replace(/_/g, ' '),
-        d.current_year_total.toFixed(2),
-        Math.max(d.lifetime_total, d.historical_lifetime_giving).toFixed(2),
-        d.last_gift_date ?? '',
       ])
     ]
     const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
