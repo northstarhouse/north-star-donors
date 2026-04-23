@@ -51,7 +51,7 @@ export default function Home() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [filters, setFilters] = useState<Filters>({
     search: '',
-    status: 'all',
+    status: 'current',
     tier: 'all',
     hasAddress: 'all',
   })
