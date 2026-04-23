@@ -281,7 +281,7 @@ export default function SponsorsPage() {
           {sponsors === null ? (
             <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading sponsors…</div>
           ) : (
-            <div className={`grid gap-5 ${selected ? 'grid-cols-[280px_1fr]' : 'grid-cols-1'}`}>
+            <div className="grid gap-5 grid-cols-[320px_1fr]">
               {/* List */}
               <div className="space-y-2">
                 {visibleSponsors.length === 0 && (
@@ -316,7 +316,7 @@ export default function SponsorsPage() {
               </div>
 
               {/* Detail panel */}
-              {selected && (
+              {selected ? (
                 <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-6 self-start sticky top-6 max-h-[calc(100vh-120px)] overflow-y-auto">
                   {/* Header */}
                   <div className="flex items-start justify-between mb-5">
@@ -532,6 +532,8 @@ export default function SponsorsPage() {
                     )}
                   </Section>
                 </div>
+              ) : (
+                <div />
               )}
             </div>
           )}
