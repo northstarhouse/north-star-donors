@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
 /* ── Types ───────────────────────────────────────────────── */
-type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Research' | 'Other'
+type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Research' | 'Technical' | 'Editing' | 'Other'
 type TaskStatus = 'todo' | 'in_progress' | 'done'
 
 interface Task {
@@ -20,7 +20,7 @@ interface Task {
   created_at: string
 }
 
-const LABELS: TaskLabel[] = ['Proof Reading', 'Graphic Design', 'Grant Writing', 'Blog Post', 'Brainstorming', 'Research', 'Other']
+const LABELS: TaskLabel[] = ['Proof Reading', 'Graphic Design', 'Grant Writing', 'Blog Post', 'Brainstorming', 'Research', 'Technical', 'Editing', 'Other']
 
 const LABEL_COLORS: Record<TaskLabel, string> = {
   'Proof Reading':  'bg-purple-100 text-purple-700 border-purple-200',
@@ -29,6 +29,8 @@ const LABEL_COLORS: Record<TaskLabel, string> = {
   'Blog Post':      'bg-emerald-100 text-emerald-700 border-emerald-200',
   'Brainstorming':  'bg-amber-100 text-amber-700 border-amber-200',
   'Research':       'bg-cyan-100 text-cyan-700 border-cyan-200',
+  'Technical':      'bg-slate-100 text-slate-700 border-slate-200',
+  'Editing':        'bg-orange-100 text-orange-700 border-orange-200',
   'Other':          'bg-stone-100 text-stone-500 border-stone-200',
 }
 
@@ -292,8 +294,8 @@ export default function Dashboard() {
   }
 
   async function claimTask(id: string, name: string) {
-    await supabase.from('tasks').update({ assigned_to: name }).eq('id', id)
-    setTasks(prev => prev.map(t => t.id === id ? { ...t, assigned_to: name } : t))
+    await supabase.from('tasks').update({ assigned_to: name, status: 'in_progress' }).eq('id', id)
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, assigned_to: name, status: 'in_progress' } : t))
   }
 
   async function unclaimTask(id: string) {
