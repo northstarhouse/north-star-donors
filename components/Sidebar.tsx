@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { LayoutDashboard, Heart, List, Award } from 'lucide-react'
+import { LayoutDashboard, Heart, List, Award, Megaphone } from 'lucide-react'
 
 function CoordIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; strokeWidth?: number }) {
   return (
@@ -19,6 +19,7 @@ const NAV = [
   { id: 'sponsors',    label: 'Sponsors',           icon: Award,           href: '/sponsors/' },
   { id: 'lists',       label: 'Lists',              icon: List,            href: '/lists/' },
   { id: 'coordination', label: 'Cross-Coordination', icon: CoordIcon,      href: '/coordination/' },
+  { id: 'outreach',     label: 'Outreach',           icon: Megaphone,      href: '/outreach/' },
 ]
 
 interface Props {
