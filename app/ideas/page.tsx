@@ -47,7 +47,7 @@ export default function IdeasPage() {
   const [addSaving, setAddSaving] = useState(false)
 
   const [editing, setEditing] = useState(false)
-  const [editForm, setEditForm] = useState<Partial<Idea & { budget: string }>>({})
+  const [editForm, setEditForm] = useState<Omit<Partial<Idea>, 'budget'> & { budget?: string }>({})
   const [editSaving, setEditSaving] = useState(false)
 
   /* ── Load ─────────────────────────────────────────────── */
