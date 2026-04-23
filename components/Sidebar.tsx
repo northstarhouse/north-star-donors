@@ -1,11 +1,28 @@
 'use client'
-import { Heart } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Heart, List } from 'lucide-react'
 
 const NAV = [
-  { id: 'donors', label: 'Donations', icon: Heart, active: true },
+  { id: 'donors', label: 'Donations', icon: Heart, href: '/north-star-donors/' },
+  { id: 'lists', label: 'Lists', icon: List, href: '/north-star-donors/lists/' },
 ]
 
-export default function Sidebar() {
+interface Props {
+  activePage?: string
+}
+
+export default function Sidebar({ activePage }: Props) {
+  const pathname = usePathname()
+
+  function isActive(href: string) {
+    if (activePage) {
+      if (activePage === 'lists') return href.includes('lists')
+      return !href.includes('lists')
+    }
+    return pathname === href || pathname + '/' === href
+  }
+
   return (
     <aside style={{ width: 220, background: '#2a2a2e', minHeight: '100vh', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '20px 20px 14px' }}>
@@ -13,27 +30,32 @@ export default function Sidebar() {
       </div>
       <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)' }} />
       <nav style={{ flex: 1, padding: '8px 8px 0' }}>
-        {NAV.map(({ id, label, icon: Icon, active }) => (
-          <div
-            key={id}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 9,
-              padding: '9px 12px',
-              borderRadius: 7,
-              marginBottom: 2,
-              fontSize: 12,
-              fontWeight: active ? 600 : 400,
-              background: active ? 'rgba(181,161,133,0.15)' : 'transparent',
-              color: active ? '#f0ebe3' : 'rgba(255,255,255,0.5)',
-              cursor: 'default',
-            }}
-          >
-            <Icon size={15} strokeWidth={1.75} />
-            {label}
-          </div>
-        ))}
+        {NAV.map(({ id, label, icon: Icon, href }) => {
+          const active = isActive(href)
+          return (
+            <Link
+              key={id}
+              href={href}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 9,
+                padding: '9px 12px',
+                borderRadius: 7,
+                marginBottom: 2,
+                fontSize: 12,
+                fontWeight: active ? 600 : 400,
+                background: active ? 'rgba(181,161,133,0.15)' : 'transparent',
+                color: active ? '#f0ebe3' : 'rgba(255,255,255,0.5)',
+                textDecoration: 'none',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+            >
+              <Icon size={15} strokeWidth={1.75} />
+              {label}
+            </Link>
+          )
+        })}
       </nav>
     </aside>
   )
