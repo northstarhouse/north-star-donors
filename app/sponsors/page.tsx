@@ -92,7 +92,7 @@ export default function SponsorsPage() {
 
   /* ── Load ──────────────────────────────────────────────── */
   useEffect(() => {
-    supabase.from('Sponsors').select('*').order('id').then(({ data }) => {
+    supabase.from('Sponsors').select('*').order('Date Recieved', { ascending: false, nullsFirst: false }).order('id', { ascending: false }).then(({ data }) => {
       if (data) setSponsors(data as Sponsor[])
     })
     supabase.from('Sponsor In-Kind').select('*').then(({ data }) => {
