@@ -238,7 +238,7 @@ export default function CoordinationPage() {
           {items === null ? (
             <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
           ) : (
-            <div className="grid gap-5 grid-cols-[320px_1fr]">
+            <div className={`grid gap-5 ${selected ? 'grid-cols-[320px_1fr]' : 'grid-cols-1'}`}>
               {/* List */}
               <div className="space-y-2">
                 {visible.length === 0 && (
@@ -399,8 +399,6 @@ export default function CoordinationPage() {
                     </form>
                   </div>
                 </div>
-              ) : (
-                <div />
               )}
             </div>
           )}

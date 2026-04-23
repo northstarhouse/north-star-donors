@@ -131,7 +131,7 @@ function FormsSection() {
   return (
     <div>
       {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading…</div> : (
-        <div className="grid gap-5 grid-cols-[1fr_380px]">
+        <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
           <div className="space-y-4 min-w-0">
             {rows.length === 0 && (
               <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
@@ -198,7 +198,7 @@ function FormsSection() {
                 <p className="text-xs text-stone-300 italic">No field data captured.</p>
               )}
             </DetailPanel>
-          ) : <div />}
+          )}
         </div>
       )}
     </div>
@@ -297,7 +297,7 @@ function EmailSection() {
         </div>
       )}
       {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading…</div> : (
-        <div className="grid gap-5 grid-cols-[1fr_360px]">
+        <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
             {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No campaigns logged yet.</div> : (
               <table className="w-full text-sm">
@@ -372,7 +372,7 @@ function EmailSection() {
                 </div>
               )}
             </DetailPanel>
-          ) : <div />}
+          )}
         </div>
       )}
     </div>
@@ -483,7 +483,7 @@ function SocialSection() {
         </div>
       )}
       {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading…</div> : (
-        <div className="grid gap-5 grid-cols-[1fr_360px]">
+        <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
             {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No posts logged yet.</div> : (
               <table className="w-full text-sm">
@@ -565,7 +565,7 @@ function SocialSection() {
                 </div>
               )}
             </DetailPanel>
-          ) : <div />}
+          )}
         </div>
       )}
     </div>
@@ -676,7 +676,7 @@ function EventsSection() {
         </div>
       )}
       {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading…</div> : (
-        <div className="grid gap-5 grid-cols-[1fr_360px]">
+        <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
             {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No events logged yet.</div> : (
               <table className="w-full text-sm">
@@ -743,7 +743,7 @@ function EventsSection() {
                 </div>
               )}
             </DetailPanel>
-          ) : <div />}
+          )}
         </div>
       )}
     </div>

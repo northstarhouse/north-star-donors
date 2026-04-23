@@ -259,7 +259,7 @@ export default function OutreachPage() {
           {entries === null ? (
             <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
           ) : (
-            <div className="grid gap-5 grid-cols-[1fr_380px]">
+            <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
               {/* Grouped list */}
               <div className="space-y-4 min-w-0">
                 {grouped.length === 0 && (
@@ -431,8 +431,6 @@ export default function OutreachPage() {
                     </div>
                   )}
                 </div>
-              ) : (
-                <div />
               )}
             </div>
           )}
