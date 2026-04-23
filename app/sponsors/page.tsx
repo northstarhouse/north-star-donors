@@ -281,7 +281,7 @@ export default function SponsorsPage() {
           {sponsors === null ? (
             <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading sponsors…</div>
           ) : (
-            <div className="grid gap-5 grid-cols-[320px_1fr]">
+            <div className={`grid gap-5 ${selected ? 'grid-cols-[320px_1fr]' : 'grid-cols-1'}`}>
               {/* List */}
               <div className="space-y-2">
                 {visibleSponsors.length === 0 && (
@@ -532,8 +532,6 @@ export default function SponsorsPage() {
                     )}
                   </Section>
                 </div>
-              ) : (
-                <div />
               )}
             </div>
           )}
