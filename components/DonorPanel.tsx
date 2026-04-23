@@ -1,10 +1,11 @@
 'use client'
 import { useState } from 'react'
-import { X, MapPin, Mail, Phone, Briefcase, Plus, DollarSign, Pencil, Trash2, Check } from 'lucide-react'
+import { X, MapPin, Mail, Phone, Briefcase, Plus, DollarSign, Pencil, Trash2, Check, GitMerge } from 'lucide-react'
 import { DonorWithStats, Donation } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import TierBadge from './TierBadge'
 import StatusBadge from './StatusBadge'
+import MergeDonorModal from './MergeDonorModal'
 
 const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -38,6 +39,7 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
   })
   const [editingDonationId, setEditingDonationId] = useState<string | null>(null)
   const [donationEdit, setDonationEdit] = useState<DonationEdit>({ amount: '', date: '', type: 'one-time', donation_notes: '' })
+  const [showMerge, setShowMerge] = useState(false)
 
   async function saveNotes() {
     setSaving(true)
@@ -118,9 +120,19 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
               <StatusBadge status={donor.status} />
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded-lg ml-2 flex-shrink-0 text-stone-400">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+            <button
+              onClick={() => setShowMerge(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
+              title="Merge with another donor"
+            >
+              <GitMerge size={13} />
+              Merge
+            </button>
+            <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-400">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         <div className="flex-1 px-6 py-5 space-y-6">
@@ -339,6 +351,14 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
           </div>
         </div>
       </div>
+
+      {showMerge && (
+        <MergeDonorModal
+          donor={donor}
+          onClose={() => setShowMerge(false)}
+          onMerged={() => { onClose(); onUpdated() }}
+        />
+      )}
     </div>
   )
 }
