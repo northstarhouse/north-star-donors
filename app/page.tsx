@@ -55,6 +55,8 @@ interface TaskRowProps {
   onNotesDraftChange: (id: string, v: string) => void
   onSaveNotes: (id: string) => void
   onTriggerUpload: (id: string) => void
+  onClaim: (id: string, name: string) => void
+  onUnclaim: (id: string) => void
 }
 
 function StatusIcon({ status }: { status: TaskStatus }) {
@@ -67,9 +69,12 @@ function TaskRow({
   task, expandedId, editingId, editTitle, notesDraft, uploadingTaskId,
   onCycleStatus, onDelete, onToggleExpand, onStartEdit, onCancelEdit,
   onSaveEdit, onEditTitleChange, onNotesDraftChange, onSaveNotes, onTriggerUpload,
+  onClaim, onUnclaim,
 }: TaskRowProps) {
   const expanded = expandedId === task.id
   const editing  = editingId  === task.id
+  const [claiming, setClaiming] = useState(false)
+  const [claimInput, setClaimInput] = useState('')
 
   return (
     <div className={`border-b border-stone-100 last:border-0 ${task.status === 'done' ? 'opacity-55' : ''}`}>
@@ -118,6 +123,41 @@ function TaskRow({
 
       {expanded && (
         <div className="px-4 pb-4 pt-0 pl-11 space-y-3">
+          {/* Assignee */}
+          <div className="flex items-center gap-2">
+            {task.assigned_to ? (
+              <>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-stone-200 bg-stone-50 text-xs font-medium text-stone-600">
+                  <User size={11} className="text-stone-400" />{task.assigned_to}
+                </span>
+                <button onClick={() => onUnclaim(task.id)}
+                  className="text-[10px] text-stone-300 hover:text-red-400 transition-colors">
+                  Unassign
+                </button>
+              </>
+            ) : claiming ? (
+              <div className="flex items-center gap-1.5">
+                <input autoFocus className="border border-stone-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 w-36"
+                  placeholder="Your name…" value={claimInput} onChange={e => setClaimInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && claimInput.trim()) { onClaim(task.id, claimInput.trim()); setClaiming(false); setClaimInput('') }
+                    if (e.key === 'Escape') { setClaiming(false); setClaimInput('') }
+                  }} />
+                <button onClick={() => { if (claimInput.trim()) { onClaim(task.id, claimInput.trim()); setClaiming(false); setClaimInput('') } }}
+                  disabled={!claimInput.trim()}
+                  className="px-2.5 py-1 text-white text-xs rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
+                  Confirm
+                </button>
+                <button onClick={() => { setClaiming(false); setClaimInput('') }} className="text-xs text-stone-400 hover:text-stone-600">Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setClaiming(true)}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-dashed border-stone-300 text-xs text-stone-400 hover:border-amber-300 hover:text-amber-600 transition-colors">
+                <User size={11} /> Take on this task
+              </button>
+            )}
+          </div>
+
           <textarea
             className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 bg-stone-50"
             rows={4}
@@ -181,7 +221,6 @@ export default function Dashboard() {
   const [newLabel, setNewLabel] = useState<TaskLabel | ''>('')
   const [newDue, setNewDue] = useState('')
   const [newNotes, setNewNotes] = useState('')
-  const [newAssignee, setNewAssignee] = useState('')
   const [saving, setSaving] = useState(false)
 
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -207,10 +246,9 @@ export default function Dashboard() {
     setSaving(true)
     await supabase.from('tasks').insert({
       title: newTitle.trim(), label: newLabel || null,
-      due_date: newDue || null, notes: newNotes.trim() || null,
-      assigned_to: newAssignee.trim() || null, status: 'todo',
+      due_date: newDue || null, notes: newNotes.trim() || null, status: 'todo',
     })
-    setNewTitle(''); setNewLabel(''); setNewDue(''); setNewNotes(''); setNewAssignee('')
+    setNewTitle(''); setNewLabel(''); setNewDue(''); setNewNotes('')
     setShowAdd(false); setSaving(false)
     await loadTasks()
   }
@@ -246,6 +284,16 @@ export default function Dashboard() {
       setExpandedId(task.id)
       setNotesDraft(prev => ({ ...prev, [task.id]: task.notes ?? '' }))
     }
+  }
+
+  async function claimTask(id: string, name: string) {
+    await supabase.from('tasks').update({ assigned_to: name }).eq('id', id)
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, assigned_to: name } : t))
+  }
+
+  async function unclaimTask(id: string) {
+    await supabase.from('tasks').update({ assigned_to: null }).eq('id', id)
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, assigned_to: null } : t))
   }
 
   function triggerAttachmentUpload(taskId: string) {
@@ -289,6 +337,8 @@ export default function Dashboard() {
     onNotesDraftChange: (id: string, v: string) => setNotesDraft(prev => ({ ...prev, [id]: v })),
     onSaveNotes: saveNotes,
     onTriggerUpload: triggerAttachmentUpload,
+    onClaim: claimTask,
+    onUnclaim: unclaimTask,
   }
 
   return (
@@ -324,10 +374,6 @@ export default function Dashboard() {
                     <option value="">No label</option>
                     {LABELS.map(l => <option key={l} value={l}>{l}</option>)}
                   </select>
-                </div>
-                <div>
-                  <label className="text-xs text-stone-400 mb-1 block">Assign To</label>
-                  <input className={inputCls} placeholder="Your name…" value={newAssignee} onChange={e => setNewAssignee(e.target.value)} />
                 </div>
                 <div>
                   <label className="text-xs text-stone-400 mb-1 block">Due Date</label>
