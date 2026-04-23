@@ -87,6 +87,9 @@ export default function SponsorsPage() {
 
   const [logoUploading, setLogoUploading] = useState(false)
   const logoRef = useRef<HTMLInputElement>(null)
+  const [tab, setTab] = useState<'current' | 'past'>('current')
+
+  const CURRENT_YEAR = new Date().getFullYear()
 
   function today() { return new Date().toISOString().slice(0, 10) }
 
@@ -113,10 +116,20 @@ export default function SponsorsPage() {
     return allInKind.filter(e => e.sponsor_id === sponsorId).reduce((s, e) => s + (Number(e.value) || 0), 0)
   }
 
+  const currentSponsors = sponsors?.filter(s => s['Date Recieved'] && new Date(s['Date Recieved']).getFullYear() === CURRENT_YEAR) ?? []
+  const pastSponsors = sponsors?.filter(s => !s['Date Recieved'] || new Date(s['Date Recieved']).getFullYear() < CURRENT_YEAR) ?? []
+  const visibleSponsors = tab === 'current' ? currentSponsors : pastSponsors
+
   const totalInKindAll = allInKind.reduce((s, e) => s + (Number(e.value) || 0), 0)
-  const tieredCount = sponsors?.filter(s => getTier(inKindTotal(s.id))) .length ?? 0
+  const tieredCount = (tab === 'current' ? currentSponsors : pastSponsors).filter(s => getTier(inKindTotal(s.id))).length
 
   /* ── Actions ───────────────────────────────────────────── */
+  function switchTab(t: 'current' | 'past') {
+    setTab(t)
+    setSelected(null)
+    setEditing(false)
+  }
+
   function selectSponsor(s: Sponsor) {
     setSelected(prev => prev?.id === s.id ? null : s)
     setEditing(false)
@@ -229,10 +242,21 @@ export default function SponsorsPage() {
             </button>
           </div>
 
+          {/* Tabs */}
+          <div className="flex gap-1 mb-5 bg-white border border-stone-200 rounded-xl p-1 shadow-sm w-fit">
+            {(['current', 'past'] as const).map(t => (
+              <button key={t} onClick={() => switchTab(t)}
+                className={`px-5 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === t ? 'text-white shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+                style={tab === t ? goldBtn : {}}>
+                {t === 'current' ? `${CURRENT_YEAR} Sponsors` : 'Past Sponsors'}
+              </button>
+            ))}
+          </div>
+
           {/* Stats */}
           {sponsors !== null && (
             <div className="grid grid-cols-3 gap-4 mb-6">
-              <StatCard label="Total Sponsors" value={String(sponsors.length)} />
+              <StatCard label={tab === 'current' ? `${CURRENT_YEAR} Sponsors` : 'Past Sponsors'} value={String(visibleSponsors.length)} />
               <StatCard label="Total In-Kind Value" value={fmt(totalInKindAll)} />
               <StatCard label="Tiered Sponsors" value={String(tieredCount)} />
             </div>
@@ -246,10 +270,10 @@ export default function SponsorsPage() {
             <div className={`grid gap-5 ${selected ? 'grid-cols-[280px_1fr]' : 'grid-cols-1'}`}>
               {/* List */}
               <div className="space-y-2">
-                {sponsors.length === 0 && (
-                  <div className="text-center py-16 text-stone-400 text-sm">No sponsors yet.</div>
+                {visibleSponsors.length === 0 && (
+                  <div className="text-center py-16 text-stone-400 text-sm">No {tab === 'current' ? `${CURRENT_YEAR}` : 'past'} sponsors yet.</div>
                 )}
-                {sponsors.map(s => {
+                {visibleSponsors.map(s => {
                   const isSelected = selected?.id === s.id
                   const total = inKindTotal(s.id)
                   const tier = getTier(total)
