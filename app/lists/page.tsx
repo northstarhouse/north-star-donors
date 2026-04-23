@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { List, Trash2, X, Users, ChevronLeft } from 'lucide-react'
+import { List, Trash2, X, Users, ChevronLeft, Download } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { DonorList, DonorWithStats, Donor, Donation } from '@/lib/types'
 import { getTier, getStatus } from '@/lib/tiers'
@@ -127,6 +127,31 @@ export default function ListsPage() {
     if (activeList) await openList(activeList)
   }
 
+  function exportList() {
+    const rows = [
+      ['Formal Name', 'Informal First Name', 'Email', 'Phone', 'Address', 'Status', 'This Year', 'Lifetime', 'Last Gift Date'],
+      ...listDonors.map(d => [
+        d.formal_name,
+        d.informal_first_name ?? '',
+        d.email ?? '',
+        d.phone ?? '',
+        d.address ?? '',
+        d.status.replace(/_/g, ' '),
+        d.current_year_total.toFixed(2),
+        Math.max(d.lifetime_total, d.historical_lifetime_giving).toFixed(2),
+        d.last_gift_date ?? '',
+      ])
+    ]
+    const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${activeList?.name ?? 'list'}-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   const selectedFresh = selected ? listDonors.find(d => d.id === selected.id) ?? selected : null
 
   return (
@@ -135,18 +160,30 @@ export default function ListsPage() {
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
         <div className="px-8 pt-8 pb-4">
-          <div className="flex items-center gap-3 mb-6">
-            {activeList && (
-              <button onClick={() => setActiveList(null)} className="p-1.5 hover:bg-stone-200 rounded-lg text-stone-500 transition-colors">
-                <ChevronLeft size={18} />
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              {activeList && (
+                <button onClick={() => setActiveList(null)} className="p-1.5 hover:bg-stone-200 rounded-lg text-stone-500 transition-colors">
+                  <ChevronLeft size={18} />
+                </button>
+              )}
+              <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
+                <List size={16} className="text-stone-400" strokeWidth={1.5} />
+              </div>
+              <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
+                {activeList ? activeList.name : 'Lists'}
+              </h1>
+            </div>
+            {activeList && listDonors.length > 0 && (
+              <button
+                onClick={exportList}
+                className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm"
+                style={{ background: 'var(--gold)' }}
+              >
+                <Download size={14} />
+                Export CSV
               </button>
             )}
-            <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
-              <List size={16} className="text-stone-400" strokeWidth={1.5} />
-            </div>
-            <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
-              {activeList ? activeList.name : 'Lists'}
-            </h1>
           </div>
         </div>
 
