@@ -1,12 +1,13 @@
 'use client'
 import Link from 'next/link'
-import { LayoutDashboard, Heart, List, Award } from 'lucide-react'
+import { LayoutDashboard, Heart, List, Award, GitMerge } from 'lucide-react'
 
 const NAV = [
   { id: 'dashboard', label: 'Development', icon: LayoutDashboard, href: '/' },
   { id: 'donations', label: 'Donations', icon: Heart, href: '/donations/' },
   { id: 'sponsors', label: 'Sponsors', icon: Award, href: '/sponsors/' },
   { id: 'lists', label: 'Lists', icon: List, href: '/lists/' },
+  { id: 'coordination', label: 'Cross-Coordination', icon: GitMerge, href: '/coordination/' },
 ]
 
 interface Props {
