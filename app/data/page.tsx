@@ -41,16 +41,16 @@ const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-
 const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.round((a / b) * 100)}%` : '—'
 
 const TABS: { id: DataTab; label: string }[] = [
+  { id: 'analytics', label: 'Analytics' },
   { id: 'forms',     label: 'Forms' },
   { id: 'email',     label: 'Email Results' },
   { id: 'social',    label: 'Social Posts' },
   { id: 'events',    label: 'Event Data' },
-  { id: 'analytics', label: 'Analytics' },
 ]
 
 /* ── Main ────────────────────────────────────────────────── */
 export default function DataPage() {
-  const [tab, setTab] = useState<DataTab>('forms')
+  const [tab, setTab] = useState<DataTab>('analytics')
 
   return (
     <div className="flex min-h-screen">
