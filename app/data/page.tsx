@@ -762,6 +762,7 @@ function EventsSection() {
 ══════════════════════════════════════════════════════════ */
 function AnalyticsSection() {
   const [rows, setRows] = useState<AnalyticsEntry[] | null>(null)
+  const [chartMetric, setChartMetric] = useState<'sessions' | 'users' | 'page_views'>('sessions')
 
   useEffect(() => {
     supabase.from('data_analytics').select('*').order('period', { ascending: false })
@@ -769,6 +770,10 @@ function AnalyticsSection() {
   }, [])
 
   const fmtPeriod = (p: string) => {
+    const [y, m] = p.split('-')
+    return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  }
+  const fmtPeriodLong = (p: string) => {
     const [y, m] = p.split('-')
     return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   }
@@ -778,13 +783,26 @@ function AnalyticsSection() {
     return m > 0 ? `${m}m ${sec}s` : `${sec}s`
   }
   const delta = (curr: number | null, p: number | null) => {
-    if (!curr || !p || p === 0) return null
+    if (curr == null || p == null || p === 0) return null
     const pct = Math.round(((curr - p) / p) * 100)
     return { pct, up: pct >= 0 }
   }
 
   const latest = rows?.[0] ?? null
   const prev = rows?.[1] ?? null
+
+  // Chart: show up to 12 months, oldest → newest left → right
+  const chartRows = [...(rows ?? [])].reverse().slice(-12)
+  const chartVals = chartRows.map(r => r[chartMetric] ?? 0)
+  const chartMax = Math.max(...chartVals, 1)
+
+  const metricCards = latest ? [
+    { label: 'Users',          value: latest.users?.toLocaleString(),                                              d: delta(latest.users, prev?.users ?? null),           sub: 'unique visitors' },
+    { label: 'Sessions',       value: latest.sessions?.toLocaleString(),                                           d: delta(latest.sessions, prev?.sessions ?? null),      sub: 'total visits' },
+    { label: 'Page Views',     value: latest.page_views?.toLocaleString(),                                         d: delta(latest.page_views, prev?.page_views ?? null),  sub: 'screens viewed' },
+    { label: 'Avg Duration',   value: fmtDur(latest.avg_session_duration),                                         d: null,                                                sub: 'per session' },
+    { label: 'Bounce Rate',    value: latest.bounce_rate != null ? `${(latest.bounce_rate*100).toFixed(1)}%` : '—', d: null,                                               sub: 'left after 1 page' },
+  ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null; sub: string }[] : []
 
   return (
     <div className="space-y-5">
@@ -793,54 +811,106 @@ function AnalyticsSection() {
       ) : rows.length === 0 ? (
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
           <p className="text-sm">No analytics data yet.</p>
-          <p className="text-xs text-center max-w-xs">Once the Google Apps Script is set up, monthly data will appear here automatically.</p>
+          <p className="text-xs text-center max-w-xs">The Google Apps Script is set up — data will appear after the first monthly sync.</p>
         </div>
       ) : (
         <>
+          {/* Metric cards */}
           {latest && (
             <div>
-              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">{fmtPeriod(latest.period)}</p>
-              <div className="grid grid-cols-5 gap-4">
-                {([
-                  { label: 'Sessions',     value: latest.sessions?.toLocaleString(),                                              d: delta(latest.sessions, prev?.sessions ?? null) },
-                  { label: 'Users',        value: latest.users?.toLocaleString(),                                                 d: delta(latest.users, prev?.users ?? null) },
-                  { label: 'Page Views',   value: latest.page_views?.toLocaleString(),                                           d: delta(latest.page_views, prev?.page_views ?? null) },
-                  { label: 'Bounce Rate',  value: latest.bounce_rate != null ? `${(latest.bounce_rate*100).toFixed(1)}%` : '—',  d: null },
-                  { label: 'Avg Duration', value: fmtDur(latest.avg_session_duration),                                           d: null },
-                ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null }[]).map(({ label, value, d }) => (
+              <p className="text-xs text-stone-400 mb-3">{fmtPeriodLong(latest.period)} — most recent month</p>
+              <div className="grid grid-cols-5 gap-3">
+                {metricCards.map(({ label, value, d, sub }) => (
                   <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
-                    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">{label}</p>
-                    <p className="text-xl font-bold text-stone-800">{value ?? '—'}</p>
-                    {d && <p className={`text-xs mt-1 font-medium ${d.up ? 'text-emerald-600' : 'text-red-500'}`}>{d.up ? '↑' : '↓'} {Math.abs(d.pct)}% vs prior month</p>}
+                    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
+                    <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value ?? '—'}</p>
+                    <p className="text-[10px] text-stone-400">{sub}</p>
+                    {d && (
+                      <p className={`text-xs mt-2 font-medium flex items-center gap-0.5 ${d.up ? 'text-emerald-600' : 'text-red-500'}`}>
+                        <span>{d.up ? '▲' : '▼'}</span>
+                        <span>{Math.abs(d.pct)}%</span>
+                        <span className="text-stone-400 font-normal ml-0.5">vs last mo.</span>
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
+
+          {/* Bar chart */}
+          {chartRows.length > 1 && (
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm font-semibold text-stone-700">Website Traffic</p>
+                <div className="flex gap-1 bg-stone-100 rounded-lg p-0.5">
+                  {(['sessions', 'users', 'page_views'] as const).map(m => (
+                    <button key={m} onClick={() => setChartMetric(m)}
+                      className={`px-3 py-1 text-xs rounded-md font-medium transition-colors ${chartMetric === m ? 'bg-white text-stone-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>
+                      {m === 'page_views' ? 'Page Views' : m.charAt(0).toUpperCase() + m.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex items-end gap-2 h-40">
+                {chartRows.map((r, i) => {
+                  const val = r[chartMetric] ?? 0
+                  const heightPct = chartMax > 0 ? (val / chartMax) * 100 : 0
+                  const isLatest = i === chartRows.length - 1
+                  return (
+                    <div key={r.id} className="flex-1 flex flex-col items-center gap-1 group relative">
+                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-stone-800 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        {val.toLocaleString()}
+                      </div>
+                      <div className="w-full rounded-t-sm transition-all"
+                        style={{
+                          height: `${heightPct}%`,
+                          minHeight: val > 0 ? '4px' : '0',
+                          background: isLatest ? 'var(--gold)' : '#d6d3d1'
+                        }} />
+                      <p className="text-[9px] text-stone-400 truncate w-full text-center">{fmtPeriod(r.period)}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Historical table */}
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
             <table className="w-full text-sm">
-              <thead><tr className="border-b border-stone-100">
+              <thead><tr className="border-b border-stone-100 bg-stone-50/60">
                 <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Month</th>
-                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Sessions</th>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Users</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Sessions</th>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Page Views</th>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Bounce Rate</th>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Avg Duration</th>
               </tr></thead>
               <tbody>
-                {rows.map((r, i) => (
-                  <tr key={r.id} className={`border-b border-stone-100 ${i === 0 ? 'bg-amber-50/40' : 'hover:bg-stone-50'}`}>
-                    <td className="px-4 py-3 font-medium text-stone-800">{fmtPeriod(r.period)}</td>
-                    <td className="px-4 py-3 text-right text-stone-700">{r.sessions?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-700">{r.users?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-700">{r.page_views?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-600">{r.bounce_rate != null ? `${(r.bounce_rate*100).toFixed(1)}%` : <span className="text-stone-300">—</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-600">{fmtDur(r.avg_session_duration)}</td>
-                  </tr>
-                ))}
+                {rows.map((r, i) => {
+                  const p = rows[i + 1] ?? null
+                  const sd = delta(r.sessions, p?.sessions ?? null)
+                  return (
+                    <tr key={r.id} className={`border-b border-stone-100 ${i === 0 ? 'bg-amber-50/30' : 'hover:bg-stone-50'}`}>
+                      <td className="px-4 py-3 font-medium text-stone-800">
+                        {fmtPeriodLong(r.period)}
+                        {i === 0 && <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Latest</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right text-stone-700">{r.users?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-stone-700">{r.sessions?.toLocaleString() ?? <span className="text-stone-300">—</span>}</span>
+                        {sd && <span className={`ml-1.5 text-[10px] font-medium ${sd.up ? 'text-emerald-600' : 'text-red-400'}`}>{sd.up ? '▲' : '▼'}{Math.abs(sd.pct)}%</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right text-stone-700">{r.page_views?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.bounce_rate != null ? `${(r.bounce_rate * 100).toFixed(1)}%` : <span className="text-stone-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{fmtDur(r.avg_session_duration)}</td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
-            <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{rows.length} month{rows.length !== 1 ? 's' : ''} of data</div>
+            <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{rows.length} month{rows.length !== 1 ? 's' : ''} of data · synced monthly via Google Analytics</div>
           </div>
         </>
       )}

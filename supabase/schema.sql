@@ -70,3 +70,18 @@ create table if not exists tasks (
 
 alter table tasks enable row level security;
 create policy "Allow all" on tasks for all using (true) with check (true);
+
+-- GA4 analytics data (populated by Google Apps Script)
+create table if not exists data_analytics (
+  id uuid default gen_random_uuid() primary key,
+  period text not null unique,          -- YYYY-MM
+  sessions integer,
+  users integer,
+  page_views integer,
+  bounce_rate numeric(5,4),             -- 0.0000 to 1.0000
+  avg_session_duration numeric(10,2),   -- seconds
+  created_at timestamptz default now()
+);
+
+alter table data_analytics enable row level security;
+create policy "Allow all" on data_analytics for all using (true) with check (true);
