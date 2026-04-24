@@ -92,3 +92,18 @@ create table if not exists data_analytics (
 
 alter table data_analytics enable row level security;
 create policy "Allow all" on data_analytics for all using (true) with check (true);
+
+-- Facebook Page analytics (populated by Google Apps Script)
+create table if not exists data_facebook (
+  id uuid default gen_random_uuid() primary key,
+  period text not null unique,          -- YYYY-MM
+  page_followers integer,
+  page_impressions integer,
+  page_reach integer,
+  page_engaged_users integer,
+  post_count integer,
+  created_at timestamptz default now()
+);
+
+alter table data_facebook enable row level security;
+create policy "Allow all" on data_facebook for all using (true) with check (true);
