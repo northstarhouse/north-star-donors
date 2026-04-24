@@ -47,10 +47,10 @@ const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-
 const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.round((a / b) * 100)}%` : '—'
 
 const TABS: { id: DataTab; label: string }[] = [
-  { id: 'analytics', label: 'Analytics' },
+  { id: 'analytics', label: 'Website' },
   { id: 'forms',     label: 'Forms' },
   { id: 'email',     label: 'Email Results' },
-  { id: 'social',    label: 'Social Posts' },
+  { id: 'social',    label: 'Socials' },
   { id: 'events',    label: 'Event Data' },
 ]
 
@@ -411,11 +411,23 @@ function SocialSection() {
   type EditSocialForm = Omit<Partial<SocialEntry>, 'likes'|'comments'|'shares'|'reach'> & { likes?: string; comments?: string; shares?: string; reach?: string }
   const [editForm, setEditForm] = useState<EditSocialForm>({})
   const [editSaving, setEditSaving] = useState(false)
+  const [fbRows, setFbRows] = useState<FacebookEntry[] | null>(null)
 
   useEffect(() => {
     supabase.from('data_social').select('*').order('date', { ascending: false })
       .then(({ data }) => setRows((data as SocialEntry[]) ?? []))
+    supabase.from('data_facebook').select('*').order('period', { ascending: false })
+      .then(({ data }) => setFbRows((data as FacebookEntry[]) ?? []))
   }, [])
+
+  const latestFB = fbRows?.[0] ?? null
+  const prevFB   = fbRows?.[1] ?? null
+  const fmtPeriod = (p: string) => { const [y,m] = p.split('-'); return new Date(parseInt(y), parseInt(m)-1).toLocaleDateString('en-US',{month:'long',year:'numeric'}) }
+  const delta = (curr: number | null, p: number | null) => {
+    if (curr == null || p == null || p === 0) return null
+    const pct = Math.round(((curr - p) / p) * 100)
+    return { pct, up: pct >= 0 }
+  }
 
   const num = (s: string) => s ? parseInt(s) : null
 
@@ -584,6 +596,74 @@ function SocialSection() {
           ) : null}
         </div>
       )}
+
+      {/* Facebook Page analytics */}
+      <div className="mt-6">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center flex-shrink-0">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="white"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+          </div>
+          <p className="text-sm font-semibold text-stone-700">Facebook Page</p>
+          {latestFB && <span className="text-xs text-stone-400">{fmtPeriod(latestFB.period)}</span>}
+        </div>
+        {fbRows === null ? (
+          <div className="text-center py-10 text-stone-400 text-sm">Loading…</div>
+        ) : fbRows.length === 0 ? (
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-12 gap-2 text-stone-400">
+            <p className="text-sm">No Facebook data yet.</p>
+            <p className="text-xs text-center max-w-xs">Add meta-to-supabase.gs to your Apps Script project and run syncFBLastMonth().</p>
+          </div>
+        ) : (
+          <>
+            {latestFB && (
+              <div className="grid grid-cols-5 gap-3 mb-4">
+                {([
+                  { label: 'Followers',   value: latestFB.page_followers?.toLocaleString(),    d: delta(latestFB.page_followers, prevFB?.page_followers ?? null),       sub: 'page followers' },
+                  { label: 'Reach',       value: latestFB.page_reach?.toLocaleString(),         d: delta(latestFB.page_reach, prevFB?.page_reach ?? null),               sub: 'people reached' },
+                  { label: 'Impressions', value: latestFB.page_impressions?.toLocaleString(),   d: delta(latestFB.page_impressions, prevFB?.page_impressions ?? null),    sub: 'total impressions' },
+                  { label: 'Engagement',  value: latestFB.page_engaged_users?.toLocaleString(), d: delta(latestFB.page_engaged_users, prevFB?.page_engaged_users ?? null), sub: 'engaged users' },
+                  { label: 'Posts',       value: latestFB.post_count?.toLocaleString(),         d: null,                                                                  sub: 'posts published' },
+                ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null; sub: string }[]).map(({ label, value, d, sub }) => (
+                  <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+                    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
+                    <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value ?? '—'}</p>
+                    <p className="text-[10px] text-stone-400">{sub}</p>
+                    {d && <p className={`text-xs mt-2 font-medium flex items-center gap-0.5 ${d.up ? 'text-emerald-600' : 'text-red-500'}`}><span>{d.up ? '▲' : '▼'}</span><span>{Math.abs(d.pct)}%</span><span className="text-stone-400 font-normal ml-0.5">vs last mo.</span></p>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-stone-100 bg-stone-50/60">
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Month</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Followers</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Reach</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Impressions</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Engaged Users</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Posts</th>
+                </tr></thead>
+                <tbody>
+                  {fbRows.map((r, i) => (
+                    <tr key={r.id} className={`border-b border-stone-100 ${i === 0 ? 'bg-blue-50/30' : 'hover:bg-stone-50'}`}>
+                      <td className="px-4 py-3 font-medium text-stone-800">
+                        {fmtPeriod(r.period)}
+                        {i === 0 && <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">Latest</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right text-stone-700">{r.page_followers?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-700">{r.page_reach?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.page_impressions?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.page_engaged_users?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.post_count?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{fbRows.length} month{fbRows.length !== 1 ? 's' : ''} of data · synced monthly via Meta Graph API</div>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   )
 }
@@ -771,18 +851,12 @@ function EventsSection() {
 ══════════════════════════════════════════════════════════ */
 function AnalyticsSection() {
   const [rows, setRows] = useState<AnalyticsEntry[] | null>(null)
-  const [fbRows, setFbRows] = useState<FacebookEntry[] | null>(null)
   const [chartMetric, setChartMetric] = useState<'sessions' | 'users' | 'page_views'>('sessions')
 
   useEffect(() => {
     supabase.from('data_analytics').select('*').order('period', { ascending: false })
       .then(({ data }) => setRows((data as AnalyticsEntry[]) ?? []))
-    supabase.from('data_facebook').select('*').order('period', { ascending: false })
-      .then(({ data }) => setFbRows((data as FacebookEntry[]) ?? []))
   }, [])
-
-  const latestFB  = fbRows?.[0] ?? null
-  const prevFB    = fbRows?.[1] ?? null
 
   const fmtPeriod = (p: string) => {
     const [y, m] = p.split('-')
@@ -978,80 +1052,6 @@ function AnalyticsSection() {
           </div>
         </>
       )}
-
-      {/* Facebook section */}
-      <div className="mt-2">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center flex-shrink-0">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="white"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
-          </div>
-          <p className="text-sm font-semibold text-stone-700">Facebook Page</p>
-          {latestFB && <span className="text-xs text-stone-400">{(() => { const [y,m] = latestFB.period.split('-'); return new Date(parseInt(y), parseInt(m)-1).toLocaleDateString('en-US',{month:'long',year:'numeric'}) })()}</span>}
-        </div>
-
-        {fbRows === null ? (
-          <div className="text-center py-10 text-stone-400 text-sm">Loading…</div>
-        ) : fbRows.length === 0 ? (
-          <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-12 gap-2 text-stone-400">
-            <p className="text-sm">No Facebook data yet.</p>
-            <p className="text-xs text-center max-w-xs">Add meta-to-supabase.gs to your Apps Script project and run syncFBLastMonth().</p>
-          </div>
-        ) : (
-          <>
-            {latestFB && (
-              <div className="grid grid-cols-5 gap-3 mb-5">
-                {([
-                  { label: 'Followers',  value: latestFB.page_followers?.toLocaleString(),      d: delta(latestFB.page_followers, prevFB?.page_followers ?? null),       sub: 'page followers' },
-                  { label: 'Reach',      value: latestFB.page_reach?.toLocaleString(),           d: delta(latestFB.page_reach, prevFB?.page_reach ?? null),               sub: 'people reached' },
-                  { label: 'Impressions',value: latestFB.page_impressions?.toLocaleString(),     d: delta(latestFB.page_impressions, prevFB?.page_impressions ?? null),    sub: 'total impressions' },
-                  { label: 'Engagement', value: latestFB.page_engaged_users?.toLocaleString(),   d: delta(latestFB.page_engaged_users, prevFB?.page_engaged_users ?? null), sub: 'engaged users' },
-                  { label: 'Posts',      value: latestFB.post_count?.toLocaleString(),           d: null,                                                                  sub: 'posts published' },
-                ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null; sub: string }[]).map(({ label, value, d, sub }) => (
-                  <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
-                    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
-                    <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value ?? '—'}</p>
-                    <p className="text-[10px] text-stone-400">{sub}</p>
-                    {d && (
-                      <p className={`text-xs mt-2 font-medium flex items-center gap-0.5 ${d.up ? 'text-emerald-600' : 'text-red-500'}`}>
-                        <span>{d.up ? '▲' : '▼'}</span><span>{Math.abs(d.pct)}%</span>
-                        <span className="text-stone-400 font-normal ml-0.5">vs last mo.</span>
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-stone-100 bg-stone-50/60">
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Month</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Followers</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Reach</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Impressions</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Engaged Users</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Posts</th>
-                </tr></thead>
-                <tbody>
-                  {fbRows.map((r, i) => (
-                    <tr key={r.id} className={`border-b border-stone-100 ${i === 0 ? 'bg-blue-50/30' : 'hover:bg-stone-50'}`}>
-                      <td className="px-4 py-3 font-medium text-stone-800">
-                        {(() => { const [y,m] = r.period.split('-'); return new Date(parseInt(y), parseInt(m)-1).toLocaleDateString('en-US',{month:'long',year:'numeric'}) })()}
-                        {i === 0 && <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">Latest</span>}
-                      </td>
-                      <td className="px-4 py-3 text-right text-stone-700">{r.page_followers?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-700">{r.page_reach?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.page_impressions?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.page_engaged_users?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.post_count?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{fbRows.length} month{fbRows.length !== 1 ? 's' : ''} of data · synced monthly via Meta Graph API</div>
-            </div>
-          </>
-        )}
-      </div>
     </div>
   )
 }
