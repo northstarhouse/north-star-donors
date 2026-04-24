@@ -28,6 +28,9 @@ interface EventEntry {
 interface AnalyticsEntry {
   id: string; period: string; sessions: number | null; users: number | null
   page_views: number | null; bounce_rate: number | null; avg_session_duration: number | null
+  sessions_organic: number | null; sessions_paid: number | null; sessions_direct: number | null
+  sessions_referral: number | null; sessions_social: number | null; sessions_email: number | null
+  sessions_other: number | null
   created_at: string
 }
 
@@ -797,12 +800,26 @@ function AnalyticsSection() {
   const chartMax = Math.max(...chartVals, 1)
 
   const metricCards = latest ? [
-    { label: 'Users',          value: latest.users?.toLocaleString(),                                              d: delta(latest.users, prev?.users ?? null),           sub: 'unique visitors' },
-    { label: 'Sessions',       value: latest.sessions?.toLocaleString(),                                           d: delta(latest.sessions, prev?.sessions ?? null),      sub: 'total visits' },
-    { label: 'Page Views',     value: latest.page_views?.toLocaleString(),                                         d: delta(latest.page_views, prev?.page_views ?? null),  sub: 'screens viewed' },
-    { label: 'Avg Duration',   value: fmtDur(latest.avg_session_duration),                                         d: null,                                                sub: 'per session' },
-    { label: 'Bounce Rate',    value: latest.bounce_rate != null ? `${(latest.bounce_rate*100).toFixed(1)}%` : '—', d: null,                                               sub: 'left after 1 page' },
+    { label: 'Users',        value: latest.users?.toLocaleString(),                                               d: delta(latest.users, prev?.users ?? null),          sub: 'unique visitors' },
+    { label: 'Sessions',     value: latest.sessions?.toLocaleString(),                                            d: delta(latest.sessions, prev?.sessions ?? null),    sub: 'total visits' },
+    { label: 'Page Views',   value: latest.page_views?.toLocaleString(),                                          d: delta(latest.page_views, prev?.page_views ?? null), sub: 'screens viewed' },
+    { label: 'Avg Duration', value: fmtDur(latest.avg_session_duration),                                          d: null,                                               sub: 'per session' },
+    { label: 'Bounce Rate',  value: latest.bounce_rate != null ? `${(latest.bounce_rate*100).toFixed(1)}%` : '—', d: null,                                               sub: 'left after 1 page' },
   ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null; sub: string }[] : []
+
+  const CHANNELS: { key: keyof AnalyticsEntry; label: string; color: string }[] = [
+    { key: 'sessions_organic',  label: 'Organic Search', color: '#4ade80' },
+    { key: 'sessions_direct',   label: 'Direct',         color: '#60a5fa' },
+    { key: 'sessions_referral', label: 'Referral',       color: '#f59e0b' },
+    { key: 'sessions_social',   label: 'Social',         color: '#c084fc' },
+    { key: 'sessions_paid',     label: 'Paid Search',    color: '#fb7185' },
+    { key: 'sessions_email',    label: 'Email',          color: '#34d399' },
+    { key: 'sessions_other',    label: 'Other',          color: '#94a3b8' },
+  ]
+
+  const channelTotal = latest
+    ? CHANNELS.reduce((s, c) => s + ((latest[c.key] as number | null) ?? 0), 0)
+    : 0
 
   return (
     <div className="space-y-5">
@@ -838,6 +855,41 @@ function AnalyticsSection() {
             </div>
           )}
 
+          {/* Traffic sources */}
+          {latest && channelTotal > 0 && (
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
+              <p className="text-sm font-semibold text-stone-700 mb-4">Sessions by Channel</p>
+              <div className="flex gap-1 h-8 rounded-lg overflow-hidden mb-4">
+                {CHANNELS.map(c => {
+                  const val = (latest[c.key] as number | null) ?? 0
+                  const w = channelTotal > 0 ? (val / channelTotal) * 100 : 0
+                  if (w < 0.5) return null
+                  return <div key={c.key} style={{ width: `${w}%`, background: c.color }} title={`${c.label}: ${val.toLocaleString()}`} />
+                })}
+              </div>
+              <div className="grid grid-cols-4 gap-3">
+                {CHANNELS.map(c => {
+                  const val = (latest[c.key] as number | null) ?? 0
+                  if (!val) return null
+                  const pctVal = channelTotal > 0 ? Math.round((val / channelTotal) * 100) : 0
+                  const pd = prev ? delta(val, (prev[c.key] as number | null)) : null
+                  return (
+                    <div key={c.key} className="flex items-start gap-2.5">
+                      <div className="w-2.5 h-2.5 rounded-sm mt-1 flex-shrink-0" style={{ background: c.color }} />
+                      <div>
+                        <p className="text-[10px] text-stone-400 font-medium">{c.label}</p>
+                        <p className="text-sm font-bold text-stone-800">{val.toLocaleString()}</p>
+                        <p className="text-[10px] text-stone-400">{pctVal}% of sessions
+                          {pd && <span className={`ml-1 font-medium ${pd.up ? 'text-emerald-600' : 'text-red-400'}`}>{pd.up ? '▲' : '▼'}{Math.abs(pd.pct)}%</span>}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Bar chart */}
           {chartRows.length > 1 && (
             <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
@@ -854,7 +906,7 @@ function AnalyticsSection() {
               </div>
               <div className="flex items-end gap-2 h-40">
                 {chartRows.map((r, i) => {
-                  const val = r[chartMetric] ?? 0
+                  const val = (r[chartMetric] as number | null) ?? 0
                   const heightPct = chartMax > 0 ? (val / chartMax) * 100 : 0
                   const isLatest = i === chartRows.length - 1
                   return (
@@ -863,11 +915,7 @@ function AnalyticsSection() {
                         {val.toLocaleString()}
                       </div>
                       <div className="w-full rounded-t-sm transition-all"
-                        style={{
-                          height: `${heightPct}%`,
-                          minHeight: val > 0 ? '4px' : '0',
-                          background: isLatest ? 'var(--gold)' : '#d6d3d1'
-                        }} />
+                        style={{ height: `${heightPct}%`, minHeight: val > 0 ? '4px' : '0', background: isLatest ? 'var(--gold)' : '#d6d3d1' }} />
                       <p className="text-[9px] text-stone-400 truncate w-full text-center">{fmtPeriod(r.period)}</p>
                     </div>
                   )
@@ -883,7 +931,9 @@ function AnalyticsSection() {
                 <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Month</th>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Users</th>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Sessions</th>
-                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Page Views</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Organic</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Direct</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Referral</th>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Bounce Rate</th>
                 <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Avg Duration</th>
               </tr></thead>
@@ -902,7 +952,9 @@ function AnalyticsSection() {
                         <span className="text-stone-700">{r.sessions?.toLocaleString() ?? <span className="text-stone-300">—</span>}</span>
                         {sd && <span className={`ml-1.5 text-[10px] font-medium ${sd.up ? 'text-emerald-600' : 'text-red-400'}`}>{sd.up ? '▲' : '▼'}{Math.abs(sd.pct)}%</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-stone-700">{r.page_views?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.sessions_organic?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.sessions_direct?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.sessions_referral?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
                       <td className="px-4 py-3 text-right text-stone-600">{r.bounce_rate != null ? `${(r.bounce_rate * 100).toFixed(1)}%` : <span className="text-stone-300">—</span>}</td>
                       <td className="px-4 py-3 text-right text-stone-600">{fmtDur(r.avg_session_duration)}</td>
                     </tr>

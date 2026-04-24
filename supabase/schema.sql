@@ -80,6 +80,13 @@ create table if not exists data_analytics (
   page_views integer,
   bounce_rate numeric(5,4),             -- 0.0000 to 1.0000
   avg_session_duration numeric(10,2),   -- seconds
+  sessions_organic integer,
+  sessions_paid integer,
+  sessions_direct integer,
+  sessions_referral integer,
+  sessions_social integer,
+  sessions_email integer,
+  sessions_other integer,
   created_at timestamptz default now()
 );
 
