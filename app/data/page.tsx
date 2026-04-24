@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
 /* ── Types ───────────────────────────────────────────────── */
-type DataTab = 'forms' | 'email' | 'social' | 'events'
+type DataTab = 'forms' | 'email' | 'social' | 'events' | 'analytics'
 
 interface FormSubmission {
   id: string; form_name: string; form_id: string | null
@@ -25,6 +25,11 @@ interface EventEntry {
   id: string; event_name: string; date: string | null; attendance: number | null
   revenue: number | null; venue: string | null; notes: string | null; created_at: string
 }
+interface AnalyticsEntry {
+  id: string; period: string; sessions: number | null; users: number | null
+  page_views: number | null; bounce_rate: number | null; avg_session_duration: number | null
+  created_at: string
+}
 
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
@@ -33,10 +38,11 @@ const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-
 const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.round((a / b) * 100)}%` : '—'
 
 const TABS: { id: DataTab; label: string }[] = [
-  { id: 'forms',  label: 'Forms' },
-  { id: 'email',  label: 'Email Results' },
-  { id: 'social', label: 'Social Posts' },
-  { id: 'events', label: 'Event Data' },
+  { id: 'forms',     label: 'Forms' },
+  { id: 'email',     label: 'Email Results' },
+  { id: 'social',    label: 'Social Posts' },
+  { id: 'events',    label: 'Event Data' },
+  { id: 'analytics', label: 'Analytics' },
 ]
 
 /* ── Main ────────────────────────────────────────────────── */
@@ -67,10 +73,11 @@ export default function DataPage() {
         </div>
 
         <div className="px-8 pb-8 flex-1">
-          {tab === 'forms'  && <FormsSection />}
-          {tab === 'email'  && <EmailSection />}
-          {tab === 'social' && <SocialSection />}
-          {tab === 'events' && <EventsSection />}
+          {tab === 'forms'     && <FormsSection />}
+          {tab === 'email'     && <EmailSection />}
+          {tab === 'social'    && <SocialSection />}
+          {tab === 'events'    && <EventsSection />}
+          {tab === 'analytics' && <AnalyticsSection />}
         </div>
       </div>
     </div>
@@ -745,6 +752,97 @@ function EventsSection() {
             </DetailPanel>
           )}
         </div>
+      )}
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   ANALYTICS SECTION
+══════════════════════════════════════════════════════════ */
+function AnalyticsSection() {
+  const [rows, setRows] = useState<AnalyticsEntry[] | null>(null)
+
+  useEffect(() => {
+    supabase.from('data_analytics').select('*').order('period', { ascending: false })
+      .then(({ data }) => setRows((data as AnalyticsEntry[]) ?? []))
+  }, [])
+
+  const fmtPeriod = (p: string) => {
+    const [y, m] = p.split('-')
+    return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  }
+  const fmtDur = (s: number | null) => {
+    if (!s) return '—'
+    const m = Math.floor(s / 60), sec = Math.round(s % 60)
+    return m > 0 ? `${m}m ${sec}s` : `${sec}s`
+  }
+  const delta = (curr: number | null, p: number | null) => {
+    if (!curr || !p || p === 0) return null
+    const pct = Math.round(((curr - p) / p) * 100)
+    return { pct, up: pct >= 0 }
+  }
+
+  const latest = rows?.[0] ?? null
+  const prev = rows?.[1] ?? null
+
+  return (
+    <div className="space-y-5">
+      {rows === null ? (
+        <div className="text-center py-16 text-stone-400 text-sm">Loading…</div>
+      ) : rows.length === 0 ? (
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
+          <p className="text-sm">No analytics data yet.</p>
+          <p className="text-xs text-center max-w-xs">Once the Google Apps Script is set up, monthly data will appear here automatically.</p>
+        </div>
+      ) : (
+        <>
+          {latest && (
+            <div>
+              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">{fmtPeriod(latest.period)}</p>
+              <div className="grid grid-cols-5 gap-4">
+                {([
+                  { label: 'Sessions',     value: latest.sessions?.toLocaleString(),                                              d: delta(latest.sessions, prev?.sessions ?? null) },
+                  { label: 'Users',        value: latest.users?.toLocaleString(),                                                 d: delta(latest.users, prev?.users ?? null) },
+                  { label: 'Page Views',   value: latest.page_views?.toLocaleString(),                                           d: delta(latest.page_views, prev?.page_views ?? null) },
+                  { label: 'Bounce Rate',  value: latest.bounce_rate != null ? `${(latest.bounce_rate*100).toFixed(1)}%` : '—',  d: null },
+                  { label: 'Avg Duration', value: fmtDur(latest.avg_session_duration),                                           d: null },
+                ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null }[]).map(({ label, value, d }) => (
+                  <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+                    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">{label}</p>
+                    <p className="text-xl font-bold text-stone-800">{value ?? '—'}</p>
+                    {d && <p className={`text-xs mt-1 font-medium ${d.up ? 'text-emerald-600' : 'text-red-500'}`}>{d.up ? '↑' : '↓'} {Math.abs(d.pct)}% vs prior month</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-stone-100">
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Month</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Sessions</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Users</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Page Views</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Bounce Rate</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Avg Duration</th>
+              </tr></thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={r.id} className={`border-b border-stone-100 ${i === 0 ? 'bg-amber-50/40' : 'hover:bg-stone-50'}`}>
+                    <td className="px-4 py-3 font-medium text-stone-800">{fmtPeriod(r.period)}</td>
+                    <td className="px-4 py-3 text-right text-stone-700">{r.sessions?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-700">{r.users?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-700">{r.page_views?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-600">{r.bounce_rate != null ? `${(r.bounce_rate*100).toFixed(1)}%` : <span className="text-stone-300">—</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-600">{fmtDur(r.avg_session_duration)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{rows.length} month{rows.length !== 1 ? 's' : ''} of data</div>
+          </div>
+        </>
       )}
     </div>
   )
