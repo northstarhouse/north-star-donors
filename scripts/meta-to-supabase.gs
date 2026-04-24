@@ -12,9 +12,9 @@
 
 var FB_CONFIG = {
   PAGE_ID:      '129807677061224',
-  ACCESS_TOKEN: 'EAAcxy0JWyHQBRSt5xOHPG7vdVkQZAyZCZAswEzu0ul1n5v9c1ZCZAtL65lqyHAdWc84MdzVMW2m14lm8b7Yy3tYJsfNyR5qclkVZBIi0y4JGEnTvreuI2cn5ex8D4I6VMWb0ZB7mBqJbZAXZB5ZCGQZBlT6oKZCa9qfxPPxrUJZCNwUqLCyyC7neTZAecJ9aL3leMbqFMTM8oZB7G70tqVAEBqiN8ypiIN8dXMmZCECkGb5OkQXuhvXOA5ljSeWlyKjxDk1ugJA88KVNtrSBR1CuFjavledRZASQl',
+  ACCESS_TOKEN: 'EAAcxy0JWyHQBRXI25w1nqc2bYYtHZCJZAgMIMMnXdLj2ZCmb2I0O3CnKwTxVSJDjAJ3oZAhXVfRCk2iTDzQGkhU1WY2Q3cJrmzfT3lrTqRETy5QaPfTOmbvlqnPojdDTB7HM6aw316piL1iD8mB6h8cTVpWZBfaGzAsrSVhWda0DQ7pp4Nf4ZB52YsY34x38LbyZBQw9OelAZCw6q8p09Ox09nr0UeEeP0d80Vs4ZCMpC74uBDfCQrXW57uKs39m5zdmiN9PQUFzKLEAX04iDmHuWRpKVFGiSBFdZCj80NATV49XO1F6gixmDx5xIHzq16hkAcxdLUqA65eu1TvwZDZD',
   SUPABASE_URL: 'https://uvzwhhwzelaelfhfkvdb.supabase.co',
-  SUPABASE_KEY: 'PASTE_ANON_KEY_HERE',
+  SUPABASE_KEY: 'sb_publishable_EbFMfEbyEp3gASl-GZm3tQ_LnPEe5do',
   TABLE:        'data_facebook'
 };
 
@@ -30,75 +30,53 @@ function syncFBLastMonth() {
 
 // Backfill: syncFBMonth('2025-01')
 function syncFBMonth(period) {
-  var parts   = period.split('-');
-  var year    = parseInt(parts[0]);
-  var month   = parseInt(parts[1]);
-  var since   = Math.floor(new Date(year, month - 1, 1).getTime() / 1000);
-  var until   = Math.floor(new Date(year, month, 1).getTime() / 1000);
+  var parts = period.split('-');
+  var year  = parseInt(parts[0]);
+  var month = parseInt(parts[1]);
+  var since = Math.floor(new Date(year, month - 1, 1).getTime() / 1000);
+  var until = Math.floor(new Date(year, month, 1).getTime() / 1000);
 
   Logger.log('Fetching Facebook data for ' + period);
 
-  var insights  = fetchPageInsights(since, until);
-  var followers = fetchFollowerCount();
+  var fields    = fetchPageFields();
   var postCount = fetchPostCount(since, until);
 
-  var payload = Object.assign({ period: period, page_followers: followers, post_count: postCount }, insights);
-  Logger.log('FB data: ' + JSON.stringify(payload));
+  var payload = {
+    period:              period,
+    page_followers:      fields.followers_count,
+    page_impressions:    null,
+    page_reach:          null,
+    page_engaged_users:  fields.talking_about_count,
+    post_count:          postCount
+  };
 
+  Logger.log('FB data: ' + JSON.stringify(payload));
   upsertFBSupabase(payload);
   Logger.log('Done: ' + period);
 }
 
 // ─── Facebook Graph API ───────────────────────────────────────────────────────
 
-function fetchPageInsights(since, until) {
-  var metrics = [
-    'page_impressions',
-    'page_impressions_unique',  // reach
-    'page_engaged_users'
-  ].join(',');
-
-  var url = 'https://graph.facebook.com/v19.0/' + FB_CONFIG.PAGE_ID + '/insights'
-    + '?metric=' + metrics
-    + '&period=month'
-    + '&since=' + since
-    + '&until=' + until
-    + '&access_token=' + FB_CONFIG.ACCESS_TOKEN;
-
-  var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  var code     = response.getResponseCode();
-
-  if (code !== 200) {
-    Logger.log('FB insights error ' + code + ': ' + response.getContentText());
-    return { page_impressions: null, page_reach: null, page_engaged_users: null };
-  }
-
-  var json   = JSON.parse(response.getContentText());
-  var result = { page_impressions: null, page_reach: null, page_engaged_users: null };
-
-  (json.data || []).forEach(function(metric) {
-    var val = metric.values && metric.values[0] ? metric.values[0].value : null;
-    if (metric.name === 'page_impressions')        result.page_impressions    = val;
-    if (metric.name === 'page_impressions_unique') result.page_reach          = val;
-    if (metric.name === 'page_engaged_users')      result.page_engaged_users  = val;
-  });
-
-  return result;
-}
-
-function fetchFollowerCount() {
+function fetchPageFields() {
   var url = 'https://graph.facebook.com/v19.0/' + FB_CONFIG.PAGE_ID
-    + '?fields=followers_count'
+    + '?fields=followers_count,fan_count,talking_about_count'
     + '&access_token=' + FB_CONFIG.ACCESS_TOKEN;
 
   var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  if (response.getResponseCode() !== 200) return null;
+  if (response.getResponseCode() !== 200) {
+    Logger.log('FB page fields error: ' + response.getContentText());
+    return { followers_count: null, talking_about_count: null };
+  }
   var json = JSON.parse(response.getContentText());
-  return json.followers_count || null;
+  Logger.log('FB page fields: ' + JSON.stringify(json));
+  return {
+    followers_count:      json.followers_count || json.fan_count || null,
+    talking_about_count:  json.talking_about_count || null
+  };
 }
 
 function fetchPostCount(since, until) {
-  var url = 'https://graph.facebook.com/v19.0/' + FB_CONFIG.PAGE_ID + '/posts'
+  var url = 'https://graph.facebook.com/v19.0/' + FB_CONFIG.PAGE_ID + '/published_posts'
     + '?fields=id'
     + '&since=' + since
     + '&until=' + until
@@ -106,7 +84,11 @@ function fetchPostCount(since, until) {
     + '&access_token=' + FB_CONFIG.ACCESS_TOKEN;
 
   var response = UrlFetchApp.fetch(url, { muteHttpExceptions: true });
-  if (response.getResponseCode() !== 200) return null;
+  var code = response.getResponseCode();
+  if (code !== 200) {
+    Logger.log('FB posts error ' + code + ': ' + response.getContentText());
+    return null;
+  }
   var json = JSON.parse(response.getContentText());
   return (json.data || []).length;
 }

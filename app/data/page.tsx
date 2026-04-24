@@ -621,7 +621,7 @@ function SocialSection() {
                   { label: 'Followers',   value: latestFB.page_followers?.toLocaleString(),    d: delta(latestFB.page_followers, prevFB?.page_followers ?? null),       sub: 'page followers' },
                   { label: 'Reach',       value: latestFB.page_reach?.toLocaleString(),         d: delta(latestFB.page_reach, prevFB?.page_reach ?? null),               sub: 'people reached' },
                   { label: 'Impressions', value: latestFB.page_impressions?.toLocaleString(),   d: delta(latestFB.page_impressions, prevFB?.page_impressions ?? null),    sub: 'total impressions' },
-                  { label: 'Engagement',  value: latestFB.page_engaged_users?.toLocaleString(), d: delta(latestFB.page_engaged_users, prevFB?.page_engaged_users ?? null), sub: 'engaged users' },
+                  { label: 'Talking About', value: latestFB.page_engaged_users?.toLocaleString(), d: delta(latestFB.page_engaged_users, prevFB?.page_engaged_users ?? null), sub: 'people talking about page' },
                   { label: 'Posts',       value: latestFB.post_count?.toLocaleString(),         d: null,                                                                  sub: 'posts published' },
                 ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null; sub: string }[]).map(({ label, value, d, sub }) => (
                   <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
@@ -640,7 +640,7 @@ function SocialSection() {
                   <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Followers</th>
                   <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Reach</th>
                   <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Impressions</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Engaged Users</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Talking About</th>
                   <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Posts</th>
                 </tr></thead>
                 <tbody>
