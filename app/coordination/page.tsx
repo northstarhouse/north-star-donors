@@ -399,7 +399,7 @@ export default function CoordinationPage() {
                     </form>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           )}
         </div>

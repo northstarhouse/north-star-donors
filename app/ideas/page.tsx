@@ -401,7 +401,7 @@ export default function IdeasPage() {
                     </div>
                   )}
                 </div>
-              )}
+              ) : null}
             </div>
           )}
         </div>

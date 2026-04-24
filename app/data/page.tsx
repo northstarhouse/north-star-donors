@@ -205,7 +205,7 @@ function FormsSection() {
                 <p className="text-xs text-stone-300 italic">No field data captured.</p>
               )}
             </DetailPanel>
-          )}
+          ) : null}
         </div>
       )}
     </div>
@@ -379,7 +379,7 @@ function EmailSection() {
                 </div>
               )}
             </DetailPanel>
-          )}
+          ) : null}
         </div>
       )}
     </div>
@@ -572,7 +572,7 @@ function SocialSection() {
                 </div>
               )}
             </DetailPanel>
-          )}
+          ) : null}
         </div>
       )}
     </div>
@@ -750,7 +750,7 @@ function EventsSection() {
                 </div>
               )}
             </DetailPanel>
-          )}
+          ) : null}
         </div>
       )}
     </div>
