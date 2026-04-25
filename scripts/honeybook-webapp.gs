@@ -16,15 +16,28 @@
 
 var LEADS_SHEET  = 'Sheet1';
 var BOOKED_SHEET = 'Sheet2';
+var TOURS_SHEET  = 'Sheet3';
 
 function doGet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
   var leads  = readLeads(ss);
   var booked = readBooked(ss);
+  var tours  = readTours(ss);
+
+  var sheetNames = ss.getSheets().map(function(s) { return s.getName(); });
+  var sheet2 = ss.getSheetByName(BOOKED_SHEET);
+  var sheet3 = ss.getSheetByName(TOURS_SHEET);
+  var bookedHeaders = sheet2 ? sheet2.getRange(1, 1, 1, sheet2.getLastColumn()).getValues()[0] : [];
+  var toursHeaders  = sheet3 ? sheet3.getRange(1, 1, 1, sheet3.getLastColumn()).getValues()[0] : [];
 
   return ContentService
-    .createTextOutput(JSON.stringify({ leads: leads, booked: booked }))
+    .createTextOutput(JSON.stringify({
+      leads: leads, booked: booked, tours: tours,
+      _sheets: sheetNames,
+      _bookedCount: booked.length, _bookedHeaders: bookedHeaders,
+      _toursCount: tours.length,   _toursHeaders:  toursHeaders
+    }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -133,6 +146,57 @@ function readBooked(ss) {
     if (!a.booked_date) return 1;
     if (!b.booked_date) return -1;
     return b.booked_date.localeCompare(a.booked_date);
+  });
+
+  return rows;
+}
+
+// ── Sheet3: tours ─────────────────────────────────────────────────────────────
+
+function readTours(ss) {
+  var sheet = ss.getSheetByName(TOURS_SHEET);
+  if (!sheet) return [];
+
+  var data    = sheet.getDataRange().getValues();
+  var headers = data[0].map(function(h) { return String(h).trim().toLowerCase(); });
+  var col     = function(name) { return headers.indexOf(name.toLowerCase()); };
+
+  // Try common column name variants
+  var firstNameCol = col('First Name') > -1 ? col('First Name') : col('firstname');
+  var lastNameCol  = col('Last Name')  > -1 ? col('Last Name')  : col('lastname');
+  var projectCol   = col('Project Name');
+  var typeCol      = col('Project Type');
+  var sourceCol    = col('Project Source') > -1 ? col('Project Source') : col('Lead Source');
+  var tourDateCol  = col('Tour Date') > -1 ? col('Tour Date') : col('Project Creation Date');
+  var projDateCol  = col('Project Date');
+  var emailCol     = col('Email');
+  var valueCol     = col('Total Booked Value') > -1 ? col('Total Booked Value') : col('Total Project Value');
+
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var r = data[i];
+    var first = firstNameCol > -1 ? String(r[firstNameCol] || '').trim() : '';
+    var last  = lastNameCol  > -1 ? String(r[lastNameCol]  || '').trim() : '';
+    var proj  = projectCol   > -1 ? String(r[projectCol]   || '').trim() : '';
+    if (!first && !last && !proj) continue;
+
+    rows.push({
+      id:           i,
+      full_name:    (first + ' ' + last).trim() || proj,
+      email:        emailCol    > -1 ? (String(r[emailCol]   || '').trim() || null) : null,
+      project_name: proj,
+      project_type: typeCol     > -1 ? (String(r[typeCol]    || '').trim() || null) : null,
+      lead_source:  sourceCol   > -1 ? (String(r[sourceCol]  || '').trim() || null) : null,
+      tour_date:    tourDateCol > -1 ? fmtDate(r[tourDateCol]) : null,
+      project_date: projDateCol > -1 ? fmtDate(r[projDateCol]) : null,
+      total_value:  valueCol    > -1 ? (parseFloat(r[valueCol]) || null) : null,
+    });
+  }
+
+  rows.sort(function(a, b) {
+    if (!a.tour_date) return 1;
+    if (!b.tour_date) return -1;
+    return b.tour_date.localeCompare(a.tour_date);
   });
 
   return rows;

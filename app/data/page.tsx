@@ -25,6 +25,12 @@ interface BookedClient {
   total_value: number | null; total_paid: number | null; refunded: number; company: string | null
 }
 
+interface TourEntry {
+  id: string | number; full_name: string; email: string | null
+  project_name: string; project_type: string | null; lead_source: string | null
+  tour_date: string | null; project_date: string | null; total_value: number | null
+}
+
 interface FormSubmission {
   id: string; form_name: string; form_id: string | null
   submitted_at: string; fields: Record<string, string> | null
@@ -141,14 +147,16 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 function HoneyBookSection() {
   const [rows,   setRows]   = useState<HoneyBookLead[] | null>(null)
   const [booked, setBooked] = useState<BookedClient[]>([])
+  const [tours,  setTours]  = useState<TourEntry[]>([])
 
   useEffect(() => {
     if (!HONEYBOOK_URL) { setRows([]); return }
     fetch(HONEYBOOK_URL)
       .then(r => r.json())
       .then(json => {
-        setRows((json.leads   as HoneyBookLead[]) ?? [])
+        setRows((json.leads  as HoneyBookLead[]) ?? [])
         setBooked((json.booked as BookedClient[]) ?? [])
+        setTours((json.tours   as TourEntry[])   ?? [])
       })
       .catch(() => setRows([]))
   }, [])
@@ -156,10 +164,11 @@ function HoneyBookSection() {
   if (rows === null) return <div className="text-center py-16 text-stone-400 text-sm">Loading…</div>
   if (rows.length === 0) return <div className="text-center py-16 text-stone-400 text-sm">No leads yet.</div>
 
-  const unbooked   = rows.filter(r => !booked.find(b => b.project_name === r.project_name))
-  const convPct    = rows.length > 0 ? Math.round((booked.length / rows.length) * 100) : 0
-  const totalValue = booked.reduce((s, r) => s + (r.total_value ?? 0), 0)
-  const totalPaid  = booked.reduce((s, r) => s + (r.total_paid  ?? 0), 0)
+  const tourPct     = rows.length > 0 ? Math.round((tours.length  / rows.length) * 100) : 0
+  const bookPct     = rows.length > 0 ? Math.round((booked.length / rows.length) * 100) : 0
+  const tourToBook  = tours.length > 0 ? Math.round((booked.length / tours.length) * 100) : 0
+  const totalValue  = booked.reduce((s, r) => s + (r.total_value ?? 0), 0)
+  const totalPaid   = booked.reduce((s, r) => s + (r.total_paid  ?? 0), 0)
 
   // Source tally
   const sourceCounts = rows.reduce((acc, r) => {
@@ -206,10 +215,10 @@ function HoneyBookSection() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {([
-          { label: 'Total Leads',    value: rows.length.toString(),    sub: 'inquiries received' },
-          { label: 'Booked',         value: booked.length.toString(),  sub: `${convPct}% conversion rate` },
-          { label: 'Revenue Booked', value: fmt$(totalValue),           sub: `${fmt$(totalPaid)} collected` },
-          { label: 'Still Deciding', value: unbooked.length.toString(), sub: 'not yet confirmed' },
+          { label: 'Inquiries',      value: rows.length.toString(),    sub: 'leads received' },
+          { label: 'Toured',         value: tours.length.toString(),   sub: `${tourPct}% of inquiries` },
+          { label: 'Booked',         value: booked.length.toString(),  sub: `${bookPct}% of inquiries · ${tourToBook}% of tours` },
+          { label: 'Revenue Booked', value: fmt$(totalValue),          sub: `${fmt$(totalPaid)} collected` },
         ]).map(({ label, value, sub }) => (
           <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
             <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
