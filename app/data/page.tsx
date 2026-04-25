@@ -133,8 +133,6 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 ══════════════════════════════════════════════════════════ */
 function HoneyBookSection() {
   const [rows, setRows] = useState<HoneyBookLead[] | null>(null)
-  const [selected, setSelected] = useState<HoneyBookLead | null>(null)
-  const [search, setSearch] = useState('')
 
   useEffect(() => {
     if (!HONEYBOOK_URL) { setRows([]); return }
@@ -144,142 +142,166 @@ function HoneyBookSection() {
       .catch(() => setRows([]))
   }, [])
 
-  const fmtD = (d: string | null) => d ? new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+  if (rows === null) return <div className="text-center py-16 text-stone-400 text-sm">Loading…</div>
+  if (rows.length === 0) return <div className="text-center py-16 text-stone-400 text-sm">No leads yet.</div>
 
-  const filtered = (rows ?? []).filter(r =>
-    !search || r.full_name.toLowerCase().includes(search.toLowerCase()) ||
-    r.project_name.toLowerCase().includes(search.toLowerCase()) ||
-    (r.lead_source ?? '').toLowerCase().includes(search.toLowerCase())
-  )
-
-  const booked    = (rows ?? []).filter(r => r.booked_date)
+  const booked     = rows.filter(r => r.booked_date)
+  const unbooked   = rows.filter(r => !r.booked_date)
+  const convPct    = Math.round((booked.length / rows.length) * 100)
   const totalValue = booked.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
+  const pipeline   = unbooked.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
 
-  const sourceCounts = (rows ?? []).reduce((acc, r) => {
+  // Source tally
+  const sourceCounts = rows.reduce((acc, r) => {
     const s = r.lead_source || 'Unknown'
     acc[s] = (acc[s] || 0) + 1
     return acc
   }, {} as Record<string, number>)
+  const sourceList = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1])
+
+  // Monthly breakdown (lead_created_date YYYY-MM)
+  const monthlyMap: Record<string, { leads: number; booked: number }> = {}
+  rows.forEach(r => {
+    const mo = (r.lead_created_date ?? '').slice(0, 7)
+    if (!mo) return
+    if (!monthlyMap[mo]) monthlyMap[mo] = { leads: 0, booked: 0 }
+    monthlyMap[mo].leads++
+    if (r.booked_date) monthlyMap[mo].booked++
+  })
+  const months = Object.keys(monthlyMap).sort()
+  const maxLeads = Math.max(...months.map(m => monthlyMap[m].leads), 1)
 
   const SOURCE_COLORS: Record<string, string> = {
     Google: '#4ade80', Facebook: '#60a5fa', Website: '#f59e0b',
-    Instagram: '#c084fc', Referral: '#34d399', Unknown: '#94a3b8',
+    Instagram: '#c084fc', Referral: '#34d399', 'Word of Mouth': '#fb923c',
+    Unknown: '#94a3b8',
+  }
+  const srcColor = (s: string) => SOURCE_COLORS[s] ?? '#d6d3d1'
+
+  const moLabel = (ym: string) => {
+    const [y, m] = ym.split('-')
+    return new Date(+y, +m - 1, 1).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
   }
 
   return (
     <div className="space-y-5">
-      {rows === null ? (
-        <div className="text-center py-16 text-stone-400 text-sm">Loading…</div>
-      ) : (
-        <>
-          {/* Summary cards */}
-          {rows.length > 0 && (
-            <div className="grid grid-cols-4 gap-3">
-              {([
-                { label: 'Total Leads',    value: rows.length.toLocaleString(),    sub: 'all time' },
-                { label: 'Booked',         value: booked.length.toLocaleString(),  sub: `${rows.length > 0 ? Math.round((booked.length / rows.length) * 100) : 0}% conversion` },
-                { label: 'Pipeline Value', value: fmt$(totalValue),                sub: 'booked projects' },
-                { label: 'Unbooked',       value: (rows.length - booked.length).toLocaleString(), sub: 'open leads' },
-              ]).map(({ label, value, sub }) => (
-                <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
-                  <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
-                  <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value}</p>
-                  <p className="text-[10px] text-stone-400">{sub}</p>
+      {/* Period label */}
+      <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest">Jan – Apr 2026</p>
+
+      {/* KPI cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {([
+          { label: 'Total Leads',     value: rows.length.toString(),          sub: 'inquiries received' },
+          { label: 'Booked',          value: booked.length.toString(),        sub: `${convPct}% conversion rate` },
+          { label: 'Revenue Booked',  value: fmt$(totalValue),                sub: 'confirmed projects' },
+          { label: 'Open Pipeline',   value: fmt$(pipeline),                  sub: `${unbooked.length} unbooked leads` },
+        ]).map(({ label, value, sub }) => (
+          <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+            <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
+            <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value}</p>
+            <p className="text-[10px] text-stone-400">{sub}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Monthly chart + Source tally side by side */}
+      <div className="grid grid-cols-[1fr_260px] gap-4">
+
+        {/* Monthly leads vs booked bar chart */}
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
+          <p className="text-sm font-semibold text-stone-700 mb-1">Leads vs. Bookings by Month</p>
+          <p className="text-xs text-stone-400 mb-5">Each bar shows total inquiries · green fill = booked</p>
+          <div className="flex items-end gap-3 h-36">
+            {months.map(mo => {
+              const { leads, booked: b } = monthlyMap[mo]
+              const totalH = Math.round((leads / maxLeads) * 100)
+              const bookedH = Math.round((b / maxLeads) * 100)
+              return (
+                <div key={mo} className="flex-1 flex flex-col items-center gap-1">
+                  <span className="text-[10px] text-stone-400 font-medium">{leads}</span>
+                  <div className="w-full relative rounded-t-sm overflow-hidden" style={{ height: `${totalH}%`, minHeight: 4, background: '#e7e5e4' }}>
+                    <div className="absolute bottom-0 left-0 right-0 rounded-t-sm" style={{ height: `${Math.round((b / leads) * 100)}%`, background: '#4ade80' }} />
+                  </div>
+                  <span className="text-[10px] text-stone-400">{moLabel(mo)}</span>
                 </div>
-              ))}
-            </div>
-          )}
+              )
+            })}
+          </div>
+          <div className="flex items-center gap-4 mt-4">
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-stone-200" /><span className="text-xs text-stone-500">Leads</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-green-400" /><span className="text-xs text-stone-500">Booked</span></div>
+          </div>
+        </div>
 
-          {/* Source breakdown */}
-          {Object.keys(sourceCounts).length > 0 && (
-            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
-              <p className="text-sm font-semibold text-stone-700 mb-4">Leads by Source</p>
-              <div className="flex gap-1 h-6 rounded-lg overflow-hidden mb-4">
-                {Object.entries(sourceCounts).sort((a,b) => b[1]-a[1]).map(([src, count]) => (
-                  <div key={src} style={{ width: `${(count/rows.length)*100}%`, background: SOURCE_COLORS[src] ?? '#d6d3d1' }} title={`${src}: ${count}`} />
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-x-6 gap-y-2">
-                {Object.entries(sourceCounts).sort((a,b) => b[1]-a[1]).map(([src, count]) => (
-                  <div key={src} className="flex items-center gap-1.5">
-                    <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: SOURCE_COLORS[src] ?? '#d6d3d1' }} />
-                    <span className="text-xs text-stone-600 font-medium">{src}</span>
-                    <span className="text-xs text-stone-400">{count} · {Math.round((count/rows.length)*100)}%</span>
+        {/* Source tally box */}
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 flex flex-col">
+          <p className="text-sm font-semibold text-stone-700 mb-1">Where They Found Us</p>
+          <p className="text-xs text-stone-400 mb-4">Lead source breakdown</p>
+          <div className="space-y-2.5 flex-1">
+            {sourceList.map(([src, count]) => (
+              <div key={src}>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: srcColor(src) }} />
+                    <span className="text-xs font-medium text-stone-700">{src}</span>
                   </div>
-                ))}
+                  <span className="text-xs text-stone-400 font-semibold">{count} <span className="font-normal text-stone-300">· {Math.round((count / rows.length) * 100)}%</span></span>
+                </div>
+                <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${(count / rows.length) * 100}%`, background: srcColor(src) }} />
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Search + table */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search leads…"
-                className="w-64 border border-stone-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700" />
-              <p className="text-xs text-stone-400">{filtered.length} lead{filtered.length !== 1 ? 's' : ''}</p>
-            </div>
-            <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                {filtered.length === 0 ? (
-                  <div className="text-center py-16 text-stone-400 text-sm">{rows.length === 0 ? 'No leads yet. Sync from the Google Sheet via Apps Script.' : 'No results.'}</div>
-                ) : (
-                  <table className="w-full text-sm">
-                    <thead><tr className="border-b border-stone-100 bg-stone-50/60">
-                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Name</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Project</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Source</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Value</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Lead Date</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Status</th>
-                    </tr></thead>
-                    <tbody>{filtered.map(r => (
-                      <tr key={r.id} onClick={() => setSelected(prev => prev?.id === r.id ? null : r)}
-                        className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === r.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
-                        <td className="px-4 py-3 font-medium text-stone-800">{r.full_name}</td>
-                        <td className="px-4 py-3 text-stone-600 max-w-[180px] truncate">{r.project_name}</td>
-                        <td className="px-4 py-3">
-                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: (SOURCE_COLORS[r.lead_source ?? ''] ?? '#d6d3d1') + '33', color: SOURCE_COLORS[r.lead_source ?? ''] ?? '#78716c' }}>
-                            {r.lead_source ?? 'Unknown'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-right text-stone-600">{r.total_project_value ? fmt$(r.total_project_value) : <span className="text-stone-300">—</span>}</td>
-                        <td className="px-4 py-3 text-right text-stone-400 text-xs">{fmtD(r.lead_created_date)}</td>
-                        <td className="px-4 py-3 text-right">
-                          {r.booked_date
-                            ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Booked</span>
-                            : <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">Open</span>}
-                        </td>
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                )}
-              </div>
-
-              {selected ? (
-                <DetailPanel onClose={() => setSelected(null)}>
-                  <div className="mb-4">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>{selected.project_name}</p>
-                    <h2 className="font-bold text-stone-800 text-base">{selected.full_name}</h2>
+            ))}
+          </div>
+          {/* Booked by source mini table */}
+          <div className="mt-5 pt-4 border-t border-stone-100">
+            <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">Booked by Source</p>
+            <div className="space-y-1">
+              {sourceList.map(([src]) => {
+                const srcBooked = booked.filter(r => (r.lead_source || 'Unknown') === src).length
+                const srcTotal  = sourceCounts[src]
+                if (srcBooked === 0) return null
+                return (
+                  <div key={src} className="flex justify-between text-xs">
+                    <span className="text-stone-600">{src}</span>
+                    <span className="text-stone-400">{srcBooked}/{srcTotal} <span className="text-stone-300">({Math.round((srcBooked/srcTotal)*100)}%)</span></span>
                   </div>
-                  <div className="space-y-3">
-                    <Field label="Status" value={selected.booked_date ? '✓ Booked' : 'Open'} />
-                    <Field label="Email" value={selected.email} />
-                    <Field label="Phone" value={selected.phone} />
-                    <Field label="Lead Source" value={selected.lead_source ?? null} />
-                    {selected.lead_source_text && <Field label="Source Detail" value={selected.lead_source_text} />}
-                    <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
-                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Lead Date</p><p className="text-sm font-semibold text-stone-800">{fmtD(selected.lead_created_date)}</p></div>
-                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Event Date</p><p className="text-sm font-semibold text-stone-800">{selected.project_date ?? '—'}</p></div>
-                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Value</p><p className="text-sm font-semibold text-stone-800">{selected.total_project_value ? fmt$(selected.total_project_value) : '—'}</p></div>
-                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Booked Date</p><p className="text-sm font-semibold text-stone-800">{fmtD(selected.booked_date)}</p></div>
-                    </div>
-                  </div>
-                </DetailPanel>
-              ) : null}
+                )
+              })}
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </div>
+
+      {/* Value breakdown */}
+      <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
+        <p className="text-sm font-semibold text-stone-700 mb-4">Project Value by Source</p>
+        <div className="space-y-3">
+          {sourceList.map(([src]) => {
+            const srcRows   = rows.filter(r => (r.lead_source || 'Unknown') === src)
+            const srcVal    = srcRows.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
+            const srcBooked = srcRows.filter(r => r.booked_date).reduce((s, r) => s + (r.total_project_value ?? 0), 0)
+            if (srcVal === 0) return null
+            return (
+              <div key={src} className="flex items-center gap-4">
+                <div className="flex items-center gap-1.5 w-32 flex-shrink-0">
+                  <div className="w-2 h-2 rounded-sm" style={{ background: srcColor(src) }} />
+                  <span className="text-xs font-medium text-stone-700 truncate">{src}</span>
+                </div>
+                <div className="flex-1 h-4 bg-stone-100 rounded-full overflow-hidden relative">
+                  <div className="h-full rounded-full" style={{ width: `${(srcVal / (totalValue + pipeline)) * 100}%`, background: srcColor(src) + '66' }} />
+                  <div className="h-full rounded-full absolute top-0 left-0" style={{ width: `${(srcBooked / (totalValue + pipeline)) * 100}%`, background: srcColor(src) }} />
+                </div>
+                <div className="text-right w-36 flex-shrink-0">
+                  <span className="text-xs font-semibold text-stone-700">{fmt$(srcBooked)}</span>
+                  <span className="text-xs text-stone-400"> / {fmt$(srcVal)}</span>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <p className="text-[10px] text-stone-400 mt-3">Solid fill = booked · faded = total pipeline including open leads</p>
+      </div>
     </div>
   )
 }
