@@ -42,9 +42,15 @@ function fetchTopPages() {
     var body = JSON.stringify({
       dateRanges: [{ startDate: '90daysAgo', endDate: 'today' }],
       dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
-      metrics:    [{ name: 'screenPageViews' }, { name: 'sessions' }],
-      orderBys:   [{ metric: { metricName: 'screenPageViews' }, desc: true }],
-      limit: 20
+      metrics: [
+        { name: 'screenPageViews' },
+        { name: 'totalUsers' },
+        { name: 'sessions' },
+        { name: 'engagementRate' },
+        { name: 'averageSessionDuration' }
+      ],
+      orderBys: [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+      limit: 100
     });
 
     var resp = UrlFetchApp.fetch(url, {
@@ -61,14 +67,44 @@ function fetchTopPages() {
     }
 
     var report = JSON.parse(resp.getContentText());
-    var rows = (report.rows || []).map(function(row) {
-      return {
-        path:     row.dimensionValues[0].value,
-        title:    row.dimensionValues[1].value,
-        views:    parseInt(row.metricValues[0].value, 10),
-        sessions: parseInt(row.metricValues[1].value, 10)
-      };
+
+    // Normalize paths: strip query strings, trailing slashes, then group duplicates
+    var grouped = {};
+    (report.rows || []).forEach(function(row) {
+      var raw  = row.dimensionValues[0].value;
+      var path = raw.split('?')[0].split('#')[0];
+      if (path !== '/' && path.slice(-1) === '/') path = path.slice(0, -1);
+      if (!path) path = '/';
+
+      var views    = parseInt(row.metricValues[0].value, 10);
+      var users    = parseInt(row.metricValues[1].value, 10);
+      var sessions = parseInt(row.metricValues[2].value, 10);
+      var engRate  = parseFloat(row.metricValues[3].value);
+      var avgDur   = parseFloat(row.metricValues[4].value);
+
+      if (!grouped[path]) {
+        grouped[path] = { path: path, title: row.dimensionValues[1].value,
+          views: 0, users: 0, sessions: 0, _engW: 0, _durW: 0 };
+      }
+      grouped[path].views    += views;
+      grouped[path].users    += users;
+      grouped[path].sessions += sessions;
+      grouped[path]._engW    += engRate * views;
+      grouped[path]._durW    += avgDur  * views;
     });
+
+    var rows = Object.keys(grouped).map(function(p) {
+      var g = grouped[p];
+      return {
+        path:        g.path,
+        title:       g.title,
+        views:       g.views,
+        users:       g.users,
+        sessions:    g.sessions,
+        engRate:     g.views > 0 ? g._engW / g.views : 0,
+        avgDuration: g.views > 0 ? g._durW / g.views : 0
+      };
+    }).sort(function(a, b) { return b.views - a.views; }).slice(0, 20);
 
     return { rows: rows, period: 'last 90 days' };
   } catch (e) {

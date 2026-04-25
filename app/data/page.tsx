@@ -1087,7 +1087,7 @@ function EventsSection() {
    ANALYTICS SECTION
 ══════════════════════════════════════════════════════════ */
 function AnalyticsSection() {
-  type PageRow = { path: string; title: string; views: number; sessions: number }
+  type PageRow = { path: string; title: string; views: number; users: number; sessions: number; engRate: number; avgDuration: number }
   const [topPages, setTopPages] = useState<{ rows: PageRow[]; period?: string; error?: string } | null>(null)
   const [rows, setRows] = useState<AnalyticsEntry[] | null>(null)
   const [chartMetric, setChartMetric] = useState<'sessions' | 'users' | 'page_views'>('sessions')
@@ -1157,6 +1157,7 @@ function AnalyticsSection() {
         const filtered = topPages.rows.filter(r => !r.path.startsWith('/dashboard'))
         const maxViews = Math.max(...filtered.map(r => r.views), 1)
         const totalViews = filtered.reduce((s, r) => s + r.views, 0)
+        const fmtDurS = (s: number) => { const m = Math.floor(s / 60); const sec = Math.round(s % 60); return m > 0 ? `${m}m ${sec}s` : `${sec}s` }
         const pageLabel = (path: string) => {
           if (path === '/') return 'Home'
           const clean = path.replace(/^\//, '').split('?')[0]
@@ -1164,43 +1165,49 @@ function AnalyticsSection() {
         }
         return (
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-5 pt-5 pb-3">
-              <div>
-                <p className="text-sm font-semibold text-stone-700">Pages Visited</p>
-                <p className="text-xs text-stone-400 mt-0.5">{totalViews.toLocaleString()} total views · {topPages.period ?? 'last 90 days'}</p>
-              </div>
+            <div className="px-5 pt-5 pb-3">
+              <p className="text-sm font-semibold text-stone-700">Pages &amp; Screens</p>
+              <p className="text-xs text-stone-400 mt-0.5">{totalViews.toLocaleString()} total views · {topPages.period ?? 'last 90 days'}</p>
             </div>
-            <div className="px-5 pb-5 space-y-3">
-              {filtered.map((page, i) => {
-                const pct = (page.views / maxViews) * 100
-                const sharePct = Math.round((page.views / totalViews) * 100)
-                return (
-                  <div key={i} className="group">
-                    <div className="flex items-baseline justify-between mb-1 gap-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-[10px] font-bold text-stone-300 w-4 flex-shrink-0">{i + 1}</span>
-                        <span className="text-sm font-medium text-stone-800 truncate" title={page.path}>{pageLabel(page.path)}</span>
-                        <span className="text-[10px] text-stone-400 flex-shrink-0 hidden group-hover:inline">{page.path}</span>
-                      </div>
-                      <div className="flex items-baseline gap-2 flex-shrink-0">
-                        <span className="text-sm font-bold text-stone-800">{page.views.toLocaleString()}</span>
-                        <span className="text-[10px] text-stone-400">{sharePct}%</span>
-                      </div>
-                    </div>
-                    <div className="h-2 rounded-full bg-stone-100 overflow-hidden">
-                      <div className="h-full rounded-full transition-all"
-                        style={{ width: `${pct}%`, background: i === 0 ? 'var(--gold)' : `color-mix(in srgb, var(--gold) ${Math.max(30, 100 - i * 8)}%, #d6d3d1)` }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-y border-stone-100 bg-stone-50/60">
+                  <th className="px-5 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Page</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Views</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Users</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Sessions</th>
+                  <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Eng. Rate</th>
+                  <th className="px-5 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Avg. Duration</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((page, i) => {
+                  const pct = (page.views / maxViews) * 100
+                  return (
+                    <tr key={i} className="border-b border-stone-50 hover:bg-stone-50/50 transition-colors">
+                      <td className="px-5 py-3 max-w-xs">
+                        <p className="font-medium text-stone-800 truncate" title={page.path}>{pageLabel(page.path)}</p>
+                        <p className="text-[10px] text-stone-400 truncate">{page.path}</p>
+                        <div className="mt-1.5 h-1 rounded-full bg-stone-100 overflow-hidden w-full">
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: i === 0 ? 'var(--gold)' : `color-mix(in srgb, var(--gold) ${Math.max(25, 100 - i * 7)}%, #d6d3d1)` }} />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right font-bold text-stone-800">{page.views.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{(page.users ?? 0).toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{page.sessions.toLocaleString()}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{page.engRate != null ? `${Math.round(page.engRate * 100)}%` : '—'}</td>
+                      <td className="px-5 py-3 text-right text-stone-600">{page.avgDuration != null ? fmtDurS(page.avgDuration) : '—'}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
         )
       })() : (
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center py-10">
           <p className="font-medium text-stone-500 mb-1 text-sm">No page data available</p>
-          <p className="text-xs text-stone-400">{topPages.error ?? 'GA4 returned 0 rows — confirm the property ID and that the deploying Google account has Viewer access to the GA4 property.'}</p>
+          <p className="text-xs text-stone-400">{topPages.error ?? 'GA4 returned 0 rows — confirm the property ID and that the deploying Google account has Viewer access.'}</p>
         </div>
       )}
 
