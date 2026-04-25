@@ -1,11 +1,15 @@
-// Google Apps Script: Wix analytics + form submissions proxy
+// Google Apps Script: Wix analytics + GA4 top pages + form submissions proxy
 //
 // Setup:
 //   1. Open script.google.com (or any Google Sheet → Extensions → Apps Script)
 //   2. Paste this file (replace existing content)
-//   3. Deploy → Manage deployments → edit → New version → Deploy
-//      (keep "Anyone" access)
-//   4. Copy the web app URL into WIX_URL in app/data/page.tsx
+//   3. Enable GA4 service: click ＋ next to "Services" → add "Google Analytics Data API" → Save
+//   4. Fill in GA4_PROPERTY_ID below (find it in analytics.google.com → Admin → Property Settings)
+//   5. Deploy → Manage deployments → edit → New version → Deploy  (keep "Anyone" access)
+//   6. Copy the web app URL into WIX_URL in app/data/page.tsx
+
+// ── Find your GA4 property ID: analytics.google.com → Admin → Property Settings → Property ID
+var GA4_PROPERTY_ID = '';  // e.g. '123456789'
 
 var WIX_TOKEN = 'IST.eyJraWQiOiJQb3pIX2FDMiIsImFsZyI6IlJTMjU2In0.eyJkYXRhIjoie1wiaWRcIjpcImU0NjhlNTliLTY0NDItNDBkNy1iYWEzLTM1MGMzZmFjYjY2ZFwiLFwiaWRlbnRpdHlcIjp7XCJ0eXBlXCI6XCJhcHBsaWNhdGlvblwiLFwiaWRcIjpcImU0M2YyYjAxLTUxMDktNGM5OC1iMDNlLTg4NTZhZmQwOGY5YlwifSxcInRlbmFudFwiOntcInR5cGVcIjpcImFjY291bnRcIixcImlkXCI6XCI3ZjM4ODdlZS01ODU2LTRkZTUtOTk3NC03ZjQwZGExODQwYWNcIn19IiwiaWF0IjoxNzc3MTAzMjYxfQ.Jk0Hm9layHNR-d2T5aFWLVAaBZVR-idFFQi6MSppkdynoDb_MQHQ6dL1HR5s0ff3ETnzI4gCnyHBoSN61Kz3SqvHQSKGfxSnwUAstDJSulOTElC66m1sDBEC4BaIyCgROSnNnEgnw2hcCgG4Q8UXyfxZlFsidCsPjxGhhVHLLG1wu3Lp4qTGmjzWc0DKxuydd04c-s6dFIkvwp7bC4Cf1FOFmck88jruoRB16yw_mLP_YVzfWcapxndI4ErcxaOy77KO49NQx1Tv0S-ZBIE1NtCuczycDgT2sMKHoTMqSt9Q5X9kGjQhEKtQuGDn6j1G6Q4XaMamR6IDYEotObZqfQ';
 var WIX_SITE  = '675edd2f-6fca-4862-ba5b-af17f015fbb2';
@@ -19,10 +23,42 @@ var FORM_NAMES = {
 function doGet() {
   var analytics = fetchAnalytics();
   var forms     = fetchForms();
+  var pages     = fetchTopPages();
 
   return ContentService
-    .createTextOutput(JSON.stringify({ analytics: analytics, forms: forms }))
+    .createTextOutput(JSON.stringify({ analytics: analytics, forms: forms, pages: pages }))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ── GA4 Top Pages ─────────────────────────────────────────────────────────────
+// Requires: Services → Google Analytics Data API enabled in this script project.
+
+function fetchTopPages() {
+  if (!GA4_PROPERTY_ID) return { rows: [], error: 'GA4_PROPERTY_ID not set' };
+
+  try {
+    var report = AnalyticsData.Properties.runReport('properties/' + GA4_PROPERTY_ID, {
+      dateRanges: [{ startDate: '90daysAgo', endDate: 'today' }],
+      dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
+      metrics:    [{ name: 'screenPageViews' }, { name: 'sessions' }],
+      orderBys:   [{ metric: { metricName: 'screenPageViews' }, desc: true }],
+      limit: 20
+    });
+
+    var rows = (report.rows || []).map(function(row) {
+      return {
+        path:    row.dimensionValues[0].value,
+        title:   row.dimensionValues[1].value,
+        views:   parseInt(row.metricValues[0].value, 10),
+        sessions: parseInt(row.metricValues[1].value, 10)
+      };
+    });
+
+    return { rows: rows, period: 'last 90 days' };
+  } catch (e) {
+    Logger.log('GA4 error: ' + e);
+    return { rows: [], error: String(e) };
+  }
 }
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
