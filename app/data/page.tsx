@@ -18,6 +18,13 @@ interface HoneyBookLead {
   lead_source: string | null; lead_source_text: string | null; booked_date: string | null
 }
 
+interface BookedClient {
+  id: string | number; full_name: string; email: string | null
+  project_name: string; project_type: string | null; lead_source: string | null
+  created_date: string | null; project_date: string | null; booked_date: string | null
+  total_value: number | null; total_paid: number | null; refunded: number; company: string | null
+}
+
 interface FormSubmission {
   id: string; form_name: string; form_id: string | null
   submitted_at: string; fields: Record<string, string> | null
@@ -132,24 +139,27 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
    HONEYBOOK SECTION
 ══════════════════════════════════════════════════════════ */
 function HoneyBookSection() {
-  const [rows, setRows] = useState<HoneyBookLead[] | null>(null)
+  const [rows,   setRows]   = useState<HoneyBookLead[] | null>(null)
+  const [booked, setBooked] = useState<BookedClient[]>([])
 
   useEffect(() => {
     if (!HONEYBOOK_URL) { setRows([]); return }
     fetch(HONEYBOOK_URL)
       .then(r => r.json())
-      .then(json => setRows((json.leads as HoneyBookLead[]) ?? []))
+      .then(json => {
+        setRows((json.leads   as HoneyBookLead[]) ?? [])
+        setBooked((json.booked as BookedClient[]) ?? [])
+      })
       .catch(() => setRows([]))
   }, [])
 
   if (rows === null) return <div className="text-center py-16 text-stone-400 text-sm">Loading…</div>
   if (rows.length === 0) return <div className="text-center py-16 text-stone-400 text-sm">No leads yet.</div>
 
-  const booked     = rows.filter(r => r.total_project_value)
-  const unbooked   = rows.filter(r => !r.total_project_value)
-  const convPct    = Math.round((booked.length / rows.length) * 100)
-  const totalValue = booked.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
-  const pipeline   = 0 // open leads have no value entered by definition
+  const unbooked   = rows.filter(r => !booked.find(b => b.project_name === r.project_name))
+  const convPct    = rows.length > 0 ? Math.round((booked.length / rows.length) * 100) : 0
+  const totalValue = booked.reduce((s, r) => s + (r.total_value ?? 0), 0)
+  const totalPaid  = booked.reduce((s, r) => s + (r.total_paid  ?? 0), 0)
 
   // Source tally
   const sourceCounts = rows.reduce((acc, r) => {
@@ -166,7 +176,7 @@ function HoneyBookSection() {
     if (!mo) return
     if (!monthlyMap[mo]) monthlyMap[mo] = { leads: 0, booked: 0 }
     monthlyMap[mo].leads++
-    if (r.total_project_value) monthlyMap[mo].booked++
+    if (booked.find(b => b.project_name === r.project_name)) monthlyMap[mo].booked++
   })
   const months = Object.keys(monthlyMap).sort()
   const maxLeads = Math.max(...months.map(m => monthlyMap[m].leads), 1)
@@ -191,10 +201,10 @@ function HoneyBookSection() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {([
-          { label: 'Total Leads',     value: rows.length.toString(),          sub: 'inquiries received' },
-          { label: 'Booked',          value: booked.length.toString(),        sub: `${convPct}% conversion rate` },
-          { label: 'Revenue Booked',  value: fmt$(totalValue),                sub: 'confirmed projects' },
-          { label: 'Still Deciding',  value: unbooked.length.toString(),      sub: 'no value entered yet' },
+          { label: 'Total Leads',    value: rows.length.toString(),    sub: 'inquiries received' },
+          { label: 'Booked',         value: booked.length.toString(),  sub: `${convPct}% conversion rate` },
+          { label: 'Revenue Booked', value: fmt$(totalValue),           sub: `${fmt$(totalPaid)} collected` },
+          { label: 'Still Deciding', value: unbooked.length.toString(), sub: 'not yet confirmed' },
         ]).map(({ label, value, sub }) => (
           <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
             <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
@@ -246,9 +256,8 @@ function HoneyBookSection() {
             <p className="text-sm font-semibold text-stone-700 mb-4">Project Value by Source</p>
             <div className="space-y-3">
               {sourceList.map(([src]) => {
-                const srcRows   = rows.filter(r => (r.lead_source || 'Unknown') === src)
-                const srcVal    = srcRows.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
-                const srcBooked = srcRows.filter(r => r.total_project_value).reduce((s, r) => s + (r.total_project_value ?? 0), 0)
+                const srcBooked = booked.filter(r => (r.lead_source || 'Unknown') === src)
+                const srcVal    = srcBooked.reduce((s, r) => s + (r.total_value ?? 0), 0)
                 if (srcVal === 0) return null
                 return (
                   <div key={src} className="flex items-center gap-4">
@@ -257,9 +266,9 @@ function HoneyBookSection() {
                       <span className="text-xs font-medium text-stone-700 truncate">{src}</span>
                     </div>
                     <div className="flex-1 h-4 bg-stone-100 rounded-full overflow-hidden relative">
-                      <div className="h-full rounded-full absolute top-0 left-0" style={{ width: `${(srcBooked / totalValue) * 100}%`, background: srcColor(src) }} />
+                      <div className="h-full rounded-full absolute top-0 left-0" style={{ width: `${(srcVal / totalValue) * 100}%`, background: srcColor(src) }} />
                     </div>
-                    <span className="text-xs font-semibold text-stone-700 w-24 text-right flex-shrink-0">{fmt$(srcBooked)}</span>
+                    <span className="text-xs font-semibold text-stone-700 w-24 text-right flex-shrink-0">{fmt$(srcVal)}</span>
                   </div>
                 )
               })}
@@ -293,7 +302,7 @@ function HoneyBookSection() {
             <div className="space-y-1">
               {sourceList.map(([src]) => {
                 const srcBooked = booked.filter(r => (r.lead_source || 'Unknown') === src).length
-                const srcTotal  = sourceCounts[src]
+                const srcTotal  = sourceCounts[src] ?? 0
                 if (srcBooked === 0) return null
                 return (
                   <div key={src} className="flex justify-between text-xs">

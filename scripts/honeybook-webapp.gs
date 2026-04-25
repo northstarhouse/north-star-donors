@@ -3,27 +3,39 @@
 // Setup:
 //   1. Open script.google.com (or Extensions → Apps Script from the HoneyBook sheet)
 //   2. Paste this entire file (replace any existing content)
-//   3. Click Deploy → New deployment → Type: Web app
-//      - Execute as: Me
-//      - Who has access: Anyone
-//   4. Click Deploy → copy the web app URL
-//   5. Paste that URL into the app's HONEYBOOK_URL constant (app/data/page.tsx)
+//   3. Click Deploy → Manage deployments → edit existing → New version → Deploy
+//      (URL stays the same)
 //
-// The sheet is expected to have these columns (row 1 = headers):
-//   #, Project Name, Full Name, Email Address, Phone Number,
-//   Project Date, Lead Created Date, Total Project Value,
-//   Lead Source, Lead Source Open Text, Booked Date
+// Sheet1: Leads report  (#, Project Name, Full Name, Email Address, Phone Number,
+//                         Project Date, Lead Created Date, Total Project Value,
+//                         Lead Source, Lead Source Open Text, Booked Date)
+// Sheet2: Booked clients report  (First Name, Last Name, Email, Project Name,
+//                                  Project Type, Project Source, Project Creation Date,
+//                                  Project Date, Booked Date, Total Booked Value,
+//                                  Tax, Total Paid, Refunded Amount, Gratuity, Company)
 
-var SHEET_NAME = 'Sheet1'; // change if your tab has a different name
+var LEADS_SHEET  = 'Sheet1';
+var BOOKED_SHEET = 'Sheet2';
 
 function doGet() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME)
-    || SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
 
+  var leads  = readLeads(ss);
+  var booked = readBooked(ss);
+
+  return ContentService
+    .createTextOutput(JSON.stringify({ leads: leads, booked: booked }))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ── Sheet1: all leads ─────────────────────────────────────────────────────────
+
+function readLeads(ss) {
+  var sheet = ss.getSheetByName(LEADS_SHEET) || ss.getSheets()[0];
   var data    = sheet.getDataRange().getValues();
   var headers = data[0].map(function(h) { return String(h).trim().toLowerCase(); });
+  var col     = function(name) { return headers.indexOf(name.toLowerCase()); };
 
-  var col = function(name) { return headers.indexOf(name.toLowerCase()); };
   var C = {
     num:        col('#'),
     project:    col('Project Name'),
@@ -42,34 +54,91 @@ function doGet() {
   for (var i = 1; i < data.length; i++) {
     var r = data[i];
     if (!r[C.name] && !r[C.project]) continue;
-
     rows.push({
-      id:                   i,
-      row_num:              r[C.num] || i,
-      project_name:         String(r[C.project] || '').trim(),
-      full_name:            String(r[C.name] || '').trim(),
-      email:                String(r[C.email] || '').trim() || null,
-      phone:                String(r[C.phone] || '').trim() || null,
-      project_date:         String(r[C.projDate] || '').trim() || null,
-      lead_created_date:    fmtDate(r[C.leadDate]),
-      total_project_value:  parseFloat(r[C.value]) || null,
-      lead_source:          String(r[C.source] || '').trim() || null,
-      lead_source_text:     String(r[C.sourceText] || '').trim() || null,
-      booked_date:          fmtDate(r[C.booked]),
+      id:                  i,
+      row_num:             r[C.num] || i,
+      project_name:        String(r[C.project] || '').trim(),
+      full_name:           String(r[C.name]    || '').trim(),
+      email:               String(r[C.email]   || '').trim() || null,
+      phone:               String(r[C.phone]   || '').trim() || null,
+      project_date:        String(r[C.projDate]|| '').trim() || null,
+      lead_created_date:   fmtDate(r[C.leadDate]),
+      total_project_value: parseFloat(r[C.value]) || null,
+      lead_source:         String(r[C.source]  || '').trim() || null,
+      lead_source_text:    String(r[C.sourceText] || '').trim() || null,
+      booked_date:         fmtDate(r[C.booked]),
     });
   }
 
-  // Sort newest first by lead_created_date
   rows.sort(function(a, b) {
     if (!a.lead_created_date) return 1;
     if (!b.lead_created_date) return -1;
     return b.lead_created_date.localeCompare(a.lead_created_date);
   });
 
-  return ContentService
-    .createTextOutput(JSON.stringify({ leads: rows }))
-    .setMimeType(ContentService.MimeType.JSON);
+  return rows;
 }
+
+// ── Sheet2: confirmed booked clients ─────────────────────────────────────────
+
+function readBooked(ss) {
+  var sheet = ss.getSheetByName(BOOKED_SHEET);
+  if (!sheet) return [];
+
+  var data    = sheet.getDataRange().getValues();
+  var headers = data[0].map(function(h) { return String(h).trim().toLowerCase(); });
+  var col     = function(name) { return headers.indexOf(name.toLowerCase()); };
+
+  var C = {
+    firstName:   col('First Name'),
+    lastName:    col('Last Name'),
+    email:       col('Email'),
+    project:     col('Project Name'),
+    type:        col('Project Type'),
+    source:      col('Project Source'),
+    createdDate: col('Project Creation Date'),
+    projDate:    col('Project Date'),
+    bookedDate:  col('Booked Date'),
+    value:       col('Total Booked Value'),
+    paid:        col('Total Paid'),
+    refunded:    col('Refunded Amount'),
+    company:     col('Company'),
+  };
+
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var r = data[i];
+    var first = String(r[C.firstName] || '').trim();
+    var last  = String(r[C.lastName]  || '').trim();
+    if (!first && !last) continue;
+
+    rows.push({
+      id:           i,
+      full_name:    (first + ' ' + last).trim(),
+      email:        String(r[C.email]   || '').trim() || null,
+      project_name: String(r[C.project] || '').trim(),
+      project_type: String(r[C.type]    || '').trim() || null,
+      lead_source:  String(r[C.source]  || '').trim() || null,
+      created_date: fmtDate(r[C.createdDate]),
+      project_date: fmtDate(r[C.projDate]),
+      booked_date:  fmtDate(r[C.bookedDate]),
+      total_value:  parseFloat(r[C.value])    || null,
+      total_paid:   parseFloat(r[C.paid])     || null,
+      refunded:     parseFloat(r[C.refunded]) || 0,
+      company:      String(r[C.company] || '').trim() || null,
+    });
+  }
+
+  rows.sort(function(a, b) {
+    if (!a.booked_date) return 1;
+    if (!b.booked_date) return -1;
+    return b.booked_date.localeCompare(a.booked_date);
+  });
+
+  return rows;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtDate(val) {
   if (!val) return null;
