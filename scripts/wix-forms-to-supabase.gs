@@ -16,7 +16,7 @@ var WIX_FORMS_CONFIG = {
 };
 
 var WIX_FORM_NAMES = {
-  // 'form-id-here': 'Public Name'
+  // Optional overrides when you want a custom display title for a known form ID.
 };
 
 var WIX_KEY_LABELS = {
@@ -26,7 +26,8 @@ var WIX_KEY_LABELS = {
 };
 
 function syncWixForms() {
-  var submissions = fetchWixForms();
+  var formNames = fetchWixFormNamesMap();
+  var submissions = fetchWixForms(formNames);
   if (!submissions.length) {
     Logger.log('No Wix forms returned');
     return;
@@ -40,7 +41,7 @@ function syncWixForms() {
   Logger.log('Done. Synced ' + submissions.length + ' Wix submissions.');
 }
 
-function fetchWixForms() {
+function fetchWixForms(formNames) {
   var url  = 'https://www.wixapis.com/form-submission-service/v4/submissions/query';
   var body = JSON.stringify({
     query: {
@@ -72,12 +73,44 @@ function fetchWixForms() {
     return {
       id:         String(s.id),
       form_id:    String(s.formId || ''),
-      form_name:  WIX_FORM_NAMES[s.formId] || 'Other Form',
+      form_name:  formNames[s.formId] || WIX_FORM_NAMES[s.formId] || 'Other Form',
       status:     s.status ? String(s.status) : null,
       created_at: s.createdDate,
       fields:     normalizeWixFields(s.submissions || {})
     };
   });
+}
+
+function fetchWixFormNamesMap() {
+  var url = 'https://www.wixapis.com/form-schema-service/v4/forms';
+  var resp = UrlFetchApp.fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': WIX_FORMS_CONFIG.WIX_TOKEN,
+      'wix-site-id':   WIX_FORMS_CONFIG.WIX_SITE
+    },
+    muteHttpExceptions: true
+  });
+
+  var code = resp.getResponseCode();
+  if (code !== 200) {
+    Logger.log('Wix form schemas error ' + code + ': ' + resp.getContentText());
+    return WIX_FORM_NAMES;
+  }
+
+  var json = JSON.parse(resp.getContentText());
+  var rows = json.forms || json.items || json.results || [];
+  var out = {};
+
+  rows.forEach(function(form) {
+    var id = String(form.id || form.formId || '');
+    var name = form.name || form.displayName || form.title || form.formName || '';
+    if (id && name) out[id] = String(name);
+  });
+
+  for (var id in WIX_FORM_NAMES) out[id] = WIX_FORM_NAMES[id];
+  Logger.log('Resolved ' + Object.keys(out).length + ' Wix form names');
+  return out;
 }
 
 function upsertFormsChunk(rows) {

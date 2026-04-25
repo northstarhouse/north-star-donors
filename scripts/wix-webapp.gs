@@ -15,9 +15,7 @@ var WIX_TOKEN = 'IST.eyJraWQiOiJQb3pIX2FDMiIsImFsZyI6IlJTMjU2In0.eyJkYXRhIjoie1w
 var WIX_SITE  = '675edd2f-6fca-4862-ba5b-af17f015fbb2';
 
 var FORM_NAMES = {
-  'cc2315f5-59c6-4c05-a4ba-7b56ece75e0e': 'Newsletter Signup',
-  '80aca1bd-2d0d-4d6a-81cd-478d0420d75c': 'General Inquiry',
-  '911f8932-085e-4889-be1e-25978ddb1c69': 'Tour Request'
+  // Optional overrides when you want a custom display title for a known form ID.
 };
 
 function doGet() {
@@ -225,6 +223,7 @@ function fetchAnalytics() {
 // ── Forms ─────────────────────────────────────────────────────────────────────
 
 function fetchForms() {
+  var formNames = fetchFormNamesMap();
   var url  = 'https://www.wixapis.com/form-submission-service/v4/submissions/query';
   var body = JSON.stringify({
     query: {
@@ -255,7 +254,7 @@ function fetchForms() {
     return {
       id:         s.id,
       form_id:    s.formId,
-      form_name:  FORM_NAMES[s.formId] || 'Other Form',
+      form_name:  formNames[s.formId] || FORM_NAMES[s.formId] || 'Other Form',
       status:     s.status,
       created_at: s.createdDate,
       fields:     normalizeFields(s.submissions || {})
@@ -263,6 +262,35 @@ function fetchForms() {
   });
 
   return { submissions: submissions };
+}
+
+function fetchFormNamesMap() {
+  var url = 'https://www.wixapis.com/form-schema-service/v4/forms';
+  var resp = UrlFetchApp.fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': WIX_TOKEN,
+      'wix-site-id':   WIX_SITE
+    },
+    muteHttpExceptions: true
+  });
+
+  if (resp.getResponseCode() !== 200) {
+    Logger.log('Form schema error ' + resp.getResponseCode() + ': ' + resp.getContentText());
+    return FORM_NAMES;
+  }
+
+  var json = JSON.parse(resp.getContentText());
+  var rows = json.forms || json.items || json.results || [];
+  var out = {};
+  rows.forEach(function(form) {
+    var id = String(form.id || form.formId || '');
+    var name = form.name || form.displayName || form.title || form.formName || '';
+    if (id && name) out[id] = String(name);
+  });
+
+  for (var id in FORM_NAMES) out[id] = FORM_NAMES[id];
+  return out;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
