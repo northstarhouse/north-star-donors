@@ -169,14 +169,19 @@ function HoneyBookSection() {
   }, {} as Record<string, number>)
   const sourceList = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1])
 
-  // Monthly breakdown (lead_created_date YYYY-MM)
+  // Monthly breakdown — leads by inquiry date, bookings by booked_date (independent)
   const monthlyMap: Record<string, { leads: number; booked: number }> = {}
   rows.forEach(r => {
     const mo = (r.lead_created_date ?? '').slice(0, 7)
     if (!mo) return
     if (!monthlyMap[mo]) monthlyMap[mo] = { leads: 0, booked: 0 }
     monthlyMap[mo].leads++
-    if (booked.find(b => b.project_name === r.project_name)) monthlyMap[mo].booked++
+  })
+  booked.forEach(b => {
+    const mo = (b.booked_date ?? '').slice(0, 7)
+    if (!mo) return
+    if (!monthlyMap[mo]) monthlyMap[mo] = { leads: 0, booked: 0 }
+    monthlyMap[mo].booked++
   })
   const months = Object.keys(monthlyMap).sort()
   const maxLeads = Math.max(...months.map(m => monthlyMap[m].leads), 1)
@@ -222,10 +227,10 @@ function HoneyBookSection() {
 
           {/* Monthly leads vs booked bar chart */}
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
-            <p className="text-sm font-semibold text-stone-700 mb-1">Leads vs. Bookings by Month</p>
+            <p className="text-sm font-semibold text-stone-700 mb-1">Inquiries vs. Bookings by Month</p>
             <div className="flex items-center gap-5 mb-4">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-stone-200" /><span className="text-xs text-stone-500">Leads</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-400" /><span className="text-xs text-stone-500">Booked</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-stone-200" /><span className="text-xs text-stone-500">Inquiries</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-400" /><span className="text-xs text-stone-500">Booked that month</span></div>
             </div>
             <div className="flex items-end gap-6 h-32">
               {months.map(mo => {
