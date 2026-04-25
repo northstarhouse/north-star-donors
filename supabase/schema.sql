@@ -136,6 +136,7 @@ create table if not exists data_wix_forms (
   status text,
   created_at timestamptz not null,
   fields jsonb not null default '{}'::jsonb,
+  internal_notes text,
   synced_at timestamptz default now()
 );
 

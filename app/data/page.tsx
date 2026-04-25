@@ -38,6 +38,7 @@ interface TourEntry {
 interface WixSubmission {
   id: string; form_id: string; form_name: string
   status: string; created_at: string
+  internal_notes?: string | null
   fields: Record<string, string>
 }
 interface EmailEntry {
@@ -430,6 +431,8 @@ function FormsSection() {
   const [selected, setSelected] = useState<WixSubmission | null>(null)
   const [activeForm, setActiveForm] = useState<string | null>(null)
   const [source, setSource] = useState<'supabase' | 'wix'>('wix')
+  const [notesDraft, setNotesDraft] = useState('')
+  const [notesSaving, setNotesSaving] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -437,7 +440,7 @@ function FormsSection() {
     async function loadForms() {
       const { data: supabaseRows, error } = await supabase
         .from('data_wix_forms')
-        .select('id, form_id, form_name, status, created_at, fields')
+        .select('id, form_id, form_name, status, created_at, fields, internal_notes')
         .order('created_at', { ascending: false })
 
       if (!cancelled && !error && supabaseRows && supabaseRows.length > 0) {
@@ -449,6 +452,7 @@ function FormsSection() {
             form_name: row.form_name,
             status: row.status,
             created_at: row.created_at,
+            internal_notes: row.internal_notes,
             fields: (row.fields as Record<string, string>) ?? {},
           })),
         })
@@ -476,6 +480,10 @@ function FormsSection() {
     return () => { cancelled = true }
   }, [])
 
+  useEffect(() => {
+    setNotesDraft(selected?.internal_notes ?? '')
+  }, [selected])
+
   const rows = data?.submissions ?? []
   const formNames = [...new Set(rows.map(r => r.form_name))].sort()
   const grouped = formNames.map(name => ({ name, items: rows.filter(r => r.form_name === name) }))
@@ -483,6 +491,24 @@ function FormsSection() {
   const activeGroup = grouped.find(group => group.name === activeFormName) ?? null
 
   const fmtTs = (ts: string) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+
+  async function saveNotes() {
+    if (!selected || source !== 'supabase') return
+    setNotesSaving(true)
+    const noteValue = notesDraft.trim() || null
+    const { error } = await supabase
+      .from('data_wix_forms')
+      .update({ internal_notes: noteValue })
+      .eq('id', selected.id)
+
+    if (!error) {
+      setSelected(prev => prev ? { ...prev, internal_notes: noteValue } : prev)
+      setData(prev => prev ? {
+        submissions: prev.submissions.map(sub => sub.id === selected.id ? { ...sub, internal_notes: noteValue } : sub),
+      } : prev)
+    }
+    setNotesSaving(false)
+  }
 
   return (
     <div>
@@ -561,6 +587,30 @@ function FormsSection() {
               <div className="mb-4">
                 <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>{selected.form_name}</p>
                 <p className="text-xs text-stone-400">{fmtTs(selected.created_at)}</p>
+              </div>
+              <div className="mb-4">
+                <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1 block">Internal Notes</label>
+                <textarea
+                  className={inputCls + ' resize-none'}
+                  rows={4}
+                  value={notesDraft}
+                  onChange={e => setNotesDraft(e.target.value)}
+                  placeholder={source === 'supabase' ? 'Add internal notes for this submission' : 'Notes are available after this submission is loaded from Supabase'}
+                  disabled={source !== 'supabase' || notesSaving}
+                />
+                <div className="flex items-center justify-between mt-2 gap-2">
+                  <p className="text-[10px] text-stone-400">
+                    {source === 'supabase' ? 'Saved to Supabase for this submission.' : 'Notes editing is disabled while using live Wix fallback.'}
+                  </p>
+                  <button
+                    onClick={saveNotes}
+                    disabled={source !== 'supabase' || notesSaving}
+                    className="px-3 py-1.5 text-xs text-white rounded-lg disabled:opacity-50"
+                    style={goldBtn}
+                  >
+                    {notesSaving ? 'Saving…' : 'Save Notes'}
+                  </button>
+                </div>
               </div>
               {Object.keys(selected.fields).length > 0 ? (
                 <div className="space-y-3">
