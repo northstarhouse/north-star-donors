@@ -124,7 +124,7 @@ function applyHoneyBookPayload(
 
 const TABS: { id: DataTab; label: string }[] = [
   { id: 'analytics', label: 'Website' },
-  { id: 'honeybook', label: 'HoneyBook' },
+  { id: 'honeybook', label: 'Venue' },
   { id: 'forms',     label: 'Forms' },
   { id: 'email',     label: 'Email Results' },
   { id: 'social',    label: 'Socials' },
@@ -320,7 +320,7 @@ function HoneyBookSection() {
               </div>
               {/* Bars */}
               <div className="relative flex items-end gap-3 flex-1" style={{ height: '200px' }}>
-                {[25, 50, 75, 100].map(pct => (
+                {[25, 50, 75].map(pct => (
                   <div key={pct} className="absolute left-0 right-0 border-t border-stone-150" style={{ bottom: `calc(${pct}% + 20px)`, borderColor: '#e5e5e5' }} />
                 ))}
                 {months.map(mo => {
