@@ -145,11 +145,11 @@ function HoneyBookSection() {
   if (rows === null) return <div className="text-center py-16 text-stone-400 text-sm">Loading…</div>
   if (rows.length === 0) return <div className="text-center py-16 text-stone-400 text-sm">No leads yet.</div>
 
-  const booked     = rows.filter(r => r.booked_date)
-  const unbooked   = rows.filter(r => !r.booked_date)
+  const booked     = rows.filter(r => r.total_project_value)
+  const unbooked   = rows.filter(r => !r.total_project_value)
   const convPct    = Math.round((booked.length / rows.length) * 100)
   const totalValue = booked.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
-  const pipeline   = unbooked.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
+  const pipeline   = 0 // open leads have no value entered by definition
 
   // Source tally
   const sourceCounts = rows.reduce((acc, r) => {
@@ -166,7 +166,7 @@ function HoneyBookSection() {
     if (!mo) return
     if (!monthlyMap[mo]) monthlyMap[mo] = { leads: 0, booked: 0 }
     monthlyMap[mo].leads++
-    if (r.booked_date) monthlyMap[mo].booked++
+    if (r.total_project_value) monthlyMap[mo].booked++
   })
   const months = Object.keys(monthlyMap).sort()
   const maxLeads = Math.max(...months.map(m => monthlyMap[m].leads), 1)
@@ -194,7 +194,7 @@ function HoneyBookSection() {
           { label: 'Total Leads',     value: rows.length.toString(),          sub: 'inquiries received' },
           { label: 'Booked',          value: booked.length.toString(),        sub: `${convPct}% conversion rate` },
           { label: 'Revenue Booked',  value: fmt$(totalValue),                sub: 'confirmed projects' },
-          { label: 'Open Pipeline',   value: fmt$(pipeline),                  sub: `${unbooked.length} unbooked leads` },
+          { label: 'Still Deciding',  value: unbooked.length.toString(),      sub: 'no value entered yet' },
         ]).map(({ label, value, sub }) => (
           <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
             <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
@@ -287,7 +287,7 @@ function HoneyBookSection() {
           {sourceList.map(([src]) => {
             const srcRows   = rows.filter(r => (r.lead_source || 'Unknown') === src)
             const srcVal    = srcRows.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
-            const srcBooked = srcRows.filter(r => r.booked_date).reduce((s, r) => s + (r.total_project_value ?? 0), 0)
+            const srcBooked = srcRows.filter(r => r.total_project_value).reduce((s, r) => s + (r.total_project_value ?? 0), 0)
             if (srcVal === 0) return null
             return (
               <div key={src} className="flex items-center gap-4">
