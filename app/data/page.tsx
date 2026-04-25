@@ -1154,8 +1154,9 @@ function AnalyticsSection() {
       {topPages === null ? (
         <div className="text-center py-10 text-stone-400 text-sm">Loading pages…</div>
       ) : topPages.rows.length > 0 ? (() => {
-        const maxViews = Math.max(...topPages.rows.map(r => r.views), 1)
-        const totalViews = topPages.rows.reduce((s, r) => s + r.views, 0)
+        const filtered = topPages.rows.filter(r => !r.path.startsWith('/dashboard'))
+        const maxViews = Math.max(...filtered.map(r => r.views), 1)
+        const totalViews = filtered.reduce((s, r) => s + r.views, 0)
         const pageLabel = (path: string) => {
           if (path === '/') return 'Home'
           const clean = path.replace(/^\//, '').split('?')[0]
@@ -1170,7 +1171,7 @@ function AnalyticsSection() {
               </div>
             </div>
             <div className="px-5 pb-5 space-y-3">
-              {topPages.rows.map((page, i) => {
+              {filtered.map((page, i) => {
                 const pct = (page.views / maxViews) * 100
                 const sharePct = Math.round((page.views / totalViews) * 100)
                 return (
