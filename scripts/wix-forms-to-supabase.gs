@@ -42,34 +42,7 @@ function syncWixForms() {
 }
 
 function fetchWixForms(formNames) {
-  var url  = 'https://www.wixapis.com/form-submission-service/v4/submissions/query';
-  var body = JSON.stringify({
-    query: {
-      filter: { namespace: { '$eq': 'wix.form_app.form' } },
-      sort:   [{ fieldName: 'createdDate', direction: 'DESC' }],
-      paging: { limit: 1000 }
-    }
-  });
-
-  var resp = UrlFetchApp.fetch(url, {
-    method:      'POST',
-    contentType: 'application/json',
-    headers: {
-      'Authorization': WIX_FORMS_CONFIG.WIX_TOKEN,
-      'wix-site-id':   WIX_FORMS_CONFIG.WIX_SITE
-    },
-    payload:            body,
-    muteHttpExceptions: true
-  });
-
-  var code = resp.getResponseCode();
-  if (code !== 200) {
-    Logger.log('Wix forms error ' + code + ': ' + resp.getContentText());
-    return [];
-  }
-
-  var data = JSON.parse(resp.getContentText());
-  return (data.submissions || []).map(function(s) {
+  return fetchAllWixSubmissions().map(function(s) {
     return {
       id:         String(s.id),
       form_id:    String(s.formId || ''),
@@ -82,35 +55,88 @@ function fetchWixForms(formNames) {
 }
 
 function fetchWixFormNamesMap() {
-  var url = 'https://www.wixapis.com/form-schema-service/v4/forms';
-  var resp = UrlFetchApp.fetch(url, {
-    method: 'GET',
-    headers: {
-      'Authorization': WIX_FORMS_CONFIG.WIX_TOKEN,
-      'wix-site-id':   WIX_FORMS_CONFIG.WIX_SITE
-    },
-    muteHttpExceptions: true
-  });
-
-  var code = resp.getResponseCode();
-  if (code !== 200) {
-    Logger.log('Wix form schemas error ' + code + ': ' + resp.getContentText());
-    return WIX_FORM_NAMES;
-  }
-
-  var json = JSON.parse(resp.getContentText());
-  var rows = json.forms || json.items || json.results || [];
   var out = {};
+  var offset = 0;
+  var limit = 100;
 
-  rows.forEach(function(form) {
-    var id = String(form.id || form.formId || '');
-    var name = form.name || form.displayName || form.title || form.formName || '';
-    if (id && name) out[id] = String(name);
-  });
+  while (true) {
+    var resp = UrlFetchApp.fetch('https://www.wixapis.com/form-schema-service/v4/forms/query', {
+      method: 'POST',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': WIX_FORMS_CONFIG.WIX_TOKEN,
+        'wix-site-id':   WIX_FORMS_CONFIG.WIX_SITE
+      },
+      payload: JSON.stringify({
+        query: {
+          filter: { namespace: { '$eq': 'wix.form_app.form' } },
+          sort: [{ fieldName: 'createdDate', order: 'DESC' }],
+          paging: { limit: limit, offset: offset }
+        }
+      }),
+      muteHttpExceptions: true
+    });
+
+    var code = resp.getResponseCode();
+    if (code !== 200) {
+      Logger.log('Wix form schemas error ' + code + ': ' + resp.getContentText());
+      break;
+    }
+
+    var json = JSON.parse(resp.getContentText());
+    var rows = json.forms || json.items || json.results || [];
+    rows.forEach(function(form) {
+      var id = String(form.id || form.formId || '');
+      var name = form.name || form.displayName || form.title || form.formName || (form.properties && form.properties.name) || '';
+      if (id && name) out[id] = String(name);
+    });
+
+    if (rows.length < limit) break;
+    offset += limit;
+  }
 
   for (var id in WIX_FORM_NAMES) out[id] = WIX_FORM_NAMES[id];
   Logger.log('Resolved ' + Object.keys(out).length + ' Wix form names');
   return out;
+}
+
+function fetchAllWixSubmissions() {
+  var all = [];
+  var offset = 0;
+  var limit = 100;
+
+  while (true) {
+    var resp = UrlFetchApp.fetch('https://www.wixapis.com/form-submission-service/v4/submissions/namespace/query', {
+      method: 'POST',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': WIX_FORMS_CONFIG.WIX_TOKEN,
+        'wix-site-id':   WIX_FORMS_CONFIG.WIX_SITE
+      },
+      payload: JSON.stringify({
+        query: {
+          filter: { namespace: { '$eq': 'wix.form_app.form' } },
+          sort: [{ fieldName: 'createdDate', order: 'DESC' }],
+          paging: { limit: limit, offset: offset }
+        }
+      }),
+      muteHttpExceptions: true
+    });
+
+    var code = resp.getResponseCode();
+    if (code !== 200) {
+      Logger.log('Wix forms error ' + code + ': ' + resp.getContentText());
+      break;
+    }
+
+    var json = JSON.parse(resp.getContentText());
+    var rows = json.submissions || json.items || json.results || [];
+    all = all.concat(rows);
+    if (rows.length < limit) break;
+    offset += limit;
+  }
+
+  return all;
 }
 
 function upsertFormsChunk(rows) {

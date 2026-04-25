@@ -224,33 +224,7 @@ function fetchAnalytics() {
 
 function fetchForms() {
   var formNames = fetchFormNamesMap();
-  var url  = 'https://www.wixapis.com/form-submission-service/v4/submissions/query';
-  var body = JSON.stringify({
-    query: {
-      filter: { namespace: { '$eq': 'wix.form_app.form' } },
-      sort:   [{ fieldName: 'createdDate', direction: 'DESC' }],
-      paging: { limit: 1000 }
-    }
-  });
-
-  var resp = UrlFetchApp.fetch(url, {
-    method:      'POST',
-    contentType: 'application/json',
-    headers: {
-      'Authorization': WIX_TOKEN,
-      'wix-site-id':   WIX_SITE
-    },
-    payload:            body,
-    muteHttpExceptions: true
-  });
-
-  if (resp.getResponseCode() !== 200) {
-    Logger.log('Forms error ' + resp.getResponseCode() + ': ' + resp.getContentText());
-    return { submissions: [], error: 'HTTP ' + resp.getResponseCode() };
-  }
-
-  var data = JSON.parse(resp.getContentText());
-  var submissions = (data.submissions || []).map(function(s) {
+  var submissions = fetchAllWixSubmissions().map(function(s) {
     return {
       id:         s.id,
       form_id:    s.formId,
@@ -265,32 +239,85 @@ function fetchForms() {
 }
 
 function fetchFormNamesMap() {
-  var url = 'https://www.wixapis.com/form-schema-service/v4/forms';
-  var resp = UrlFetchApp.fetch(url, {
-    method: 'GET',
-    headers: {
-      'Authorization': WIX_TOKEN,
-      'wix-site-id':   WIX_SITE
-    },
-    muteHttpExceptions: true
-  });
-
-  if (resp.getResponseCode() !== 200) {
-    Logger.log('Form schema error ' + resp.getResponseCode() + ': ' + resp.getContentText());
-    return FORM_NAMES;
-  }
-
-  var json = JSON.parse(resp.getContentText());
-  var rows = json.forms || json.items || json.results || [];
   var out = {};
-  rows.forEach(function(form) {
-    var id = String(form.id || form.formId || '');
-    var name = form.name || form.displayName || form.title || form.formName || '';
-    if (id && name) out[id] = String(name);
-  });
+  var offset = 0;
+  var limit = 100;
+
+  while (true) {
+    var resp = UrlFetchApp.fetch('https://www.wixapis.com/form-schema-service/v4/forms/query', {
+      method: 'POST',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': WIX_TOKEN,
+        'wix-site-id':   WIX_SITE
+      },
+      payload: JSON.stringify({
+        query: {
+          filter: { namespace: { '$eq': 'wix.form_app.form' } },
+          sort: [{ fieldName: 'createdDate', order: 'DESC' }],
+          paging: { limit: limit, offset: offset }
+        }
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (resp.getResponseCode() !== 200) {
+      Logger.log('Form schema error ' + resp.getResponseCode() + ': ' + resp.getContentText());
+      break;
+    }
+
+    var json = JSON.parse(resp.getContentText());
+    var rows = json.forms || json.items || json.results || [];
+    rows.forEach(function(form) {
+      var id = String(form.id || form.formId || '');
+      var name = form.name || form.displayName || form.title || form.formName || (form.properties && form.properties.name) || '';
+      if (id && name) out[id] = String(name);
+    });
+
+    if (rows.length < limit) break;
+    offset += limit;
+  }
 
   for (var id in FORM_NAMES) out[id] = FORM_NAMES[id];
   return out;
+}
+
+function fetchAllWixSubmissions() {
+  var all = [];
+  var offset = 0;
+  var limit = 100;
+
+  while (true) {
+    var resp = UrlFetchApp.fetch('https://www.wixapis.com/form-submission-service/v4/submissions/namespace/query', {
+      method: 'POST',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': WIX_TOKEN,
+        'wix-site-id':   WIX_SITE
+      },
+      payload: JSON.stringify({
+        query: {
+          filter: { namespace: { '$eq': 'wix.form_app.form' } },
+          sort: [{ fieldName: 'createdDate', order: 'DESC' }],
+          paging: { limit: limit, offset: offset }
+        }
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (resp.getResponseCode() !== 200) {
+      Logger.log('Forms error ' + resp.getResponseCode() + ': ' + resp.getContentText());
+      break;
+    }
+
+    var data = JSON.parse(resp.getContentText());
+    var rows = data.submissions || data.items || data.results || [];
+    all = all.concat(rows);
+    if (rows.length < limit) break;
+    offset += limit;
+  }
+
+  return all;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
