@@ -618,11 +618,9 @@ function SocialSection() {
             {latestFB && (
               <div className="grid grid-cols-5 gap-3 mb-4">
                 {([
-                  { label: 'Followers',   value: latestFB.page_followers?.toLocaleString(),    d: delta(latestFB.page_followers, prevFB?.page_followers ?? null),       sub: 'page followers' },
-                  { label: 'Reach',       value: latestFB.page_reach?.toLocaleString(),         d: delta(latestFB.page_reach, prevFB?.page_reach ?? null),               sub: 'people reached' },
-                  { label: 'Impressions', value: latestFB.page_impressions?.toLocaleString(),   d: delta(latestFB.page_impressions, prevFB?.page_impressions ?? null),    sub: 'total impressions' },
+                  { label: 'Followers',     value: latestFB.page_followers?.toLocaleString(),      d: delta(latestFB.page_followers, prevFB?.page_followers ?? null),        sub: 'page followers' },
                   { label: 'Talking About', value: latestFB.page_engaged_users?.toLocaleString(), d: delta(latestFB.page_engaged_users, prevFB?.page_engaged_users ?? null), sub: 'people talking about page' },
-                  { label: 'Posts',       value: latestFB.post_count?.toLocaleString(),         d: null,                                                                  sub: 'posts published' },
+                  { label: 'Posts',         value: latestFB.post_count?.toLocaleString(),         d: null,                                                                   sub: 'posts published' },
                 ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null; sub: string }[]).map(({ label, value, d, sub }) => (
                   <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
                     <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
@@ -638,8 +636,6 @@ function SocialSection() {
                 <thead><tr className="border-b border-stone-100 bg-stone-50/60">
                   <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Month</th>
                   <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Followers</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Reach</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Impressions</th>
                   <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Talking About</th>
                   <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Posts</th>
                 </tr></thead>
@@ -651,8 +647,6 @@ function SocialSection() {
                         {i === 0 && <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">Latest</span>}
                       </td>
                       <td className="px-4 py-3 text-right text-stone-700">{r.page_followers?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-700">{r.page_reach?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.page_impressions?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
                       <td className="px-4 py-3 text-right text-stone-600">{r.page_engaged_users?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
                       <td className="px-4 py-3 text-right text-stone-600">{r.post_count?.toLocaleString() ?? <span className="text-stone-300">—</span>}</td>
                     </tr>
