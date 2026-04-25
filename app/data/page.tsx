@@ -7,12 +7,14 @@ import Sidebar from '@/components/Sidebar'
 /* ── Types ───────────────────────────────────────────────── */
 type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'events'
 
+// Paste your deployed Apps Script web app URL here after deploying honeybook-webapp.gs
+const HONEYBOOK_URL = ''
+
 interface HoneyBookLead {
-  id: string; row_num: number | null; project_name: string; full_name: string
+  id: string | number; row_num: number | null; project_name: string; full_name: string
   email: string | null; phone: string | null; project_date: string | null
   lead_created_date: string | null; total_project_value: number | null
   lead_source: string | null; lead_source_text: string | null; booked_date: string | null
-  created_at: string
 }
 
 interface FormSubmission {
@@ -134,8 +136,11 @@ function HoneyBookSection() {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    supabase.from('data_honeybook_leads').select('*').order('lead_created_date', { ascending: false })
-      .then(({ data }) => setRows((data as HoneyBookLead[]) ?? []))
+    if (!HONEYBOOK_URL) { setRows([]); return }
+    fetch(HONEYBOOK_URL)
+      .then(r => r.json())
+      .then(json => setRows((json.leads as HoneyBookLead[]) ?? []))
+      .catch(() => setRows([]))
   }, [])
 
   const fmtD = (d: string | null) => d ? new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
