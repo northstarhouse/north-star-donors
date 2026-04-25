@@ -2,9 +2,9 @@
 //
 // Setup:
 //   1. Open script.google.com (or any Google Sheet → Extensions → Apps Script)
-//   2. Paste this file (replace existing content)
-//   3. Enable GA4 service: click ＋ next to "Services" → add "Google Analytics Data API" → Save
-//   4. Fill in GA4_PROPERTY_ID below (find it in analytics.google.com → Admin → Property Settings)
+//   2. Paste this file (replace existing content) — no extra Services needed
+//   3. Replace appsscript.json with scripts/appsscript.json from the repo (adds analytics OAuth scope)
+//   4. Fill in GA4_PROPERTY_ID below (analytics.google.com → Admin → Property Settings → Property ID)
 //   5. Deploy → Manage deployments → edit → New version → Deploy  (keep "Anyone" access)
 //   6. Copy the web app URL into WIX_URL in app/data/page.tsx
 
