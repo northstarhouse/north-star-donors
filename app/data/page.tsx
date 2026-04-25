@@ -1087,21 +1087,34 @@ function EventsSection() {
    ANALYTICS SECTION
 ══════════════════════════════════════════════════════════ */
 function AnalyticsSection() {
-  type PageRow = { path: string; title: string; views: number; users: number; sessions: number; engRate: number; avgDuration: number }
-  const [topPages, setTopPages] = useState<{ rows: PageRow[]; period?: string; error?: string } | null>(null)
+  type PageRow   = { path: string; title: string; views: number; users: number; sessions: number; engRate: number; avgDuration: number }
+  type CityRow   = { city: string; region: string; users: number; sessions: number }
+  type SourceRow = { channel: string; sessions: number; users: number; engRate: number }
+  const [topPages,  setTopPages]  = useState<{ rows: PageRow[];   period?: string; error?: string } | null>(null)
+  const [topCities, setTopCities] = useState<{ rows: CityRow[];   period?: string } | null>(null)
+  const [topSources,setTopSources]= useState<{ rows: SourceRow[]; period?: string } | null>(null)
   const [rows, setRows] = useState<AnalyticsEntry[] | null>(null)
   const [chartMetric, setChartMetric] = useState<'sessions' | 'users' | 'page_views'>('sessions')
 
   useEffect(() => {
     supabase.from('data_analytics').select('*').order('period', { ascending: false })
       .then(({ data }) => setRows((data as AnalyticsEntry[]) ?? []))
-    if (!WIX_URL) { setTopPages({ rows: [] }); return }
+    if (!WIX_URL) { setTopPages({ rows: [] }); setTopCities({ rows: [] }); setTopSources({ rows: [] }); return }
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 15000)
+    const timer = setTimeout(() => ctrl.abort(), 20000)
     fetch(WIX_URL, { signal: ctrl.signal })
       .then(r => r.json())
-      .then(json => { clearTimeout(timer); setTopPages(json.pages ?? { rows: [], error: 'Pages not returned by script — redeploy wix-webapp.gs' }) })
-      .catch(e => { clearTimeout(timer); setTopPages({ rows: [], error: e?.name === 'AbortError' ? 'Script timed out (>15s) — check Apps Script logs' : String(e) }) })
+      .then(json => {
+        clearTimeout(timer)
+        setTopPages(json.pages   ?? { rows: [], error: 'Pages not returned by script — redeploy wix-webapp.gs' })
+        setTopCities(json.cities  ?? { rows: [] })
+        setTopSources(json.sources ?? { rows: [] })
+      })
+      .catch(e => {
+        clearTimeout(timer)
+        const msg = e?.name === 'AbortError' ? 'Script timed out — check Apps Script logs' : String(e)
+        setTopPages({ rows: [], error: msg }); setTopCities({ rows: [] }); setTopSources({ rows: [] })
+      })
   }, [])
 
   const fmtPeriod = (p: string) => {
@@ -1208,6 +1221,74 @@ function AnalyticsSection() {
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center py-10">
           <p className="font-medium text-stone-500 mb-1 text-sm">No page data available</p>
           <p className="text-xs text-stone-400">{topPages.error ?? 'GA4 returned 0 rows — confirm the property ID and that the deploying Google account has Viewer access.'}</p>
+        </div>
+      )}
+
+      {/* ── Cities + Sources row ── */}
+      {((topCities?.rows?.length ?? 0) > 0 || (topSources?.rows?.length ?? 0) > 0) && (
+        <div className="grid grid-cols-2 gap-4">
+
+          {/* Cities */}
+          {topCities && topCities.rows.length > 0 && (() => {
+            const maxUsers = Math.max(...topCities.rows.map(r => r.users), 1)
+            return (
+              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                <div className="px-5 pt-4 pb-3">
+                  <p className="text-sm font-semibold text-stone-700">Users by City</p>
+                  <p className="text-xs text-stone-400 mt-0.5">{topCities.period ?? 'last 90 days'}</p>
+                </div>
+                <div className="px-5 pb-4 space-y-2.5">
+                  {topCities.rows.map((r, i) => (
+                    <div key={i}>
+                      <div className="flex justify-between items-baseline mb-1">
+                        <span className="text-sm text-stone-700 truncate">{r.city}<span className="text-stone-400 text-xs ml-1">{r.region}</span></span>
+                        <span className="text-sm font-bold text-stone-800 ml-2 flex-shrink-0">{r.users.toLocaleString()}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${(r.users / maxUsers) * 100}%`, background: i === 0 ? 'var(--gold)' : `color-mix(in srgb, var(--gold) ${Math.max(25, 100 - i * 8)}%, #d6d3d1)` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Sources */}
+          {topSources && topSources.rows.length > 0 && (() => {
+            const totalSessions = topSources.rows.reduce((s, r) => s + r.sessions, 0)
+            const CHANNEL_COLORS: Record<string, string> = {
+              'Organic Search': '#4ade80', 'Direct': '#60a5fa', 'Referral': '#f59e0b',
+              'Organic Social': '#c084fc', 'Paid Search': '#fb7185', 'Email': '#34d399',
+              'Display': '#38bdf8', 'Affiliates': '#a78bfa', 'Unassigned': '#94a3b8'
+            }
+            const color = (ch: string) => CHANNEL_COLORS[ch] ?? '#94a3b8'
+            return (
+              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                <div className="px-5 pt-4 pb-3">
+                  <p className="text-sm font-semibold text-stone-700">Traffic Sources</p>
+                  <p className="text-xs text-stone-400 mt-0.5">{topSources.period ?? 'last 90 days'}</p>
+                </div>
+                {/* stacked bar */}
+                <div className="mx-5 mb-3 flex h-2.5 rounded-full overflow-hidden gap-px">
+                  {topSources.rows.map((r, i) => (
+                    <div key={i} style={{ width: `${(r.sessions / totalSessions) * 100}%`, background: color(r.channel) }} title={`${r.channel}: ${r.sessions.toLocaleString()}`} />
+                  ))}
+                </div>
+                <div className="px-5 pb-4 space-y-2.5">
+                  {topSources.rows.map((r, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color(r.channel) }} />
+                      <span className="text-sm text-stone-700 flex-1 truncate">{r.channel}</span>
+                      <span className="text-sm font-bold text-stone-800">{r.sessions.toLocaleString()}</span>
+                      <span className="text-xs text-stone-400 w-8 text-right">{Math.round(r.engRate * 100)}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
         </div>
       )}
 

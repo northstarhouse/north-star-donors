@@ -24,9 +24,11 @@ function doGet() {
   var analytics = fetchAnalytics();
   var forms     = fetchForms();
   var pages     = fetchTopPages();
+  var cities    = fetchTopCities();
+  var sources   = fetchTopSources();
 
   return ContentService
-    .createTextOutput(JSON.stringify({ analytics: analytics, forms: forms, pages: pages }))
+    .createTextOutput(JSON.stringify({ analytics: analytics, forms: forms, pages: pages, cities: cities, sources: sources }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -109,6 +111,75 @@ function fetchTopPages() {
     return { rows: rows, period: 'last 90 days' };
   } catch (e) {
     Logger.log('GA4 error: ' + e);
+    return { rows: [], error: String(e) };
+  }
+}
+
+// ── GA4 Users by City ─────────────────────────────────────────────────────────
+
+function fetchTopCities() {
+  if (!GA4_PROPERTY_ID) return { rows: [] };
+  try {
+    var url  = 'https://analyticsdata.googleapis.com/v1beta/properties/' + GA4_PROPERTY_ID + ':runReport';
+    var body = JSON.stringify({
+      dateRanges: [{ startDate: '90daysAgo', endDate: 'today' }],
+      dimensions: [{ name: 'city' }, { name: 'region' }],
+      metrics:    [{ name: 'totalUsers' }, { name: 'sessions' }],
+      orderBys:   [{ metric: { metricName: 'totalUsers' }, desc: true }],
+      dimensionFilter: { notExpression: { filter: { fieldName: 'city', stringFilter: { value: '(not set)', matchType: 'EXACT' } } } },
+      limit: 15
+    });
+    var resp = UrlFetchApp.fetch(url, {
+      method: 'POST', contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + ScriptApp.getOAuthToken() },
+      payload: body, muteHttpExceptions: true
+    });
+    if (resp.getResponseCode() !== 200) return { rows: [], error: 'HTTP ' + resp.getResponseCode() };
+    var report = JSON.parse(resp.getContentText());
+    var rows = (report.rows || []).map(function(row) {
+      return {
+        city:    row.dimensionValues[0].value,
+        region:  row.dimensionValues[1].value,
+        users:   parseInt(row.metricValues[0].value, 10),
+        sessions: parseInt(row.metricValues[1].value, 10)
+      };
+    });
+    return { rows: rows, period: 'last 90 days' };
+  } catch (e) {
+    return { rows: [], error: String(e) };
+  }
+}
+
+// ── GA4 Traffic Sources ────────────────────────────────────────────────────────
+
+function fetchTopSources() {
+  if (!GA4_PROPERTY_ID) return { rows: [] };
+  try {
+    var url  = 'https://analyticsdata.googleapis.com/v1beta/properties/' + GA4_PROPERTY_ID + ':runReport';
+    var body = JSON.stringify({
+      dateRanges: [{ startDate: '90daysAgo', endDate: 'today' }],
+      dimensions: [{ name: 'sessionDefaultChannelGrouping' }],
+      metrics:    [{ name: 'sessions' }, { name: 'totalUsers' }, { name: 'engagementRate' }],
+      orderBys:   [{ metric: { metricName: 'sessions' }, desc: true }],
+      limit: 10
+    });
+    var resp = UrlFetchApp.fetch(url, {
+      method: 'POST', contentType: 'application/json',
+      headers: { 'Authorization': 'Bearer ' + ScriptApp.getOAuthToken() },
+      payload: body, muteHttpExceptions: true
+    });
+    if (resp.getResponseCode() !== 200) return { rows: [], error: 'HTTP ' + resp.getResponseCode() };
+    var report = JSON.parse(resp.getContentText());
+    var rows = (report.rows || []).map(function(row) {
+      return {
+        channel:     row.dimensionValues[0].value,
+        sessions:    parseInt(row.metricValues[0].value, 10),
+        users:       parseInt(row.metricValues[1].value, 10),
+        engRate:     parseFloat(row.metricValues[2].value)
+      };
+    });
+    return { rows: rows, period: 'last 90 days' };
+  } catch (e) {
     return { rows: [], error: String(e) };
   }
 }
