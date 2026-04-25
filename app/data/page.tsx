@@ -178,18 +178,24 @@ function HoneyBookSection() {
   }, {} as Record<string, number>)
   const sourceList = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1])
 
-  // Monthly breakdown — leads by inquiry date, bookings by booked_date
-  const monthlyMap: Record<string, { leads: number; booked: number }> = {}
+  // Monthly breakdown — each metric by its own date
+  const monthlyMap: Record<string, { leads: number; toured: number; booked: number }> = {}
   rows.forEach(r => {
     const mo = (r.lead_created_date ?? '').slice(0, 7)
     if (!mo) return
-    if (!monthlyMap[mo]) monthlyMap[mo] = { leads: 0, booked: 0 }
+    if (!monthlyMap[mo]) monthlyMap[mo] = { leads: 0, toured: 0, booked: 0 }
     monthlyMap[mo].leads++
+  })
+  tours.forEach(t => {
+    const mo = (t.tour_date ?? '').slice(0, 7)
+    if (!mo) return
+    if (!monthlyMap[mo]) monthlyMap[mo] = { leads: 0, toured: 0, booked: 0 }
+    monthlyMap[mo].toured++
   })
   booked.forEach(b => {
     const mo = (b.booked_date ?? '').slice(0, 7)
     if (!mo) return
-    if (!monthlyMap[mo]) monthlyMap[mo] = { leads: 0, booked: 0 }
+    if (!monthlyMap[mo]) monthlyMap[mo] = { leads: 0, toured: 0, booked: 0 }
     monthlyMap[mo].booked++
   })
   const months = Object.keys(monthlyMap).sort()
@@ -236,22 +242,28 @@ function HoneyBookSection() {
 
           {/* Monthly leads vs booked bar chart */}
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
-            <p className="text-sm font-semibold text-stone-700 mb-1">Inquiries vs. Bookings by Month</p>
+            <p className="text-sm font-semibold text-stone-700 mb-1">Inquiries · Tours · Bookings by Month</p>
             <div className="flex items-center gap-5 mb-4">
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-stone-200" /><span className="text-xs text-stone-500">Inquiries</span></div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-400" /><span className="text-xs text-stone-500">Booked that month</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-amber-300" /><span className="text-xs text-stone-500">Tours</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-400" /><span className="text-xs text-stone-500">Booked</span></div>
             </div>
-            <div className="flex items-end gap-6 h-32">
+            <div className="flex items-end gap-4 h-32">
               {months.map(mo => {
-                const { leads, booked: b } = monthlyMap[mo]
+                const { leads, toured: t, booked: b } = monthlyMap[mo]
                 const leadH  = Math.round((leads / maxLeads) * 100)
+                const tourH  = Math.round((t     / maxLeads) * 100)
                 const bookH  = Math.round((b     / maxLeads) * 100)
                 return (
                   <div key={mo} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full flex items-end justify-center gap-1" style={{ height: '112px' }}>
+                    <div className="w-full flex items-end justify-center gap-0.5" style={{ height: '112px' }}>
                       <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
                         <span className="text-[10px] font-semibold text-stone-500">{leads}</span>
                         <div className="w-full rounded-t" style={{ height: `${leadH}%`, minHeight: 4, background: '#e7e5e4' }} />
+                      </div>
+                      <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                        <span className="text-[10px] font-semibold text-amber-500">{t > 0 ? t : ''}</span>
+                        <div className="w-full rounded-t" style={{ height: `${tourH}%`, minHeight: t > 0 ? 4 : 0, background: '#fcd34d' }} />
                       </div>
                       <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
                         <span className="text-[10px] font-semibold text-emerald-600">{b > 0 ? b : ''}</span>
