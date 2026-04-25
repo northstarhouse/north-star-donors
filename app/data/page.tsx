@@ -1196,12 +1196,12 @@ function AnalyticsSection() {
             </div>
           </div>
         )
-      })() : topPages.error ? (
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center text-stone-400 text-sm py-10">
-          <p className="font-medium text-stone-500 mb-1">Pages data unavailable</p>
-          <p className="text-xs">{topPages.error}</p>
+      })() : (
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center py-10">
+          <p className="font-medium text-stone-500 mb-1 text-sm">No page data available</p>
+          <p className="text-xs text-stone-400">{topPages.error ?? 'GA4 returned 0 rows — confirm the property ID and that the deploying Google account has Viewer access to the GA4 property.'}</p>
         </div>
-      ) : null}
+      )}
 
       {/* ── Google Analytics historical ── */}
       {rows === null ? (
