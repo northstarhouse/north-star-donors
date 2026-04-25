@@ -1161,8 +1161,9 @@ function AnalyticsSection() {
   const channelTotal = latest ? CHANNELS.reduce((s, c) => s + ((latest[c.key] as number | null) ?? 0), 0) : 0
 
   return (
-    <div className="space-y-5">
+    <div className="flex flex-col gap-5">
 
+      <div className="order-2">
       {/* ── GA4 Top Pages ── */}
       {topPages === null ? (
         <div className="text-center py-10 text-stone-400 text-sm">Loading pages…</div>
@@ -1291,6 +1292,8 @@ function AnalyticsSection() {
 
         </div>
       )}
+
+      </div>
 
       {/* ── Google Analytics historical ── */}
       {rows === null ? (
