@@ -31,13 +31,15 @@ function doGet() {
 }
 
 // ── GA4 Top Pages ─────────────────────────────────────────────────────────────
-// Requires: Services → Google Analytics Data API enabled in this script project.
+// Uses UrlFetchApp + the deploying user's OAuth token — no advanced service needed.
+// The deploying Google account must have Viewer access to the GA4 property.
 
 function fetchTopPages() {
   if (!GA4_PROPERTY_ID) return { rows: [], error: 'GA4_PROPERTY_ID not set' };
 
   try {
-    var report = AnalyticsData.Properties.runReport('properties/' + GA4_PROPERTY_ID, {
+    var url  = 'https://analyticsdata.googleapis.com/v1beta/properties/' + GA4_PROPERTY_ID + ':runReport';
+    var body = JSON.stringify({
       dateRanges: [{ startDate: '90daysAgo', endDate: 'today' }],
       dimensions: [{ name: 'pagePath' }, { name: 'pageTitle' }],
       metrics:    [{ name: 'screenPageViews' }, { name: 'sessions' }],
@@ -45,11 +47,25 @@ function fetchTopPages() {
       limit: 20
     });
 
+    var resp = UrlFetchApp.fetch(url, {
+      method:      'POST',
+      contentType: 'application/json',
+      headers:     { 'Authorization': 'Bearer ' + ScriptApp.getOAuthToken() },
+      payload:     body,
+      muteHttpExceptions: true
+    });
+
+    if (resp.getResponseCode() !== 200) {
+      Logger.log('GA4 error ' + resp.getResponseCode() + ': ' + resp.getContentText());
+      return { rows: [], error: 'HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText().substring(0, 300) };
+    }
+
+    var report = JSON.parse(resp.getContentText());
     var rows = (report.rows || []).map(function(row) {
       return {
-        path:    row.dimensionValues[0].value,
-        title:   row.dimensionValues[1].value,
-        views:   parseInt(row.metricValues[0].value, 10),
+        path:     row.dimensionValues[0].value,
+        title:    row.dimensionValues[1].value,
+        views:    parseInt(row.metricValues[0].value, 10),
         sessions: parseInt(row.metricValues[1].value, 10)
       };
     });
