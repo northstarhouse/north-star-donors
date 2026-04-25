@@ -262,13 +262,13 @@ function HoneyBookSection() {
                 ))}
                 {months.map(mo => {
                   const { leads, toured: t, booked: b } = monthlyMap[mo]
-                  const BAR_H = 160
+                  const BAR_H = 140
                   const leadH = Math.round((leads / maxLeads) * BAR_H)
                   const tourH = Math.round((t     / maxLeads) * BAR_H)
                   const bookH = Math.round((b     / maxLeads) * BAR_H)
                   return (
                     <div key={mo} className="flex-1 flex flex-col items-center gap-1">
-                      <div className="w-full flex items-end justify-center gap-0.5" style={{ height: `${BAR_H}px` }}>
+                      <div className="w-full flex items-end justify-center gap-0.5 pt-4" style={{ height: `${BAR_H}px` }}>
                         <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
                           <span className="text-[10px] font-bold text-stone-600">{leads}</span>
                           <div className="w-full rounded-t" style={{ height: `${leadH}px`, minHeight: 4, background: '#d6d3d1' }} />
