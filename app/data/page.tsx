@@ -210,27 +210,33 @@ function HoneyBookSection() {
         {/* Monthly leads vs booked bar chart */}
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
           <p className="text-sm font-semibold text-stone-700 mb-1">Leads vs. Bookings by Month</p>
-          <p className="text-xs text-stone-400 mb-5">Each bar shows total inquiries · green fill = booked</p>
-          <div className="flex items-end gap-3 h-36">
+          <div className="flex items-center gap-5 mb-5">
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-stone-200" /><span className="text-xs text-stone-500">Leads</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-400" /><span className="text-xs text-stone-500">Booked</span></div>
+          </div>
+          <div className="flex items-end gap-6 h-40">
             {months.map(mo => {
               const { leads, booked: b } = monthlyMap[mo]
-              const totalH = Math.round((leads / maxLeads) * 100)
-              const bookedH = Math.round((b / maxLeads) * 100)
+              const leadH  = Math.round((leads / maxLeads) * 100)
+              const bookH  = Math.round((b     / maxLeads) * 100)
               return (
                 <div key={mo} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-stone-800 font-semibold">{leads}</span>
-                  <div className="w-full relative rounded-t-sm overflow-hidden" style={{ height: `${totalH}%`, minHeight: 8, background: '#e7e5e4' }}>
-                    <div className="absolute bottom-0 left-0 right-0" style={{ height: `${leads > 0 ? Math.round((b / leads) * 100) : 0}%`, background: '#4ade80' }} />
+                  <div className="w-full flex items-end justify-center gap-1" style={{ height: '140px' }}>
+                    {/* Leads bar */}
+                    <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                      <span className="text-[10px] font-semibold text-stone-500">{leads}</span>
+                      <div className="w-full rounded-t" style={{ height: `${leadH}%`, minHeight: 4, background: '#e7e5e4' }} />
+                    </div>
+                    {/* Booked bar */}
+                    <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                      <span className="text-[10px] font-semibold text-emerald-600">{b > 0 ? b : ''}</span>
+                      <div className="w-full rounded-t" style={{ height: `${bookH}%`, minHeight: b > 0 ? 4 : 0, background: '#34d399' }} />
+                    </div>
                   </div>
-                  <span className="text-[10px] text-green-600 font-medium">{b > 0 ? b : ''}</span>
-                  <span className="text-[10px] text-stone-400">{moLabel(mo)}</span>
+                  <span className="text-[11px] font-medium text-stone-500 mt-1">{moLabel(mo)}</span>
                 </div>
               )
             })}
-          </div>
-          <div className="flex items-center gap-4 mt-4">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-stone-200" /><span className="text-xs text-stone-500">Leads</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-green-400" /><span className="text-xs text-stone-500">Booked</span></div>
           </div>
         </div>
 
