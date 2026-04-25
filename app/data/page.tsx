@@ -11,6 +11,8 @@ type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'event
 const HONEYBOOK_URL = 'https://script.google.com/macros/s/AKfycbw968UYNRchd6-Nm8V-tEeo48vuPEe3xqfPgKGibhQEP2td2B8mgUs5ThDrkDrmH4WGNA/exec'
 // Deploy wix-webapp.gs and paste the URL here
 const WIX_URL = 'https://script.google.com/macros/s/AKfycbzY3c6_xF2ucrZrQnZLa1bcU2TIcFadBH9UEeIbJYMKumvxygql8ulN-67q1Vu_WM4h/exec'
+const HONEYBOOK_CACHE_KEY = 'north-star-donors:honeybook:v1'
+const HONEYBOOK_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7
 
 
 interface HoneyBookLead {
@@ -67,11 +69,58 @@ interface AnalyticsEntry {
   created_at: string
 }
 
+interface HoneyBookPayload {
+  leads?: HoneyBookLead[]
+  booked?: BookedClient[]
+  tours?: TourEntry[]
+}
+
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
 const fmt$ = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.round((a / b) * 100)}%` : '—'
+
+function readHoneyBookCache() {
+  if (typeof window === 'undefined') return null
+
+  try {
+    const raw = window.localStorage.getItem(HONEYBOOK_CACHE_KEY)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as { fetchedAt?: number; data?: HoneyBookPayload }
+    if (!parsed?.fetchedAt || !parsed.data) return null
+    if ((Date.now() - parsed.fetchedAt) > HONEYBOOK_CACHE_TTL_MS) return null
+
+    return parsed.data
+  } catch {
+    return null
+  }
+}
+
+function writeHoneyBookCache(data: HoneyBookPayload) {
+  if (typeof window === 'undefined') return
+
+  try {
+    window.localStorage.setItem(HONEYBOOK_CACHE_KEY, JSON.stringify({
+      fetchedAt: Date.now(),
+      data,
+    }))
+  } catch {
+    // Ignore storage failures and fall back to the network path.
+  }
+}
+
+function applyHoneyBookPayload(
+  payload: HoneyBookPayload,
+  setRows: React.Dispatch<React.SetStateAction<HoneyBookLead[] | null>>,
+  setBooked: React.Dispatch<React.SetStateAction<BookedClient[]>>,
+  setTours: React.Dispatch<React.SetStateAction<TourEntry[]>>,
+) {
+  setRows(payload.leads ?? [])
+  setBooked(payload.booked ?? [])
+  setTours(payload.tours ?? [])
+}
 
 const TABS: { id: DataTab; label: string }[] = [
   { id: 'analytics', label: 'Website' },
@@ -153,15 +202,26 @@ function HoneyBookSection() {
   const [tours,  setTours]  = useState<TourEntry[]>([])
 
   useEffect(() => {
+    const cached = readHoneyBookCache()
+    if (cached) {
+      applyHoneyBookPayload(cached, setRows, setBooked, setTours)
+      return
+    }
+
     if (!HONEYBOOK_URL) { setRows([]); return }
-    fetch(HONEYBOOK_URL)
+
+    const ctrl = new AbortController()
+    fetch(HONEYBOOK_URL, { signal: ctrl.signal })
       .then(r => r.json())
-      .then(json => {
-        setRows((json.leads  as HoneyBookLead[]) ?? [])
-        setBooked((json.booked as BookedClient[]) ?? [])
-        setTours((json.tours   as TourEntry[])   ?? [])
+      .then((json: HoneyBookPayload) => {
+        writeHoneyBookCache(json)
+        applyHoneyBookPayload(json, setRows, setBooked, setTours)
       })
-      .catch(() => setRows([]))
+      .catch(() => {
+        if (!ctrl.signal.aborted) setRows([])
+      })
+
+    return () => ctrl.abort()
   }, [])
 
   if (rows === null) return <div className="text-center py-16 text-stone-400 text-sm">Loading…</div>
