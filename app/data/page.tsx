@@ -26,9 +26,9 @@ interface BookedClient {
 }
 
 interface TourEntry {
-  id: string | number; full_name: string; email: string | null
-  project_name: string; project_type: string | null; lead_source: string | null
-  tour_date: string | null; project_date: string | null; total_value: number | null
+  id: string | number; full_name: string
+  tour_date: string | null; start_time: string | null
+  title: string | null; notes: string | null
 }
 
 interface FormSubmission {
@@ -178,7 +178,7 @@ function HoneyBookSection() {
   }, {} as Record<string, number>)
   const sourceList = Object.entries(sourceCounts).sort((a, b) => b[1] - a[1])
 
-  // Monthly breakdown — leads by inquiry date, bookings by booked_date (independent)
+  // Monthly breakdown — leads by inquiry date, bookings by booked_date
   const monthlyMap: Record<string, { leads: number; booked: number }> = {}
   rows.forEach(r => {
     const mo = (r.lead_created_date ?? '').slice(0, 7)
