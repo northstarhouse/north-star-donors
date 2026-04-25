@@ -1213,42 +1213,53 @@ function AnalyticsSection() {
           )}
 
           {/* Top Pages from GA4 */}
-          {topPages && topPages.rows.length > 0 && (
-            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm font-semibold text-stone-700">Top Pages Visited</p>
-                {topPages.period && <span className="text-xs text-stone-400">{topPages.period}</span>}
-              </div>
-              {(() => {
-                const maxViews = Math.max(...topPages.rows.map(r => r.views), 1)
-                return (
-                  <div className="space-y-2">
-                    {topPages.rows.map((page, i) => {
-                      const pct = Math.round((page.views / maxViews) * 100)
-                      const label = page.path === '/' ? 'Home' : page.path.replace(/^\//, '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || page.path
-                      return (
-                        <div key={i} className="flex items-center gap-3">
-                          <span className="text-[10px] text-stone-400 w-4 text-right flex-shrink-0">{i + 1}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-0.5">
-                              <span className="text-xs text-stone-700 truncate font-medium" title={page.path}>{label}</span>
-                              <span className="text-xs text-stone-500 flex-shrink-0 ml-2">{page.views.toLocaleString()}</span>
-                            </div>
-                            <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'var(--gold)' }} />
-                            </div>
+          {topPages && topPages.rows.length > 0 && (() => {
+            const maxViews = Math.max(...topPages.rows.map(r => r.views), 1)
+            const totalViews = topPages.rows.reduce((s, r) => s + r.views, 0)
+            const pageLabel = (path: string) => {
+              if (path === '/') return 'Home'
+              const clean = path.replace(/^\//, '').split('?')[0]
+              return clean.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || path
+            }
+            return (
+              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between px-5 pt-5 pb-3">
+                  <div>
+                    <p className="text-sm font-semibold text-stone-700">Pages Visited</p>
+                    <p className="text-xs text-stone-400 mt-0.5">{totalViews.toLocaleString()} total views · {topPages.period ?? 'last 90 days'}</p>
+                  </div>
+                </div>
+                <div className="px-5 pb-5 space-y-3">
+                  {topPages.rows.map((page, i) => {
+                    const pct = (page.views / maxViews) * 100
+                    const sharePct = Math.round((page.views / totalViews) * 100)
+                    return (
+                      <div key={i} className="group">
+                        <div className="flex items-baseline justify-between mb-1 gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[10px] font-bold text-stone-300 w-4 flex-shrink-0">{i + 1}</span>
+                            <span className="text-sm font-medium text-stone-800 truncate" title={page.path}>{pageLabel(page.path)}</span>
+                            <span className="text-[10px] text-stone-400 flex-shrink-0 hidden group-hover:inline">{page.path}</span>
+                          </div>
+                          <div className="flex items-baseline gap-2 flex-shrink-0">
+                            <span className="text-sm font-bold text-stone-800">{page.views.toLocaleString()}</span>
+                            <span className="text-[10px] text-stone-400">{sharePct}%</span>
                           </div>
                         </div>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
-            </div>
-          )}
+                        <div className="h-2 rounded-full bg-stone-100 overflow-hidden">
+                          <div className="h-full rounded-full transition-all"
+                            style={{ width: `${pct}%`, background: i === 0 ? 'var(--gold)' : `color-mix(in srgb, var(--gold) ${Math.max(30, 100 - i * 8)}%, #d6d3d1)` }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })()}
           {topPages && topPages.rows.length === 0 && !topPages.error && WIX_URL && (
-            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center text-stone-400 text-sm">
-              Top pages not available · add GA4_PROPERTY_ID to wix-webapp.gs and enable the Google Analytics Data API service
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center text-stone-400 text-sm py-10">
+              <p>Top pages loading — redeploy wix-webapp.gs with GA4_PROPERTY_ID and the Google Analytics Data API service enabled.</p>
             </div>
           )}
         </div>
