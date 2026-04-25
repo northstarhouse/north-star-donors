@@ -428,7 +428,7 @@ function HoneyBookSection() {
 function FormsSection() {
   const [data, setData] = useState<{ submissions: WixSubmission[] } | null>(null)
   const [selected, setSelected] = useState<WixSubmission | null>(null)
-  const [collapsedForms, setCollapsedForms] = useState<Set<string>>(new Set())
+  const [activeForm, setActiveForm] = useState<string | null>(null)
 
   useEffect(() => {
     if (!WIX_URL) { setData({ submissions: [] }); return }
@@ -438,13 +438,11 @@ function FormsSection() {
       .catch(() => setData({ submissions: [] }))
   }, [])
 
-  function toggleForm(name: string) {
-    setCollapsedForms(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n })
-  }
-
   const rows = data?.submissions ?? []
   const formNames = [...new Set(rows.map(r => r.form_name))].sort()
   const grouped = formNames.map(name => ({ name, items: rows.filter(r => r.form_name === name) }))
+  const activeFormName = activeForm && formNames.includes(activeForm) ? activeForm : (formNames[0] ?? null)
+  const activeGroup = grouped.find(group => group.name === activeFormName) ?? null
 
   const fmtTs = (ts: string) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
@@ -459,42 +457,64 @@ function FormsSection() {
                 {!WIX_URL && <p className="text-xs text-center max-w-xs">Deploy wix-webapp.gs and paste the URL as WIX_URL in page.tsx.</p>}
               </div>
             )}
-            {grouped.map(({ name, items }) => {
-              const collapsed = collapsedForms.has(name)
-              return (
-                <div key={name} className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                  <button onClick={() => toggleForm(name)}
-                    className="w-full flex items-center justify-between px-5 py-3 hover:bg-stone-50 transition-colors">
-                    <div className="flex items-center gap-2.5">
-                      <span className="font-semibold text-stone-700 text-sm">{name}</span>
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-stone-100 text-stone-500">{items.length}</span>
+            {grouped.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {grouped.map(({ name, items }) => {
+                  const isActive = name === activeFormName
+                  const latest = items[0]
+                  return (
+                    <button
+                      key={name}
+                      onClick={() => {
+                        setActiveForm(name)
+                        setSelected(null)
+                      }}
+                      className={`text-left rounded-xl border shadow-sm p-5 transition-colors ${isActive ? 'bg-amber-50/60 border-amber-200' : 'bg-white border-stone-200 hover:bg-stone-50'}`}
+                    >
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: isActive ? 'var(--gold)' : '#a8a29e' }}>Wix Form</p>
+                      <p className="text-base font-semibold text-stone-800 leading-snug">{name}</p>
+                      <p className="text-3xl font-bold text-stone-800 leading-none mt-4">{items.length}</p>
+                      <p className="text-xs text-stone-400 mt-1">submission{items.length !== 1 ? 's' : ''}</p>
+                      <p className="text-xs text-stone-400 mt-4">{latest ? `Latest: ${fmtTs(latest.created_at)}` : 'No submissions yet'}</p>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {activeGroup && (
+              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-stone-100">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>Selected Form</p>
+                      <p className="text-sm font-semibold text-stone-800">{activeGroup.name}</p>
                     </div>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-stone-400 transition-transform ${collapsed ? '-rotate-90' : ''}`}><polyline points="6 9 12 15 18 9"/></svg>
-                  </button>
-                  {!collapsed && (
-                    <div className="border-t border-stone-100">
-                      {items.map(sub => {
-                        const first = sub.fields['First Name'] || ''
-                        const last  = sub.fields['Last Name']  || ''
-                        const preview = [first, last].filter(Boolean).join(' ') || Object.values(sub.fields).find(Boolean) || ''
-                        return (
-                          <button key={sub.id}
-                            onClick={() => setSelected(prev => prev?.id === sub.id ? null : sub)}
-                            className={`w-full text-left px-5 py-3 border-b border-stone-50 last:border-0 transition-colors ${selected?.id === sub.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
-                            <div className="flex items-start gap-3">
-                              <div className="min-w-0">
-                                <p className="text-xs text-stone-500">{fmtTs(sub.created_at)}</p>
-                                {preview && <p className="text-sm text-stone-700 mt-0.5 truncate">{preview}</p>}
-                              </div>
-                            </div>
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
+                    <p className="text-xs text-stone-400">{activeGroup.items.length} message{activeGroup.items.length !== 1 ? 's' : ''}</p>
+                  </div>
                 </div>
-              )
-            })}
+                <div>
+                  {activeGroup.items.map(sub => {
+                    const first = sub.fields['First Name'] || ''
+                    const last  = sub.fields['Last Name']  || ''
+                    const email = sub.fields['Email'] || sub.fields['Email Address'] || ''
+                    const preview = [first, last].filter(Boolean).join(' ') || email || Object.values(sub.fields).find(Boolean) || ''
+                    return (
+                      <button key={sub.id}
+                        onClick={() => setSelected(prev => prev?.id === sub.id ? null : sub)}
+                        className={`w-full text-left px-5 py-3 border-b border-stone-50 last:border-0 transition-colors ${selected?.id === sub.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="min-w-0">
+                            {preview && <p className="text-sm text-stone-700 truncate">{preview}</p>}
+                            {email && email !== preview && <p className="text-xs text-stone-400 mt-0.5 truncate">{email}</p>}
+                          </div>
+                          <p className="text-xs text-stone-500 flex-shrink-0">{fmtTs(sub.created_at)}</p>
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
             {rows.length > 0 && <div className="text-xs text-stone-400 px-1">{rows.length} submission{rows.length !== 1 ? 's' : ''} across {formNames.length} form{formNames.length !== 1 ? 's' : ''} · live from Wix</div>}
           </div>
 
