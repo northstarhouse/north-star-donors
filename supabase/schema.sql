@@ -127,3 +127,20 @@ create table if not exists data_honeybook_leads (
 
 alter table data_honeybook_leads enable row level security;
 create policy "Allow all" on data_honeybook_leads for all using (true) with check (true);
+
+-- Wix form submissions (synced from Apps Script)
+create table if not exists data_wix_forms (
+  id text primary key,
+  form_id text not null,
+  form_name text not null,
+  status text,
+  created_at timestamptz not null,
+  fields jsonb not null default '{}'::jsonb,
+  synced_at timestamptz default now()
+);
+
+create index if not exists data_wix_forms_form_name_idx on data_wix_forms(form_name);
+create index if not exists data_wix_forms_created_at_idx on data_wix_forms(created_at desc);
+
+alter table data_wix_forms enable row level security;
+create policy "Allow all" on data_wix_forms for all using (true) with check (true);

@@ -429,13 +429,51 @@ function FormsSection() {
   const [data, setData] = useState<{ submissions: WixSubmission[] } | null>(null)
   const [selected, setSelected] = useState<WixSubmission | null>(null)
   const [activeForm, setActiveForm] = useState<string | null>(null)
+  const [source, setSource] = useState<'supabase' | 'wix'>('wix')
 
   useEffect(() => {
-    if (!WIX_URL) { setData({ submissions: [] }); return }
-    fetch(WIX_URL)
-      .then(r => r.json())
-      .then(json => setData(json.forms ?? { submissions: [] }))
-      .catch(() => setData({ submissions: [] }))
+    let cancelled = false
+
+    async function loadForms() {
+      const { data: supabaseRows, error } = await supabase
+        .from('data_wix_forms')
+        .select('id, form_id, form_name, status, created_at, fields')
+        .order('created_at', { ascending: false })
+
+      if (!cancelled && !error && supabaseRows && supabaseRows.length > 0) {
+        setSource('supabase')
+        setData({
+          submissions: supabaseRows.map(row => ({
+            id: row.id,
+            form_id: row.form_id,
+            form_name: row.form_name,
+            status: row.status,
+            created_at: row.created_at,
+            fields: (row.fields as Record<string, string>) ?? {},
+          })),
+        })
+        return
+      }
+
+      if (!WIX_URL) {
+        if (!cancelled) setData({ submissions: [] })
+        return
+      }
+
+      try {
+        const response = await fetch(WIX_URL)
+        const json = await response.json()
+        if (!cancelled) {
+          setSource('wix')
+          setData(json.forms ?? { submissions: [] })
+        }
+      } catch {
+        if (!cancelled) setData({ submissions: [] })
+      }
+    }
+
+    loadForms()
+    return () => { cancelled = true }
   }, [])
 
   const rows = data?.submissions ?? []
@@ -453,8 +491,8 @@ function FormsSection() {
           <div className="space-y-4 min-w-0">
             {rows.length === 0 && (
               <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
-                <p className="text-sm">{WIX_URL ? 'No submissions found.' : 'Wix not configured.'}</p>
-                {!WIX_URL && <p className="text-xs text-center max-w-xs">Deploy wix-webapp.gs and paste the URL as WIX_URL in page.tsx.</p>}
+                <p className="text-sm">No form submissions found.</p>
+                <p className="text-xs text-center max-w-xs">Sync Wix forms into Supabase for faster loads, or keep `WIX_URL` configured as a live fallback.</p>
               </div>
             )}
             {grouped.length > 0 && (
@@ -515,7 +553,7 @@ function FormsSection() {
                 </div>
               </div>
             )}
-            {rows.length > 0 && <div className="text-xs text-stone-400 px-1">{rows.length} submission{rows.length !== 1 ? 's' : ''} across {formNames.length} form{formNames.length !== 1 ? 's' : ''} · live from Wix</div>}
+            {rows.length > 0 && <div className="text-xs text-stone-400 px-1">{rows.length} submission{rows.length !== 1 ? 's' : ''} across {formNames.length} form{formNames.length !== 1 ? 's' : ''} · {source === 'supabase' ? 'loaded from Supabase' : 'live from Wix'}</div>}
           </div>
 
           {selected ? (
