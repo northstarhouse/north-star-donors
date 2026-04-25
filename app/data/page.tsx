@@ -1087,9 +1087,7 @@ function EventsSection() {
    ANALYTICS SECTION
 ══════════════════════════════════════════════════════════ */
 function AnalyticsSection() {
-  type AnalyticsSeries = { type: string; values: { date: string; value: number }[]; total: number }
   type PageRow = { path: string; title: string; views: number; sessions: number }
-  const [wixData, setWixData] = useState<{ data: AnalyticsSeries[] } | null>(null)
   const [topPages, setTopPages] = useState<{ rows: PageRow[]; period?: string; error?: string } | null>(null)
   const [rows, setRows] = useState<AnalyticsEntry[] | null>(null)
   const [chartMetric, setChartMetric] = useState<'sessions' | 'users' | 'page_views'>('sessions')
@@ -1097,14 +1095,11 @@ function AnalyticsSection() {
   useEffect(() => {
     supabase.from('data_analytics').select('*').order('period', { ascending: false })
       .then(({ data }) => setRows((data as AnalyticsEntry[]) ?? []))
-    if (!WIX_URL) { setWixData({ data: [] }); setTopPages({ rows: [] }); return }
+    if (!WIX_URL) { setTopPages({ rows: [] }); return }
     fetch(WIX_URL)
       .then(r => r.json())
-      .then(json => {
-        setWixData(json.analytics ?? { data: [] })
-        setTopPages(json.pages ?? { rows: [] })
-      })
-      .catch(() => { setWixData({ data: [] }); setTopPages({ rows: [] }) })
+      .then(json => setTopPages(json.pages ?? { rows: [] }))
+      .catch(() => setTopPages({ rows: [] }))
   }, [])
 
   const fmtPeriod = (p: string) => {
@@ -1125,30 +1120,6 @@ function AnalyticsSection() {
     const pct = Math.round(((curr - p) / p) * 100)
     return { pct, up: pct >= 0 }
   }
-
-  // ── Wix live data ──────────────────────────────────────────
-  const getSeries = (type: string) => wixData?.data?.find(s => s.type === type)
-  const wixSessions = getSeries('TOTAL_SESSIONS')
-  const wixVisitors = getSeries('TOTAL_UNIQUE_VISITORS')
-  const wixForms    = getSeries('TOTAL_FORMS_SUBMITTED')
-  const wixContacts = getSeries('CLICKS_TO_CONTACT')
-  const sessVals = wixSessions?.values ?? []
-  const visVals  = wixVisitors?.values ?? []
-  const allDates = sessVals.map(v => v.date)
-  const fmtD = (d: string) => d ? new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''
-  const wixPeriod = allDates.length ? `${fmtD(allDates[0])} – ${fmtD(allDates[allDates.length - 1])}` : ''
-  const weeks: { label: string; sessions: number }[] = []
-  for (let i = 0; i < sessVals.length; i += 7) {
-    const chunk = sessVals.slice(i, i + 7)
-    weeks.push({ label: fmtD(chunk[0].date), sessions: chunk.reduce((s, v) => s + v.value, 0) })
-  }
-  const wixChartMax = Math.max(...weeks.map(w => w.sessions), 1)
-  const wixKpis = [
-    { label: 'Sessions',        value: wixSessions?.total ?? 0, sub: 'total site visits' },
-    { label: 'Unique Visitors', value: wixVisitors?.total ?? 0, sub: 'distinct visitors' },
-    { label: 'Form Submits',    value: wixForms?.total    ?? 0, sub: 'from all Wix forms' },
-    { label: 'Contact Clicks',  value: wixContacts?.total ?? 0, sub: 'click-to-contact' },
-  ]
 
   // ── Google Analytics historical data ───────────────────────
   const latest = rows?.[0] ?? null
@@ -1177,93 +1148,58 @@ function AnalyticsSection() {
   return (
     <div className="space-y-5">
 
-      {/* ── Wix live stats ── */}
-      {wixData !== null && wixData.data.length > 0 && (
-        <div className="space-y-3">
-          <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Wix Website · Live {wixPeriod && `· ${wixPeriod}`} · last 62 days</p>
-          <div className="grid grid-cols-4 gap-3">
-            {wixKpis.map(({ label, value, sub }) => (
-              <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
-                <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
-                <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value.toLocaleString()}</p>
-                <p className="text-[10px] text-stone-400">{sub}</p>
+      {/* ── GA4 Top Pages ── */}
+      {topPages === null ? (
+        <div className="text-center py-10 text-stone-400 text-sm">Loading pages…</div>
+      ) : topPages.rows.length > 0 ? (() => {
+        const maxViews = Math.max(...topPages.rows.map(r => r.views), 1)
+        const totalViews = topPages.rows.reduce((s, r) => s + r.views, 0)
+        const pageLabel = (path: string) => {
+          if (path === '/') return 'Home'
+          const clean = path.replace(/^\//, '').split('?')[0]
+          return clean.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || path
+        }
+        return (
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <div>
+                <p className="text-sm font-semibold text-stone-700">Pages Visited</p>
+                <p className="text-xs text-stone-400 mt-0.5">{totalViews.toLocaleString()} total views · {topPages.period ?? 'last 90 days'}</p>
               </div>
-            ))}
-          </div>
-          {weeks.length > 0 && (
-            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
-              <p className="text-sm font-semibold text-stone-700 mb-4">Sessions by Week</p>
-              <div className="flex items-end gap-2 h-40">
-                {weeks.map((w, i) => {
-                  const heightPct = wixChartMax > 0 ? (w.sessions / wixChartMax) * 100 : 0
-                  const isLatest  = i === weeks.length - 1
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-                      <div className="absolute -top-7 left-1/2 -translate-x-1/2 bg-stone-800 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                        {w.sessions.toLocaleString()}
+            </div>
+            <div className="px-5 pb-5 space-y-3">
+              {topPages.rows.map((page, i) => {
+                const pct = (page.views / maxViews) * 100
+                const sharePct = Math.round((page.views / totalViews) * 100)
+                return (
+                  <div key={i} className="group">
+                    <div className="flex items-baseline justify-between mb-1 gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-[10px] font-bold text-stone-300 w-4 flex-shrink-0">{i + 1}</span>
+                        <span className="text-sm font-medium text-stone-800 truncate" title={page.path}>{pageLabel(page.path)}</span>
+                        <span className="text-[10px] text-stone-400 flex-shrink-0 hidden group-hover:inline">{page.path}</span>
                       </div>
-                      <div className="w-full rounded-t-sm transition-all"
-                        style={{ height: `${heightPct}%`, minHeight: w.sessions > 0 ? '4px' : '0', background: isLatest ? 'var(--gold)' : '#d6d3d1' }} />
-                      <p className="text-[9px] text-stone-400 truncate w-full text-center">{w.label}</p>
+                      <div className="flex items-baseline gap-2 flex-shrink-0">
+                        <span className="text-sm font-bold text-stone-800">{page.views.toLocaleString()}</span>
+                        <span className="text-[10px] text-stone-400">{sharePct}%</span>
+                      </div>
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Top Pages from GA4 */}
-          {topPages && topPages.rows.length > 0 && (() => {
-            const maxViews = Math.max(...topPages.rows.map(r => r.views), 1)
-            const totalViews = topPages.rows.reduce((s, r) => s + r.views, 0)
-            const pageLabel = (path: string) => {
-              if (path === '/') return 'Home'
-              const clean = path.replace(/^\//, '').split('?')[0]
-              return clean.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || path
-            }
-            return (
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                <div className="flex items-center justify-between px-5 pt-5 pb-3">
-                  <div>
-                    <p className="text-sm font-semibold text-stone-700">Pages Visited</p>
-                    <p className="text-xs text-stone-400 mt-0.5">{totalViews.toLocaleString()} total views · {topPages.period ?? 'last 90 days'}</p>
+                    <div className="h-2 rounded-full bg-stone-100 overflow-hidden">
+                      <div className="h-full rounded-full transition-all"
+                        style={{ width: `${pct}%`, background: i === 0 ? 'var(--gold)' : `color-mix(in srgb, var(--gold) ${Math.max(30, 100 - i * 8)}%, #d6d3d1)` }} />
+                    </div>
                   </div>
-                </div>
-                <div className="px-5 pb-5 space-y-3">
-                  {topPages.rows.map((page, i) => {
-                    const pct = (page.views / maxViews) * 100
-                    const sharePct = Math.round((page.views / totalViews) * 100)
-                    return (
-                      <div key={i} className="group">
-                        <div className="flex items-baseline justify-between mb-1 gap-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-[10px] font-bold text-stone-300 w-4 flex-shrink-0">{i + 1}</span>
-                            <span className="text-sm font-medium text-stone-800 truncate" title={page.path}>{pageLabel(page.path)}</span>
-                            <span className="text-[10px] text-stone-400 flex-shrink-0 hidden group-hover:inline">{page.path}</span>
-                          </div>
-                          <div className="flex items-baseline gap-2 flex-shrink-0">
-                            <span className="text-sm font-bold text-stone-800">{page.views.toLocaleString()}</span>
-                            <span className="text-[10px] text-stone-400">{sharePct}%</span>
-                          </div>
-                        </div>
-                        <div className="h-2 rounded-full bg-stone-100 overflow-hidden">
-                          <div className="h-full rounded-full transition-all"
-                            style={{ width: `${pct}%`, background: i === 0 ? 'var(--gold)' : `color-mix(in srgb, var(--gold) ${Math.max(30, 100 - i * 8)}%, #d6d3d1)` }} />
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })()}
-          {topPages && topPages.rows.length === 0 && !topPages.error && WIX_URL && (
-            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center text-stone-400 text-sm py-10">
-              <p>Top pages loading — redeploy wix-webapp.gs with GA4_PROPERTY_ID and the Google Analytics Data API service enabled.</p>
+                )
+              })}
             </div>
-          )}
+          </div>
+        )
+      })() : topPages.error ? (
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center text-stone-400 text-sm py-10">
+          <p className="font-medium text-stone-500 mb-1">Pages data unavailable</p>
+          <p className="text-xs">{topPages.error}</p>
         </div>
-      )}
+      ) : null}
 
       {/* ── Google Analytics historical ── */}
       {rows === null ? (
