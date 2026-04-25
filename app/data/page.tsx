@@ -1096,10 +1096,12 @@ function AnalyticsSection() {
     supabase.from('data_analytics').select('*').order('period', { ascending: false })
       .then(({ data }) => setRows((data as AnalyticsEntry[]) ?? []))
     if (!WIX_URL) { setTopPages({ rows: [] }); return }
-    fetch(WIX_URL)
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 15000)
+    fetch(WIX_URL, { signal: ctrl.signal })
       .then(r => r.json())
-      .then(json => setTopPages(json.pages ?? { rows: [] }))
-      .catch(() => setTopPages({ rows: [] }))
+      .then(json => { clearTimeout(timer); setTopPages(json.pages ?? { rows: [], error: 'Pages not returned by script — redeploy wix-webapp.gs' }) })
+      .catch(e => { clearTimeout(timer); setTopPages({ rows: [], error: e?.name === 'AbortError' ? 'Script timed out (>15s) — check Apps Script logs' : String(e) }) })
   }, [])
 
   const fmtPeriod = (p: string) => {
