@@ -248,7 +248,11 @@ function HoneyBookSection() {
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-amber-300" /><span className="text-xs text-stone-500">Tours</span></div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-400" /><span className="text-xs text-stone-500">Booked</span></div>
             </div>
-            <div className="flex items-end gap-4 h-32">
+            <div className="relative flex items-end gap-4 h-32">
+              {/* Grid lines */}
+              {[25, 50, 75, 100].map(pct => (
+                <div key={pct} className="absolute left-0 right-0 border-t border-stone-100" style={{ bottom: `${pct}%` }} />
+              ))}
               {months.map(mo => {
                 const { leads, toured: t, booked: b } = monthlyMap[mo]
                 const leadH  = Math.round((leads / maxLeads) * 100)
