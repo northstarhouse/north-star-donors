@@ -204,47 +204,75 @@ function HoneyBookSection() {
         ))}
       </div>
 
-      {/* Monthly chart + Source tally side by side */}
-      <div className="grid grid-cols-[1fr_260px] gap-4">
+      {/* Chart (left) + Source tally (right) */}
+      <div className="grid grid-cols-[1fr_260px] gap-4 items-start">
 
-        {/* Monthly leads vs booked bar chart */}
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
-          <p className="text-sm font-semibold text-stone-700 mb-1">Leads vs. Bookings by Month</p>
-          <div className="flex items-center gap-5 mb-5">
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-stone-200" /><span className="text-xs text-stone-500">Leads</span></div>
-            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-400" /><span className="text-xs text-stone-500">Booked</span></div>
-          </div>
-          <div className="flex items-end gap-6 h-40">
-            {months.map(mo => {
-              const { leads, booked: b } = monthlyMap[mo]
-              const leadH  = Math.round((leads / maxLeads) * 100)
-              const bookH  = Math.round((b     / maxLeads) * 100)
-              return (
-                <div key={mo} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full flex items-end justify-center gap-1" style={{ height: '140px' }}>
-                    {/* Leads bar */}
-                    <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
-                      <span className="text-[10px] font-semibold text-stone-500">{leads}</span>
-                      <div className="w-full rounded-t" style={{ height: `${leadH}%`, minHeight: 4, background: '#e7e5e4' }} />
+        {/* Left column: chart + value breakdown stacked */}
+        <div className="space-y-4">
+
+          {/* Monthly leads vs booked bar chart */}
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
+            <p className="text-sm font-semibold text-stone-700 mb-1">Leads vs. Bookings by Month</p>
+            <div className="flex items-center gap-5 mb-4">
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-stone-200" /><span className="text-xs text-stone-500">Leads</span></div>
+              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-400" /><span className="text-xs text-stone-500">Booked</span></div>
+            </div>
+            <div className="flex items-end gap-6 h-32">
+              {months.map(mo => {
+                const { leads, booked: b } = monthlyMap[mo]
+                const leadH  = Math.round((leads / maxLeads) * 100)
+                const bookH  = Math.round((b     / maxLeads) * 100)
+                return (
+                  <div key={mo} className="flex-1 flex flex-col items-center gap-1">
+                    <div className="w-full flex items-end justify-center gap-1" style={{ height: '112px' }}>
+                      <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                        <span className="text-[10px] font-semibold text-stone-500">{leads}</span>
+                        <div className="w-full rounded-t" style={{ height: `${leadH}%`, minHeight: 4, background: '#e7e5e4' }} />
+                      </div>
+                      <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                        <span className="text-[10px] font-semibold text-emerald-600">{b > 0 ? b : ''}</span>
+                        <div className="w-full rounded-t" style={{ height: `${bookH}%`, minHeight: b > 0 ? 4 : 0, background: '#34d399' }} />
+                      </div>
                     </div>
-                    {/* Booked bar */}
-                    <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
-                      <span className="text-[10px] font-semibold text-emerald-600">{b > 0 ? b : ''}</span>
-                      <div className="w-full rounded-t" style={{ height: `${bookH}%`, minHeight: b > 0 ? 4 : 0, background: '#34d399' }} />
-                    </div>
+                    <span className="text-[11px] font-medium text-stone-500 mt-1">{moLabel(mo)}</span>
                   </div>
-                  <span className="text-[11px] font-medium text-stone-500 mt-1">{moLabel(mo)}</span>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
+
+          {/* Value breakdown */}
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
+            <p className="text-sm font-semibold text-stone-700 mb-4">Project Value by Source</p>
+            <div className="space-y-3">
+              {sourceList.map(([src]) => {
+                const srcRows   = rows.filter(r => (r.lead_source || 'Unknown') === src)
+                const srcVal    = srcRows.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
+                const srcBooked = srcRows.filter(r => r.total_project_value).reduce((s, r) => s + (r.total_project_value ?? 0), 0)
+                if (srcVal === 0) return null
+                return (
+                  <div key={src} className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5 w-32 flex-shrink-0">
+                      <div className="w-2 h-2 rounded-sm" style={{ background: srcColor(src) }} />
+                      <span className="text-xs font-medium text-stone-700 truncate">{src}</span>
+                    </div>
+                    <div className="flex-1 h-4 bg-stone-100 rounded-full overflow-hidden relative">
+                      <div className="h-full rounded-full absolute top-0 left-0" style={{ width: `${(srcBooked / totalValue) * 100}%`, background: srcColor(src) }} />
+                    </div>
+                    <span className="text-xs font-semibold text-stone-700 w-24 text-right flex-shrink-0">{fmt$(srcBooked)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+        </div>{/* end left column */}
 
         {/* Source tally box */}
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 flex flex-col">
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
           <p className="text-sm font-semibold text-stone-700 mb-1">Where They Found Us</p>
           <p className="text-xs text-stone-400 mb-4">Lead source breakdown</p>
-          <div className="space-y-2.5 flex-1">
+          <div className="space-y-2.5">
             {sourceList.map(([src, count]) => (
               <div key={src}>
                 <div className="flex items-center justify-between mb-1">
@@ -260,7 +288,6 @@ function HoneyBookSection() {
               </div>
             ))}
           </div>
-          {/* Booked by source mini table */}
           <div className="mt-5 pt-4 border-t border-stone-100">
             <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">Booked by Source</p>
             <div className="space-y-1">
@@ -278,37 +305,8 @@ function HoneyBookSection() {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Value breakdown */}
-      <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
-        <p className="text-sm font-semibold text-stone-700 mb-4">Project Value by Source</p>
-        <div className="space-y-3">
-          {sourceList.map(([src]) => {
-            const srcRows   = rows.filter(r => (r.lead_source || 'Unknown') === src)
-            const srcVal    = srcRows.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
-            const srcBooked = srcRows.filter(r => r.total_project_value).reduce((s, r) => s + (r.total_project_value ?? 0), 0)
-            if (srcVal === 0) return null
-            return (
-              <div key={src} className="flex items-center gap-4">
-                <div className="flex items-center gap-1.5 w-32 flex-shrink-0">
-                  <div className="w-2 h-2 rounded-sm" style={{ background: srcColor(src) }} />
-                  <span className="text-xs font-medium text-stone-700 truncate">{src}</span>
-                </div>
-                <div className="flex-1 h-4 bg-stone-100 rounded-full overflow-hidden relative">
-                  <div className="h-full rounded-full" style={{ width: `${(srcVal / (totalValue + pipeline)) * 100}%`, background: srcColor(src) + '66' }} />
-                  <div className="h-full rounded-full absolute top-0 left-0" style={{ width: `${(srcBooked / (totalValue + pipeline)) * 100}%`, background: srcColor(src) }} />
-                </div>
-                <div className="text-right w-36 flex-shrink-0">
-                  <span className="text-xs font-semibold text-stone-700">{fmt$(srcBooked)}</span>
-                  <span className="text-xs text-stone-400"> / {fmt$(srcVal)}</span>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        <p className="text-[10px] text-stone-400 mt-3">Solid fill = booked · faded = total pipeline including open leads</p>
-      </div>
+      </div>{/* end outer grid */}
     </div>
   )
 }
