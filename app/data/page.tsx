@@ -248,36 +248,45 @@ function HoneyBookSection() {
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-amber-300" /><span className="text-xs text-stone-500">Tours</span></div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-emerald-400" /><span className="text-xs text-stone-500">Booked</span></div>
             </div>
-            <div className="relative flex items-end gap-4 h-32">
-              {/* Grid lines */}
-              {[25, 50, 75, 100].map(pct => (
-                <div key={pct} className="absolute left-0 right-0 border-t border-stone-100" style={{ bottom: `${pct}%` }} />
-              ))}
-              {months.map(mo => {
-                const { leads, toured: t, booked: b } = monthlyMap[mo]
-                const leadH  = Math.round((leads / maxLeads) * 100)
-                const tourH  = Math.round((t     / maxLeads) * 100)
-                const bookH  = Math.round((b     / maxLeads) * 100)
-                return (
-                  <div key={mo} className="flex-1 flex flex-col items-center gap-1">
-                    <div className="w-full flex items-end justify-center gap-0.5" style={{ height: '112px' }}>
-                      <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
-                        <span className="text-[10px] font-semibold text-stone-500">{leads}</span>
-                        <div className="w-full rounded-t" style={{ height: `${leadH}%`, minHeight: 4, background: '#e7e5e4' }} />
+            <div className="flex gap-2">
+              {/* Y-axis labels */}
+              <div className="flex flex-col justify-between items-end pb-5" style={{ height: '200px' }}>
+                {[maxLeads, Math.round(maxLeads * 0.75), Math.round(maxLeads * 0.5), Math.round(maxLeads * 0.25), 0].map(v => (
+                  <span key={v} className="text-[10px] text-stone-300 leading-none">{v}</span>
+                ))}
+              </div>
+              {/* Bars */}
+              <div className="relative flex items-end gap-3 flex-1" style={{ height: '200px' }}>
+                {[25, 50, 75, 100].map(pct => (
+                  <div key={pct} className="absolute left-0 right-0 border-t border-stone-150" style={{ bottom: `calc(${pct}% + 20px)`, borderColor: '#e5e5e5' }} />
+                ))}
+                {months.map(mo => {
+                  const { leads, toured: t, booked: b } = monthlyMap[mo]
+                  const BAR_H = 160
+                  const leadH = Math.round((leads / maxLeads) * BAR_H)
+                  const tourH = Math.round((t     / maxLeads) * BAR_H)
+                  const bookH = Math.round((b     / maxLeads) * BAR_H)
+                  return (
+                    <div key={mo} className="flex-1 flex flex-col items-center gap-1">
+                      <div className="w-full flex items-end justify-center gap-0.5" style={{ height: `${BAR_H}px` }}>
+                        <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                          <span className="text-[10px] font-bold text-stone-600">{leads}</span>
+                          <div className="w-full rounded-t" style={{ height: `${leadH}px`, minHeight: 4, background: '#d6d3d1' }} />
+                        </div>
+                        <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                          <span className="text-[10px] font-bold text-amber-600">{t > 0 ? t : ''}</span>
+                          <div className="w-full rounded-t" style={{ height: `${tourH}px`, minHeight: t > 0 ? 4 : 0, background: '#fbbf24' }} />
+                        </div>
+                        <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
+                          <span className="text-[10px] font-bold text-emerald-600">{b > 0 ? b : ''}</span>
+                          <div className="w-full rounded-t" style={{ height: `${bookH}px`, minHeight: b > 0 ? 4 : 0, background: '#10b981' }} />
+                        </div>
                       </div>
-                      <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
-                        <span className="text-[10px] font-semibold text-amber-500">{t > 0 ? t : ''}</span>
-                        <div className="w-full rounded-t" style={{ height: `${tourH}%`, minHeight: t > 0 ? 4 : 0, background: '#fcd34d' }} />
-                      </div>
-                      <div className="flex-1 flex flex-col items-center justify-end gap-0.5">
-                        <span className="text-[10px] font-semibold text-emerald-600">{b > 0 ? b : ''}</span>
-                        <div className="w-full rounded-t" style={{ height: `${bookH}%`, minHeight: b > 0 ? 4 : 0, background: '#34d399' }} />
-                      </div>
+                      <span className="text-[11px] font-medium text-stone-400 mt-1">{moLabel(mo)}</span>
                     </div>
-                    <span className="text-[11px] font-medium text-stone-500 mt-1">{moLabel(mo)}</span>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           </div>
 
