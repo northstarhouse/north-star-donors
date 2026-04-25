@@ -21,9 +21,9 @@ function doGet() {
     || SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
 
   var data    = sheet.getDataRange().getValues();
-  var headers = data[0].map(function(h) { return String(h).trim(); });
+  var headers = data[0].map(function(h) { return String(h).trim().toLowerCase(); });
 
-  var col = function(name) { return headers.indexOf(name); };
+  var col = function(name) { return headers.indexOf(name.toLowerCase()); };
   var C = {
     num:        col('#'),
     project:    col('Project Name'),

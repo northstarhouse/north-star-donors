@@ -218,10 +218,11 @@ function HoneyBookSection() {
               const bookedH = Math.round((b / maxLeads) * 100)
               return (
                 <div key={mo} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-[10px] text-stone-400 font-medium">{leads}</span>
-                  <div className="w-full relative rounded-t-sm overflow-hidden" style={{ height: `${totalH}%`, minHeight: 4, background: '#e7e5e4' }}>
-                    <div className="absolute bottom-0 left-0 right-0 rounded-t-sm" style={{ height: `${Math.round((b / leads) * 100)}%`, background: '#4ade80' }} />
+                  <span className="text-[10px] text-stone-800 font-semibold">{leads}</span>
+                  <div className="w-full relative rounded-t-sm overflow-hidden" style={{ height: `${totalH}%`, minHeight: 8, background: '#e7e5e4' }}>
+                    <div className="absolute bottom-0 left-0 right-0" style={{ height: `${leads > 0 ? Math.round((b / leads) * 100) : 0}%`, background: '#4ade80' }} />
                   </div>
+                  <span className="text-[10px] text-green-600 font-medium">{b > 0 ? b : ''}</span>
                   <span className="text-[10px] text-stone-400">{moLabel(mo)}</span>
                 </div>
               )
