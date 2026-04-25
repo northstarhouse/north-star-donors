@@ -151,12 +151,21 @@ function fmtDate(val) {
   var s = String(val).trim();
   if (!s || s === 'TBD') return null;
   // Normalize "2026-01-26 21:14:54 UTC" → "2026-01-26T21:14:54Z"
-  s = s.replace(' UTC', 'Z').replace(' ', 'T');
+  var utcPattern = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}( UTC)?$/;
+  if (utcPattern.test(s)) {
+    s = s.replace(' UTC', 'Z').replace(' ', 'T');
+    var parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) {
+      return parsed.getUTCFullYear() + '-'
+        + String(parsed.getUTCMonth() + 1).padStart(2, '0') + '-'
+        + String(parsed.getUTCDate()).padStart(2, '0');
+    }
+  }
   var parsed = new Date(s);
   if (!isNaN(parsed.getTime())) {
-    return parsed.getUTCFullYear() + '-'
-      + String(parsed.getUTCMonth() + 1).padStart(2, '0') + '-'
-      + String(parsed.getUTCDate()).padStart(2, '0');
+    return parsed.getFullYear() + '-'
+      + String(parsed.getMonth() + 1).padStart(2, '0') + '-'
+      + String(parsed.getDate()).padStart(2, '0');
   }
   return null;
 }
