@@ -107,3 +107,23 @@ create table if not exists data_facebook (
 
 alter table data_facebook enable row level security;
 create policy "Allow all" on data_facebook for all using (true) with check (true);
+
+-- HoneyBook leads (synced from Google Sheet via Apps Script)
+create table if not exists data_honeybook_leads (
+  id uuid default gen_random_uuid() primary key,
+  row_num integer,
+  project_name text not null,
+  full_name text not null,
+  email text,
+  phone text,
+  project_date text,
+  lead_created_date date,
+  total_project_value numeric(10,2),
+  lead_source text,
+  lead_source_text text,
+  booked_date date,
+  created_at timestamptz default now()
+);
+
+alter table data_honeybook_leads enable row level security;
+create policy "Allow all" on data_honeybook_leads for all using (true) with check (true);

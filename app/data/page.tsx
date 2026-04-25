@@ -5,7 +5,15 @@ import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
 /* ── Types ───────────────────────────────────────────────── */
-type DataTab = 'forms' | 'email' | 'social' | 'events' | 'analytics'
+type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'events'
+
+interface HoneyBookLead {
+  id: string; row_num: number | null; project_name: string; full_name: string
+  email: string | null; phone: string | null; project_date: string | null
+  lead_created_date: string | null; total_project_value: number | null
+  lead_source: string | null; lead_source_text: string | null; booked_date: string | null
+  created_at: string
+}
 
 interface FormSubmission {
   id: string; form_name: string; form_id: string | null
@@ -48,6 +56,7 @@ const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.
 
 const TABS: { id: DataTab; label: string }[] = [
   { id: 'analytics', label: 'Website' },
+  { id: 'honeybook', label: 'HoneyBook' },
   { id: 'forms',     label: 'Forms' },
   { id: 'email',     label: 'Email Results' },
   { id: 'social',    label: 'Socials' },
@@ -82,11 +91,12 @@ export default function DataPage() {
         </div>
 
         <div className="px-8 pb-8 flex-1">
+          {tab === 'analytics' && <AnalyticsSection />}
+          {tab === 'honeybook' && <HoneyBookSection />}
           {tab === 'forms'     && <FormsSection />}
           {tab === 'email'     && <EmailSection />}
           {tab === 'social'    && <SocialSection />}
           {tab === 'events'    && <EventsSection />}
-          {tab === 'analytics' && <AnalyticsSection />}
         </div>
       </div>
     </div>
@@ -111,6 +121,159 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
     <div>
       <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">{label}</p>
       <p className="text-sm text-stone-700">{value}</p>
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   HONEYBOOK SECTION
+══════════════════════════════════════════════════════════ */
+function HoneyBookSection() {
+  const [rows, setRows] = useState<HoneyBookLead[] | null>(null)
+  const [selected, setSelected] = useState<HoneyBookLead | null>(null)
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    supabase.from('data_honeybook_leads').select('*').order('lead_created_date', { ascending: false })
+      .then(({ data }) => setRows((data as HoneyBookLead[]) ?? []))
+  }, [])
+
+  const fmtD = (d: string | null) => d ? new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'
+
+  const filtered = (rows ?? []).filter(r =>
+    !search || r.full_name.toLowerCase().includes(search.toLowerCase()) ||
+    r.project_name.toLowerCase().includes(search.toLowerCase()) ||
+    (r.lead_source ?? '').toLowerCase().includes(search.toLowerCase())
+  )
+
+  const booked    = (rows ?? []).filter(r => r.booked_date)
+  const totalValue = booked.reduce((s, r) => s + (r.total_project_value ?? 0), 0)
+
+  const sourceCounts = (rows ?? []).reduce((acc, r) => {
+    const s = r.lead_source || 'Unknown'
+    acc[s] = (acc[s] || 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+
+  const SOURCE_COLORS: Record<string, string> = {
+    Google: '#4ade80', Facebook: '#60a5fa', Website: '#f59e0b',
+    Instagram: '#c084fc', Referral: '#34d399', Unknown: '#94a3b8',
+  }
+
+  return (
+    <div className="space-y-5">
+      {rows === null ? (
+        <div className="text-center py-16 text-stone-400 text-sm">Loading…</div>
+      ) : (
+        <>
+          {/* Summary cards */}
+          {rows.length > 0 && (
+            <div className="grid grid-cols-4 gap-3">
+              {([
+                { label: 'Total Leads',    value: rows.length.toLocaleString(),    sub: 'all time' },
+                { label: 'Booked',         value: booked.length.toLocaleString(),  sub: `${rows.length > 0 ? Math.round((booked.length / rows.length) * 100) : 0}% conversion` },
+                { label: 'Pipeline Value', value: fmt$(totalValue),                sub: 'booked projects' },
+                { label: 'Unbooked',       value: (rows.length - booked.length).toLocaleString(), sub: 'open leads' },
+              ]).map(({ label, value, sub }) => (
+                <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+                  <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
+                  <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value}</p>
+                  <p className="text-[10px] text-stone-400">{sub}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Source breakdown */}
+          {Object.keys(sourceCounts).length > 0 && (
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
+              <p className="text-sm font-semibold text-stone-700 mb-4">Leads by Source</p>
+              <div className="flex gap-1 h-6 rounded-lg overflow-hidden mb-4">
+                {Object.entries(sourceCounts).sort((a,b) => b[1]-a[1]).map(([src, count]) => (
+                  <div key={src} style={{ width: `${(count/rows.length)*100}%`, background: SOURCE_COLORS[src] ?? '#d6d3d1' }} title={`${src}: ${count}`} />
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                {Object.entries(sourceCounts).sort((a,b) => b[1]-a[1]).map(([src, count]) => (
+                  <div key={src} className="flex items-center gap-1.5">
+                    <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: SOURCE_COLORS[src] ?? '#d6d3d1' }} />
+                    <span className="text-xs text-stone-600 font-medium">{src}</span>
+                    <span className="text-xs text-stone-400">{count} · {Math.round((count/rows.length)*100)}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Search + table */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search leads…"
+                className="w-64 border border-stone-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700" />
+              <p className="text-xs text-stone-400">{filtered.length} lead{filtered.length !== 1 ? 's' : ''}</p>
+            </div>
+            <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
+              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                {filtered.length === 0 ? (
+                  <div className="text-center py-16 text-stone-400 text-sm">{rows.length === 0 ? 'No leads yet. Sync from the Google Sheet via Apps Script.' : 'No results.'}</div>
+                ) : (
+                  <table className="w-full text-sm">
+                    <thead><tr className="border-b border-stone-100 bg-stone-50/60">
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Name</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Project</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Source</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Value</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Lead Date</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Status</th>
+                    </tr></thead>
+                    <tbody>{filtered.map(r => (
+                      <tr key={r.id} onClick={() => setSelected(prev => prev?.id === r.id ? null : r)}
+                        className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === r.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
+                        <td className="px-4 py-3 font-medium text-stone-800">{r.full_name}</td>
+                        <td className="px-4 py-3 text-stone-600 max-w-[180px] truncate">{r.project_name}</td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: (SOURCE_COLORS[r.lead_source ?? ''] ?? '#d6d3d1') + '33', color: SOURCE_COLORS[r.lead_source ?? ''] ?? '#78716c' }}>
+                            {r.lead_source ?? 'Unknown'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right text-stone-600">{r.total_project_value ? fmt$(r.total_project_value) : <span className="text-stone-300">—</span>}</td>
+                        <td className="px-4 py-3 text-right text-stone-400 text-xs">{fmtD(r.lead_created_date)}</td>
+                        <td className="px-4 py-3 text-right">
+                          {r.booked_date
+                            ? <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Booked</span>
+                            : <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">Open</span>}
+                        </td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                )}
+              </div>
+
+              {selected ? (
+                <DetailPanel onClose={() => setSelected(null)}>
+                  <div className="mb-4">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>{selected.project_name}</p>
+                    <h2 className="font-bold text-stone-800 text-base">{selected.full_name}</h2>
+                  </div>
+                  <div className="space-y-3">
+                    <Field label="Status" value={selected.booked_date ? '✓ Booked' : 'Open'} />
+                    <Field label="Email" value={selected.email} />
+                    <Field label="Phone" value={selected.phone} />
+                    <Field label="Lead Source" value={selected.lead_source ?? null} />
+                    {selected.lead_source_text && <Field label="Source Detail" value={selected.lead_source_text} />}
+                    <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
+                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Lead Date</p><p className="text-sm font-semibold text-stone-800">{fmtD(selected.lead_created_date)}</p></div>
+                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Event Date</p><p className="text-sm font-semibold text-stone-800">{selected.project_date ?? '—'}</p></div>
+                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Value</p><p className="text-sm font-semibold text-stone-800">{selected.total_project_value ? fmt$(selected.total_project_value) : '—'}</p></div>
+                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Booked Date</p><p className="text-sm font-semibold text-stone-800">{fmtD(selected.booked_date)}</p></div>
+                    </div>
+                  </div>
+                </DetailPanel>
+              ) : null}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

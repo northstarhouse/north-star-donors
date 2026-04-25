@@ -10,7 +10,7 @@
 var CONFIG = {
   GA4_PROPERTY_ID: '492911563',
   SUPABASE_URL:    'https://uvzwhhwzelaelfhfkvdb.supabase.co',
-  SUPABASE_KEY:    'PASTE_ANON_KEY_HERE',
+  SUPABASE_KEY:    'sb_publishable_EbFMfEbyEp3gASl-GZm3tQ_LnPEe5do',
   TABLE:           'data_analytics'
 };
 
