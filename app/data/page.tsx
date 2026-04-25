@@ -8,7 +8,8 @@ import Sidebar from '@/components/Sidebar'
 type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'events'
 
 // Paste your deployed Apps Script web app URL here after deploying honeybook-webapp.gs
-const HONEYBOOK_URL = ''
+const HONEYBOOK_URL = 'https://script.google.com/macros/s/AKfycbw968UYNRchd6-Nm8V-tEeo48vuPEe3xqfPgKGibhQEP2td2B8mgUs5ThDrkDrmH4WGNA/exec'
+
 
 interface HoneyBookLead {
   id: string | number; row_num: number | null; project_name: string; full_name: string
