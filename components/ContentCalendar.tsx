@@ -211,8 +211,17 @@ export default function ContentCalendar() {
   ]
   while (cells.length % 7 !== 0) cells.push(null)
 
+  const uniqueEntries = entries.filter((entry, index, arr) =>
+    arr.findIndex(other =>
+      other.date === entry.date &&
+      other.title.trim().toLowerCase() === entry.title.trim().toLowerCase() &&
+      other.channel === entry.channel &&
+      other.status === entry.status
+    ) === index
+  )
+
   const byDay: Record<string, CalEntry[]> = {}
-  entries.forEach(e => { if (!byDay[e.date]) byDay[e.date] = []; byDay[e.date].push(e) })
+  uniqueEntries.forEach(e => { if (!byDay[e.date]) byDay[e.date] = []; byDay[e.date].push(e) })
 
   const ftDay = firstThursdayDay(year, month)
   const todayD = now.getDate()
@@ -227,7 +236,15 @@ export default function ContentCalendar() {
   const selEnts = selStr ? (byDay[selStr] ?? []) : []
 
   async function applyMonthTemplate() {
-    const existingKeys = new Set(entries.map(e => `${e.date}|${e.title.trim().toLowerCase()}`))
+    const start = `${monthKey}-01`
+    const end = `${monthKey}-31`
+    const { data: existingRows } = await supabase
+      .from('content_calendar')
+      .select('date, title')
+      .gte('date', start)
+      .lte('date', end)
+
+    const existingKeys = new Set((existingRows ?? []).map(e => `${e.date}|${String(e.title).trim().toLowerCase()}`))
     const missing = monthRhythm.map(rule => ({
       title: rule.title,
       channel: rule.channel,
