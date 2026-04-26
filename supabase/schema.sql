@@ -171,3 +171,30 @@ create table if not exists calendar_notes (
 
 alter table calendar_notes enable row level security;
 create policy "Allow all" on calendar_notes for all using (true) with check (true);
+
+-- Task attachment storage bucket
+insert into storage.buckets (id, name, public)
+values ('task-attachments', 'task-attachments', true)
+on conflict (id) do update
+set public = excluded.public;
+
+drop policy if exists "Allow all task attachments read" on storage.objects;
+create policy "Allow all task attachments read"
+on storage.objects for select
+using (bucket_id = 'task-attachments');
+
+drop policy if exists "Allow all task attachments write" on storage.objects;
+create policy "Allow all task attachments write"
+on storage.objects for insert
+with check (bucket_id = 'task-attachments');
+
+drop policy if exists "Allow all task attachments update" on storage.objects;
+create policy "Allow all task attachments update"
+on storage.objects for update
+using (bucket_id = 'task-attachments')
+with check (bucket_id = 'task-attachments');
+
+drop policy if exists "Allow all task attachments delete" on storage.objects;
+create policy "Allow all task attachments delete"
+on storage.objects for delete
+using (bucket_id = 'task-attachments');
