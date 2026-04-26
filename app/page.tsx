@@ -4,6 +4,7 @@ import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Papercli
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
+import ContentCalendar from '@/components/ContentCalendar'
 
 /* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Research' | 'Technical' | 'Editing' | 'Other'
@@ -638,6 +639,16 @@ export default function Dashboard() {
           })()}
 
           </div>{/* end two-col */}
+
+          <div className="mt-6">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-lg font-semibold text-stone-800">Content Calendar</h2>
+                <p className="text-sm text-stone-400">Plan social, email, blog, and event content by month.</p>
+              </div>
+            </div>
+            <ContentCalendar />
+          </div>
         </div>
       </div>
 
@@ -645,4 +656,3 @@ export default function Dashboard() {
     </div>
   )
 }
-
