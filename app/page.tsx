@@ -36,6 +36,32 @@ const LABEL_COLORS: Record<TaskLabel, string> = {
 
 const STATUS_CYCLE: Record<TaskStatus, TaskStatus> = { todo: 'in_progress', in_progress: 'done', done: 'todo' }
 
+function nextFirstThursday(): Date {
+  const now = new Date()
+  // Try this month and next two months to find the next first Thursday at 10am
+  for (let m = 0; m < 3; m++) {
+    const year  = now.getFullYear() + Math.floor((now.getMonth() + m) / 12)
+    const month = (now.getMonth() + m) % 12
+    // Find first Thursday of this month
+    const d = new Date(year, month, 1)
+    while (d.getDay() !== 4) d.setDate(d.getDate() + 1)
+    d.setHours(10, 0, 0, 0)
+    if (d > now) return d
+  }
+  return new Date() // fallback
+}
+
+function fmtMeeting(d: Date): string {
+  const now = new Date(); now.setHours(0, 0, 0, 0)
+  const then = new Date(d); then.setHours(0, 0, 0, 0)
+  const days = Math.round((then.getTime() - now.getTime()) / 86400000)
+  const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  if (days === 0) return `Today at 10am`
+  if (days === 1) return `Tomorrow at 10am`
+  if (days <= 6) return `${d.toLocaleDateString('en-US', { weekday: 'short' })}, ${dateStr} at 10am`
+  return `${dateStr} at 10am · ${days} days away`
+}
+
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
 
@@ -366,6 +392,19 @@ export default function Dashboard() {
             <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm" style={goldBtn}>
               <Plus size={15} /> Add Task
             </button>
+          </div>
+
+          {/* Date line */}
+          <div className="flex items-center gap-2 mb-5 flex-wrap">
+            <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#5c3d1e' }}>
+              Today — {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            </span>
+            <span className="text-stone-300 text-xs">—</span>
+            <span className="text-xs text-stone-400">Here&rsquo;s your development pipeline at a glance.</span>
+            <span className="ml-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs font-medium text-amber-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+              Next Meeting: {fmtMeeting(nextFirstThursday())}
+            </span>
           </div>
 
           {/* Add task form */}
