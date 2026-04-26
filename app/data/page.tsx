@@ -442,6 +442,43 @@ function FormsSection() {
     let cancelled = false
 
     async function loadForms() {
+      if (FORMS_URL) {
+        // Always fetch all submissions from Wix, then overlay status/notes from Supabase
+        try {
+          const response = await fetch(FORMS_URL)
+          const json = await response.json()
+          if (!cancelled) {
+            const submissions = (json.submissions ? json.submissions as WixSubmission[] : (json.forms?.submissions ?? [])) as WixSubmission[]
+            const ids = submissions.map(sub => sub.id)
+            let overrides: Record<string, { notes: string | null; status: string | null }> = {}
+
+            if (ids.length > 0) {
+              const { data: overrideRows } = await supabase
+                .from('data_wix_forms')
+                .select('id, internal_notes, status')
+                .in('id', ids)
+
+              overrides = Object.fromEntries(
+                (overrideRows ?? []).map(row => [row.id as string, { notes: (row.internal_notes as string | null) ?? null, status: (row.status as string | null) ?? null }])
+              )
+            }
+
+            setSource('wix')
+            setData({
+              submissions: submissions.map(sub => ({
+                ...sub,
+                internal_notes: overrides[sub.id]?.notes ?? sub.internal_notes ?? null,
+                status: overrides[sub.id]?.status ?? sub.status,
+              })),
+            })
+          }
+        } catch {
+          if (!cancelled) setData({ submissions: [] })
+        }
+        return
+      }
+
+      // Fallback: Supabase only (when FORMS_URL not configured)
       const { data: supabaseRows, error } = await supabase
         .from('data_wix_forms')
         .select('id, form_id, form_name, status, created_at, fields, internal_notes')
@@ -460,41 +497,8 @@ function FormsSection() {
             fields: (row.fields as Record<string, string>) ?? {},
           })),
         })
-        return
-      }
-
-      if (!FORMS_URL) {
-        if (!cancelled) setData({ submissions: [] })
-        return
-      }
-
-      try {
-        const response = await fetch(FORMS_URL)
-        const json = await response.json()
-        if (!cancelled) {
-          const submissions = (json.submissions ? json.submissions as WixSubmission[] : (json.forms?.submissions ?? [])) as WixSubmission[]
-          const ids = submissions.map(sub => sub.id)
-          let notesById: Record<string, string | null> = {}
-
-          if (ids.length > 0) {
-            const { data: noteRows } = await supabase
-              .from('data_wix_forms')
-              .select('id, internal_notes')
-              .in('id', ids)
-
-            notesById = Object.fromEntries((noteRows ?? []).map(row => [row.id as string, (row.internal_notes as string | null) ?? null]))
-          }
-
-          setSource('wix')
-          setData({
-            submissions: submissions.map(sub => ({
-              ...sub,
-              internal_notes: notesById[sub.id] ?? sub.internal_notes ?? null,
-            })),
-          })
-        }
-      } catch {
-        if (!cancelled) setData({ submissions: [] })
+      } else if (!cancelled) {
+        setData({ submissions: [] })
       }
     }
 
