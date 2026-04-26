@@ -1692,11 +1692,187 @@ function AnalyticsSection() {
 /* ══════════════════════════════════════════════════════════
    FEEDBACK SECTION
 ══════════════════════════════════════════════════════════ */
+type FeedbackTag = 'Venue' | 'Tour' | 'Volunteer' | 'Story' | 'Idea' | 'Other'
+interface FeedbackEntry {
+  id: string; content: string; tag: FeedbackTag
+  source: string | null; created_at: string
+}
+
+const FEEDBACK_TAGS: FeedbackTag[] = ['Venue', 'Tour', 'Volunteer', 'Story', 'Idea', 'Other']
+
+const TAG_COLORS: Record<FeedbackTag, string> = {
+  Venue:     'bg-blue-100 text-blue-700',
+  Tour:      'bg-emerald-100 text-emerald-700',
+  Volunteer: 'bg-purple-100 text-purple-700',
+  Story:     'bg-rose-100 text-rose-700',
+  Idea:      'bg-amber-100 text-amber-700',
+  Other:     'bg-stone-100 text-stone-500',
+}
+
+const FEEDBACK_EMPTY = { content: '', tag: 'Other' as FeedbackTag, source: '' }
+
 function FeedbackSection() {
+  const [rows, setRows]         = useState<FeedbackEntry[] | null>(null)
+  const [filterTag, setFilter]  = useState<FeedbackTag | 'All'>('All')
+  const [showAdd, setShowAdd]   = useState(false)
+  const [form, setForm]         = useState(FEEDBACK_EMPTY)
+  const [saving, setSaving]     = useState(false)
+  const [editing, setEditing]   = useState<FeedbackEntry | null>(null)
+  const [editContent, setEC]    = useState('')
+  const [editSource, setES]     = useState('')
+  const [editTag, setET]        = useState<FeedbackTag>('Other')
+  const [editSaving, setEditSaving] = useState(false)
+
+  useEffect(() => {
+    supabase.from('data_feedback').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => setRows((data as FeedbackEntry[]) ?? []))
+  }, [])
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!form.content.trim()) return
+    setSaving(true)
+    const { data } = await supabase.from('data_feedback').insert({
+      content: form.content.trim(),
+      tag: form.tag,
+      source: form.source.trim() || null,
+    }).select().single()
+    if (data) setRows(prev => [data as FeedbackEntry, ...(prev ?? [])])
+    setForm(FEEDBACK_EMPTY); setShowAdd(false); setSaving(false)
+  }
+
+  function startEdit(entry: FeedbackEntry) {
+    setEditing(entry); setEC(entry.content); setES(entry.source ?? ''); setET(entry.tag)
+  }
+
+  async function saveEdit() {
+    if (!editing) return
+    setEditSaving(true)
+    const { data } = await supabase.from('data_feedback').update({
+      content: editContent.trim(), tag: editTag, source: editSource.trim() || null,
+    }).eq('id', editing.id).select().single()
+    if (data) setRows(prev => prev?.map(r => r.id === editing.id ? data as FeedbackEntry : r) ?? null)
+    setEditing(null); setEditSaving(false)
+  }
+
+  async function del(id: string) {
+    if (!confirm('Delete this feedback?')) return
+    await supabase.from('data_feedback').delete().eq('id', id)
+    setRows(prev => prev?.filter(r => r.id !== id) ?? null)
+    if (editing?.id === id) setEditing(null)
+  }
+
+  const fmtTs = (ts: string) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  const visible = rows?.filter(r => filterTag === 'All' || r.tag === filterTag) ?? []
+
   return (
-    <div className="flex flex-col items-center justify-center py-24 gap-3 text-stone-400">
-      <p className="text-sm font-medium text-stone-500">Feedback</p>
-      <p className="text-xs text-center max-w-xs">Nothing here yet. Add your feedback sources to get started.</p>
+    <div className="space-y-4">
+      {/* toolbar */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {(['All', ...FEEDBACK_TAGS] as (FeedbackTag | 'All')[]).map(t => (
+            <button key={t} onClick={() => setFilter(t)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterTag === t ? 'text-white shadow-sm' : 'bg-white border border-stone-200 text-stone-500 hover:text-stone-700'}`}
+              style={filterTag === t ? goldBtn : {}}>
+              {t}{t !== 'All' && rows ? ` · ${rows.filter(r => r.tag === t).length}` : ''}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => { setForm(FEEDBACK_EMPTY); setShowAdd(s => !s) }}
+          className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm" style={goldBtn}>
+          <Plus size={15} /> Add Feedback
+        </button>
+      </div>
+
+      {/* add form */}
+      {showAdd && (
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
+          <h3 className="text-sm font-semibold text-stone-700 mb-3">New Feedback</h3>
+          <form onSubmit={submit} className="space-y-3">
+            <div>
+              <label className="text-xs text-stone-400 mb-1 block">Tag</label>
+              <div className="flex gap-2 flex-wrap">
+                {FEEDBACK_TAGS.map(t => (
+                  <button type="button" key={t} onClick={() => setForm(f => ({ ...f, tag: t }))}
+                    className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${form.tag === t ? TAG_COLORS[t] + ' border-transparent' : 'bg-white border-stone-200 text-stone-500 hover:text-stone-700'}`}>
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs text-stone-400 mb-1 block">Feedback *</label>
+              <textarea required rows={3} className={inputCls + ' resize-none'} placeholder="What did you hear?"
+                value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} />
+            </div>
+            <div>
+              <label className="text-xs text-stone-400 mb-1 block">Source <span className="text-stone-300">(optional)</span></label>
+              <input className={inputCls} placeholder="e.g. venue tour, email, walk-in"
+                value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} />
+            </div>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700">Cancel</button>
+              <button type="submit" disabled={saving} className="px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50" style={goldBtn}>
+                {saving ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* list */}
+      {rows === null ? (
+        <div className="text-center py-16 text-stone-400 text-sm">Loading…</div>
+      ) : visible.length === 0 ? (
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
+          <p className="text-sm">{rows.length === 0 ? 'No feedback yet.' : `No ${filterTag} feedback.`}</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm divide-y divide-stone-50">
+          {visible.map(entry => (
+            <div key={entry.id} className="px-5 py-4">
+              {editing?.id === entry.id ? (
+                <div className="space-y-3">
+                  <div className="flex gap-2 flex-wrap">
+                    {FEEDBACK_TAGS.map(t => (
+                      <button type="button" key={t} onClick={() => setET(t)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${editTag === t ? TAG_COLORS[t] + ' border-transparent' : 'bg-white border-stone-200 text-stone-500'}`}>
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea rows={3} className={inputCls + ' resize-none'} value={editContent} onChange={e => setEC(e.target.value)} />
+                  <input className={inputCls} placeholder="Source (optional)" value={editSource} onChange={e => setES(e.target.value)} />
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => setEditing(null)} className="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-700">Cancel</button>
+                    <button onClick={saveEdit} disabled={editSaving} className="px-3 py-1.5 text-xs text-white rounded-lg disabled:opacity-50" style={goldBtn}>
+                      {editSaving ? 'Saving…' : 'Save'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${TAG_COLORS[entry.tag]}`}>{entry.tag}</span>
+                      {entry.source && <span className="text-xs text-stone-400">{entry.source}</span>}
+                      <span className="text-xs text-stone-300 ml-auto">{fmtTs(entry.created_at)}</span>
+                    </div>
+                    <p className="text-sm text-stone-700 whitespace-pre-wrap">{entry.content}</p>
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button onClick={() => startEdit(entry)} className="p-1.5 text-stone-300 hover:text-stone-500 transition-colors"><Pencil size={13} /></button>
+                    <button onClick={() => del(entry.id)} className="p-1.5 text-stone-300 hover:text-red-400 transition-colors"><Trash2 size={13} /></button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      {rows && rows.length > 0 && (
+        <p className="text-xs text-stone-400 px-1">{rows.length} entr{rows.length !== 1 ? 'ies' : 'y'} total</p>
+      )}
     </div>
   )
 }
