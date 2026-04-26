@@ -202,15 +202,13 @@ function TaskRow({
           />
           <p className="text-[10px] text-stone-300 -mt-1">Auto-saves when you click away</p>
 
-          {task.status === 'done' && (
-            task.attachment_url ? (
-              <TaskAttachment url={task.attachment_url} onReplace={() => onTriggerUpload(task.id)} uploading={uploadingTaskId === task.id} />
-            ) : (
-              <button onClick={() => onTriggerUpload(task.id)} disabled={uploadingTaskId === task.id}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-dashed border-stone-300 text-stone-400 hover:border-amber-300 hover:text-amber-600 transition-colors disabled:opacity-40">
-                <Paperclip size={12} />{uploadingTaskId === task.id ? 'Uploading...' : 'Attach a file'}
-              </button>
-            )
+          {task.attachment_url ? (
+            <TaskAttachment url={task.attachment_url} onReplace={() => onTriggerUpload(task.id)} uploading={uploadingTaskId === task.id} />
+          ) : (
+            <button onClick={() => onTriggerUpload(task.id)} disabled={uploadingTaskId === task.id}
+              className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-dashed border-stone-300 text-stone-400 hover:border-amber-300 hover:text-amber-600 transition-colors disabled:opacity-40">
+              <Paperclip size={12} />{uploadingTaskId === task.id ? 'Uploading...' : 'Upload for review'}
+            </button>
           )}
         </div>
       )}
