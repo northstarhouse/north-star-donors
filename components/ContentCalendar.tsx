@@ -38,6 +38,49 @@ const STATUS_PILL: Record<EntryStatus, string> = {
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
+type RhythmRule = {
+  week: 1 | 2 | 3 | 4
+  weekday: 1 | 2 | 3 | 4 | 5
+  channel: Channel
+  title: string
+  notes?: string
+  monthTitles?: Partial<Record<number, string>>
+}
+
+const RHYTHM_RULES: RhythmRule[] = [
+  { week: 1, weekday: 1, channel: 'Social', title: 'Wedding Posting', monthTitles: { 1: 'Wedding Posting + scheduling for the month' } },
+  { week: 1, weekday: 2, channel: 'Social', title: 'Testimonial or Small History' },
+  { week: 1, weekday: 4, channel: 'Email',  title: 'Newsletter', monthTitles: { 1: 'Monthly email send out' } },
+  { week: 1, weekday: 5, channel: 'Social', title: 'Volunteer Outreach - Events' },
+  { week: 2, weekday: 1, channel: 'Social', title: 'Sponsor Spotlight' },
+  { week: 2, weekday: 2, channel: 'Events', title: 'Upcoming Event / Tours' },
+  { week: 2, weekday: 4, channel: 'Blog',   title: 'Planning Update' },
+  { week: 2, weekday: 5, channel: 'Social', title: 'Volunteer Outreach - Restoration' },
+  { week: 3, weekday: 1, channel: 'Events', title: 'Upcoming Event or Wedding' },
+  { week: 3, weekday: 2, channel: 'Social', title: 'OPEN', notes: 'Open slot' },
+  { week: 3, weekday: 4, channel: 'Blog',   title: 'History Update' },
+  { week: 3, weekday: 5, channel: 'Social', title: 'Volunteer Outreach - Garden' },
+  { week: 4, weekday: 1, channel: 'Social', title: 'OPEN', notes: 'Open slot' },
+  { week: 4, weekday: 2, channel: 'Social', title: 'Restoration Video' },
+  { week: 4, weekday: 4, channel: 'Email',  title: 'Development / Board Update' },
+  { week: 4, weekday: 5, channel: 'Social', title: 'Volunteer Outreach - Docents' },
+]
+
+const WEEK_LABELS: Record<1 | 2 | 3 | 4, string> = {
+  1: 'First Week',
+  2: 'Second Week',
+  3: 'Third Week',
+  4: 'Fourth Week',
+}
+
+const WEEKDAY_LABELS: Record<1 | 2 | 3 | 4 | 5, string> = {
+  1: 'Monday',
+  2: 'Tuesday',
+  3: 'Wednesday',
+  4: 'Thursday',
+  5: 'Friday',
+}
+
 /* -- Helpers ------------------------------------------------ */
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -45,6 +88,14 @@ function firstThursdayDay(year: number, month: number): number {
   const d = new Date(year, month, 1)
   while (d.getDay() !== 4) d.setDate(d.getDate() + 1)
   return d.getDate()
+}
+
+function nthWeekdayOfMonth(year: number, month: number, weekday: number, occurrence: number): number | null {
+  const first = new Date(year, month, 1)
+  const offset = (weekday - first.getDay() + 7) % 7
+  const day = 1 + offset + (occurrence - 1) * 7
+  const max = new Date(year, month + 1, 0).getDate()
+  return day <= max ? day : null
 }
 
 const inCls = 'w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 text-stone-700 bg-white'
@@ -70,6 +121,7 @@ export default function ContentCalendar() {
   const [sideNotes, setSideNotes]     = useState('')
   const [notesDirty, setNotesDirty]   = useState(false)
   const [notesSaving, setNotesSaving] = useState(false)
+  const [templateSaving, setTemplateSaving] = useState(false)
 
   const monthKey = `${year}-${pad(month + 1)}`
 
@@ -164,9 +216,31 @@ export default function ContentCalendar() {
   const ftDay = firstThursdayDay(year, month)
   const todayD = now.getDate()
   const isNow  = year === now.getFullYear() && month === now.getMonth()
+  const monthRhythm = RHYTHM_RULES.map(rule => ({
+    ...rule,
+    title: rule.monthTitles?.[month] ?? rule.title,
+    day: nthWeekdayOfMonth(year, month, rule.weekday, rule.week),
+  })).filter(rule => rule.day != null)
 
   const selStr  = selectedDay ? `${monthKey}-${pad(selectedDay)}` : null
   const selEnts = selStr ? (byDay[selStr] ?? []) : []
+
+  async function applyMonthTemplate() {
+    const existingKeys = new Set(entries.map(e => `${e.date}|${e.title.trim().toLowerCase()}`))
+    const missing = monthRhythm.map(rule => ({
+      title: rule.title,
+      channel: rule.channel,
+      date: `${monthKey}-${pad(rule.day as number)}`,
+      notes: rule.notes || null,
+      status: 'draft' as EntryStatus,
+    })).filter(entry => !existingKeys.has(`${entry.date}|${entry.title.trim().toLowerCase()}`))
+
+    if (missing.length === 0) return
+    setTemplateSaving(true)
+    await supabase.from('content_calendar').insert(missing)
+    setTemplateSaving(false)
+    loadEntries()
+  }
 
   /* -- Render ------------------------------------------------ */
   return (
@@ -366,9 +440,45 @@ export default function ContentCalendar() {
       </div>
 
       {/* ---- Sidebar ---- */}
-      <div className="w-60 flex-shrink-0 space-y-3">
+      <div className="w-72 flex-shrink-0 space-y-3">
 
         {/* Recurring rhythm */}
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <div>
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Posting Structure</p>
+              <p className="text-[11px] text-stone-400 mt-1">{MONTHS[month]} {year}</p>
+            </div>
+            <button
+              onClick={applyMonthTemplate}
+              disabled={templateSaving}
+              className="px-2.5 py-1 text-[10px] text-white rounded-lg font-medium disabled:opacity-40"
+              style={{ background: 'var(--gold)' }}>
+              {templateSaving ? 'Adding...' : 'Apply Template'}
+            </button>
+          </div>
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(week => (
+              <div key={week}>
+                <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">{WEEK_LABELS[week as 1 | 2 | 3 | 4]}</p>
+                <div className="space-y-1.5">
+                  {monthRhythm.filter(rule => rule.week === week).map(rule => (
+                    <div key={`${rule.week}-${rule.weekday}-${rule.title}`} className="rounded-lg border border-stone-100 bg-stone-50/70 px-2.5 py-2">
+                      <div className="flex items-start gap-2">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: CH[rule.channel].bar }} />
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold text-stone-700">{WEEKDAY_LABELS[rule.weekday]} {rule.day} - {rule.title}</p>
+                          {rule.notes && <p className="text-[10px] text-stone-400 mt-0.5">{rule.notes}</p>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
           <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">This Month&apos;s Rhythm</p>
           <div className="space-y-2.5">
