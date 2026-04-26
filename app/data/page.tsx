@@ -435,7 +435,7 @@ function FormsSection() {
   const [source, setSource] = useState<'supabase' | 'wix'>('wix')
   const [notesDraft, setNotesDraft] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
-  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
+  const [handlingId, setHandlingId] = useState<string | null>(null)
   const scrollYRef = useRef(0)
 
   useEffect(() => {
@@ -543,67 +543,77 @@ function FormsSection() {
     setNotesSaving(false)
   }
 
+  async function toggleHandled(sub: WixSubmission) {
+    if (handlingId === sub.id) return
+    setHandlingId(sub.id)
+    const newStatus = sub.status === 'handled' ? '' : 'handled'
+    const { error } = await supabase
+      .from('data_wix_forms')
+      .upsert({
+        id: sub.id,
+        form_id: sub.form_id,
+        form_name: sub.form_name.trim(),
+        status: newStatus,
+        created_at: sub.created_at,
+        fields: sub.fields,
+        internal_notes: sub.internal_notes ?? null,
+      })
+    if (!error) {
+      const update = (s: WixSubmission) => s.id === sub.id ? { ...s, status: newStatus } : s
+      setData(prev => prev ? { submissions: prev.submissions.map(update) } : prev)
+      setSelected(prev => prev?.id === sub.id ? { ...prev, status: newStatus } : prev)
+    }
+    setHandlingId(null)
+  }
+
   return (
-    <div>
+    <div className="space-y-4">
       {data === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading…</div> : (
-        <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
+        <>
+          {rows.length === 0 && (
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
+              <p className="text-sm">No form submissions found.</p>
+              <p className="text-xs text-center max-w-xs">{FORMS_URL ? 'Sync Wix forms into Supabase for faster loads.' : 'Deploy wix-forms-webapp.gs and paste the URL as FORMS_URL in page.tsx.'}</p>
+            </div>
+          )}
+          {grouped.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-3">
+              {grouped.map(({ name, items }) => {
+                const isActive = name === activeFormName
+                const latest = items[0]
+                return (
+                  <button
+                    key={name}
+                    onClick={() => {
+                      setActiveForm(name)
+                      setSelected(null)
+                    }}
+                    className={`text-left rounded-xl border shadow-sm p-4 transition-colors ${isActive ? 'bg-amber-50/60 border-amber-200' : 'bg-white border-stone-200 hover:bg-stone-50'}`}
+                  >
+                    <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: isActive ? 'var(--gold)' : '#a8a29e' }}>Wix Form</p>
+                    <p className="text-sm font-semibold text-stone-800 leading-snug">{name}</p>
+                    <p className="text-2xl font-bold text-stone-800 leading-none mt-3">{items.length}</p>
+                    <p className="text-xs text-stone-400 mt-1">submission{items.length !== 1 ? 's' : ''}</p>
+                    <p className="text-[11px] text-stone-400 mt-3">{latest ? `Latest: ${fmtTs(latest.created_at)}` : 'No submissions yet'}</p>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          <div className={`grid gap-5 items-start ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
           <div className="space-y-4 min-w-0">
-            {rows.length === 0 && (
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
-                <p className="text-sm">No form submissions found.</p>
-                <p className="text-xs text-center max-w-xs">{FORMS_URL ? 'Sync Wix forms into Supabase for faster loads.' : 'Deploy wix-forms-webapp.gs and paste the URL as FORMS_URL in page.tsx.'}</p>
-              </div>
-            )}
-            {grouped.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-3">
-                {grouped.map(({ name, items }) => {
-                  const isActive = name === activeFormName
-                  const latest = items[0]
-                  return (
-                    <button
-                      key={name}
-                      onClick={() => {
-                        setActiveForm(name)
-                        setSelected(null)
-                      }}
-                      className={`text-left rounded-xl border shadow-sm p-4 transition-colors ${isActive ? 'bg-amber-50/60 border-amber-200' : 'bg-white border-stone-200 hover:bg-stone-50'}`}
-                    >
-                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: isActive ? 'var(--gold)' : '#a8a29e' }}>Wix Form</p>
-                      <p className="text-sm font-semibold text-stone-800 leading-snug">{name}</p>
-                      <p className="text-2xl font-bold text-stone-800 leading-none mt-3">{items.length}</p>
-                      <p className="text-xs text-stone-400 mt-1">submission{items.length !== 1 ? 's' : ''}</p>
-                      <p className="text-[11px] text-stone-400 mt-3">{latest ? `Latest: ${fmtTs(latest.created_at)}` : 'No submissions yet'}</p>
-                    </button>
-                  )
-                })}
-              </div>
-            )}
             {activeGroup && (
               <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-stone-100">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 accent-amber-500 cursor-pointer flex-shrink-0"
-                        checked={activeGroup.items.length > 0 && activeGroup.items.every(s => checkedIds.has(s.id))}
-                        ref={el => { if (el) el.indeterminate = activeGroup.items.some(s => checkedIds.has(s.id)) && !activeGroup.items.every(s => checkedIds.has(s.id)) }}
-                        onChange={e => {
-                          setCheckedIds(prev => {
-                            const next = new Set(prev)
-                            if (e.target.checked) activeGroup.items.forEach(s => next.add(s.id))
-                            else activeGroup.items.forEach(s => next.delete(s.id))
-                            return next
-                          })
-                        }}
-                      />
-                      <div>
-                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>Selected Form</p>
-                        <p className="text-sm font-semibold text-stone-800">{activeGroup.name}</p>
-                      </div>
+                    <div>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>Selected Form</p>
+                      <p className="text-sm font-semibold text-stone-800">{activeGroup.name}</p>
                     </div>
                     <div className="text-right">
-                      {checkedIds.size > 0 && <p className="text-xs font-medium text-amber-700">{checkedIds.size} checked</p>}
+                      {activeGroup.items.filter(s => s.status === 'handled').length > 0 && (
+                        <p className="text-xs font-medium text-emerald-700">{activeGroup.items.filter(s => s.status === 'handled').length} handled</p>
+                      )}
                       <p className="text-xs text-stone-400">{activeGroup.items.length} message{activeGroup.items.length !== 1 ? 's' : ''}</p>
                     </div>
                   </div>
@@ -614,23 +624,17 @@ function FormsSection() {
                     const last  = sub.fields['Last Name']  || ''
                     const email = sub.fields['Email'] || sub.fields['Email Address'] || ''
                     const preview = [first, last].filter(Boolean).join(' ') || email || Object.values(sub.fields).find(Boolean) || ''
-                    const isChecked = checkedIds.has(sub.id)
+                    const isHandled = sub.status === 'handled'
                     return (
                       <div key={sub.id}
-                        className={`flex items-start gap-3 px-5 py-3 border-b border-stone-50 last:border-0 transition-colors ${selected?.id === sub.id ? 'bg-amber-50/80' : isChecked ? 'bg-amber-50/40' : 'hover:bg-stone-50'}`}>
+                        className={`flex items-start gap-3 px-5 py-3 border-b border-stone-50 last:border-0 transition-colors ${selected?.id === sub.id ? 'bg-amber-50/80' : isHandled ? 'bg-stone-50/60' : 'hover:bg-stone-50'}`}>
                         <input
                           type="checkbox"
-                          className="mt-1 w-4 h-4 accent-amber-500 cursor-pointer flex-shrink-0"
-                          checked={isChecked}
-                          onChange={e => {
-                            e.stopPropagation()
-                            setCheckedIds(prev => {
-                              const next = new Set(prev)
-                              if (e.target.checked) next.add(sub.id)
-                              else next.delete(sub.id)
-                              return next
-                            })
-                          }}
+                          title="Mark as handled"
+                          className="mt-1 w-4 h-4 accent-emerald-600 cursor-pointer flex-shrink-0 disabled:opacity-50"
+                          checked={isHandled}
+                          disabled={handlingId === sub.id}
+                          onChange={() => toggleHandled(sub)}
                         />
                         <button
                           className="flex-1 text-left min-w-0"
@@ -638,7 +642,7 @@ function FormsSection() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="min-w-0">
                               {sub.internal_notes && <p className="text-xs text-amber-800 bg-amber-100/80 rounded-md px-2 py-1 mb-2 truncate">{sub.internal_notes}</p>}
-                              {preview && <p className="text-sm text-stone-700 truncate">{preview}</p>}
+                              {preview && <p className={`text-sm truncate ${isHandled ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{preview}</p>}
                               {email && email !== preview && <p className="text-xs text-stone-400 mt-0.5 truncate">{email}</p>}
                             </div>
                             <p className="text-xs text-stone-500 flex-shrink-0">{fmtTs(sub.created_at)}</p>
@@ -697,7 +701,8 @@ function FormsSection() {
               )}
             </DetailPanel>
           ) : null}
-        </div>
+          </div>
+        </>
       )}
     </div>
   )
