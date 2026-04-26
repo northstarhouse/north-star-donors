@@ -55,7 +55,7 @@ export default function ListsPage() {
   const [showAddToList, setShowAddToList] = useState(false)
 
   useEffect(() => {
-    const cached = cacheRead<DonorList[]>('lists')
+    const cached = cacheRead<(DonorList & { donor_count: number })[]>('lists')
     if (cached) { setLists(cached); setLoading(false) }
     loadLists()
   }, [])
