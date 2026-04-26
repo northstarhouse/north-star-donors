@@ -173,9 +173,98 @@ const TABS: { id: DataTab; label: string }[] = [
   { id: 'feedback',  label: 'Feedback' },
 ]
 
+/* ── Background prefetch — warms all caches on page load ─── */
+function usePrefetchAll() {
+  useEffect(() => {
+    // Supabase tables — all in parallel
+    Promise.all([
+      supabase.from('data_email').select('*').order('date', { ascending: false }),
+      supabase.from('data_social').select('*').order('date', { ascending: false }),
+      supabase.from('data_facebook').select('*').order('period', { ascending: false }),
+      supabase.from('data_events').select('*').order('date', { ascending: false }),
+      supabase.from('data_analytics').select('*').order('period', { ascending: false }),
+      supabase.from('data_feedback').select('*').order('created_at', { ascending: false }),
+    ]).then(([email, social, fb, events, analytics, feedback]) => {
+      if (email.data?.length)     cacheWrite(CK.email,    email.data,    TTL_DB)
+      if (events.data?.length)    cacheWrite(CK.events,   events.data,   TTL_DB)
+      if (analytics.data?.length) cacheWrite(CK.analytics,analytics.data,TTL_DB)
+      if (feedback.data?.length)  cacheWrite(CK.feedback, feedback.data, TTL_DB)
+      if (social.data && fb.data) cacheWrite(CK.social, { social: social.data, fb: fb.data }, TTL_DB)
+    })
+
+    // Forms — slow external call, skip if already cached
+    if (FORMS_URL && !cacheRead(CK.forms)) {
+      fetch(FORMS_URL).then(r => r.json()).then(async json => {
+        const submissions: WixSubmission[] = json.submissions ?? json.forms?.submissions ?? []
+        const ids = submissions.map(s => s.id)
+        let overrides: Record<string, { notes: string | null; status: string | null }> = {}
+        if (ids.length > 0) {
+          const { data: or } = await supabase.from('data_wix_forms').select('id, internal_notes, status').in('id', ids)
+          overrides = Object.fromEntries((or ?? []).map(r => [r.id as string, { notes: (r.internal_notes as string | null) ?? null, status: (r.status as string | null) ?? null }]))
+        }
+        const merged = submissions.map(s => ({ ...s, internal_notes: overrides[s.id]?.notes ?? null, status: overrides[s.id]?.status ?? s.status }))
+        cacheWrite(CK.forms, merged, TTL_SCRIPT)
+      }).catch(() => {})
+    }
+
+    // Wix analytics — skip if already cached
+    if (WIX_URL && !cacheRead(CK.wix)) {
+      fetch(WIX_URL).then(r => r.json()).then(json => {
+        cacheWrite(CK.wix, {
+          pages:   json.pages   ?? { rows: [] },
+          cities:  json.cities  ?? { rows: [] },
+          sources: json.sources ?? { rows: [] },
+        }, TTL_SCRIPT)
+      }).catch(() => {})
+    }
+
+    // Wix events — skip if already cached
+    if (!cacheRead(CK.wixEvents)) {
+      fetch('https://www.wixapis.com/oauth2/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: WIX_CLIENT_ID, grantType: 'anonymous' }),
+      }).then(r => r.json()).then(async ({ access_token }) => {
+        if (!access_token) return
+        const all: WixEvent[] = []
+        let offset = 0
+        while (true) {
+          const resp = await fetch('https://www.wixapis.com/events/v3/events/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': access_token },
+            body: JSON.stringify({ query: { sort: [{ fieldName: 'scheduling.startDate', order: 'DESC' }], paging: { limit: 100, offset } } }),
+          })
+          const json = await resp.json()
+          const rows: Record<string, unknown>[] = json.events ?? []
+          rows.forEach((e: Record<string, unknown>) => {
+            const config = ((e.scheduling as Record<string,unknown>)?.config as Record<string,unknown>) ?? {}
+            const loc    = (e.location as Record<string,unknown>) ?? {}
+            const locAddr = (loc.address as Record<string,unknown>) ?? {}
+            const reg    = (e.registration as Record<string,unknown>) ?? {}
+            const rsvp   = (reg.rsvpCollection as Record<string,unknown>) ?? null
+            const tix    = (reg.ticketing as Record<string,unknown>) ?? null
+            const pu     = (e.eventPageUrl as Record<string,unknown>) ?? {}
+            all.push({ id: String(e.id ?? ''), title: String(e.title ?? ''), status: String(e.status ?? ''),
+              start: (config.startDate as string) ?? null, end: (config.endDate as string) ?? null,
+              location: String(loc.name ?? locAddr.formattedAddress ?? ''),
+              description: String(e.description ?? ''),
+              rsvp_total: rsvp ? Number(rsvp.total ?? 0) : null,
+              tickets_sold: tix ? Number(tix.totalSold ?? 0) : null,
+              url: pu.base ? String(pu.base) + String(pu.path ?? '') : null })
+          })
+          if (rows.length < 100) break
+          offset += 100
+        }
+        cacheWrite(CK.wixEvents, all, TTL_SCRIPT)
+      }).catch(() => {})
+    }
+  }, [])
+}
+
 /* ── Main ────────────────────────────────────────────────── */
 export default function DataPage() {
   const [tab, setTab] = useState<DataTab>('analytics')
+  usePrefetchAll()
 
   return (
     <div className="flex min-h-screen">
