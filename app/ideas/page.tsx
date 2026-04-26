@@ -55,6 +55,8 @@ const fmtDate  = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('en
 
 const EMPTY_FORM = { title: '', status: 'Exploring' as IdeaStatus, submitted_by: '', notes: '', blockers: '', gaps: '', budget: '', updates: '' }
 
+type EditIdeaForm = Omit<Partial<Idea>, 'budget'> & { budget?: string }
+
 function tabForStatus(s: IdeaStatus): MainTab {
   return INITIATIVES_STATUSES.includes(s) ? 'initiatives' : 'ideas'
 }
@@ -73,7 +75,7 @@ export default function IdeasPage() {
   const [saving, setSaving]     = useState(false)
 
   const [editing, setEditing]   = useState(false)
-  const [editForm, setEditForm] = useState<Partial<Idea> & { budget?: string }>({})
+  const [editForm, setEditForm] = useState<EditIdeaForm>({})
   const [editSaving, setEditSaving] = useState(false)
 
   const [showUpdates, setShowUpdates] = useState(false)
@@ -429,7 +431,7 @@ export default function IdeasPage() {
 interface DetailPanelProps {
   selected: Idea
   editing: boolean
-  editForm: Partial<Idea> & { budget?: string }
+  editForm: EditIdeaForm
   editSaving: boolean
   showUpdates: boolean
   budgetItems: BudgetItem[]
@@ -445,7 +447,7 @@ interface DetailPanelProps {
   onStartEdit: () => void
   onCancelEdit: () => void
   onSaveEdit: () => void
-  onEditFormChange: (fn: (prev: Partial<Idea> & { budget?: string }) => Partial<Idea> & { budget?: string }) => void
+  onEditFormChange: (fn: (prev: EditIdeaForm) => EditIdeaForm) => void
   onToggleUpdates: () => void
   onToggleBudgetForm: () => void
   onBudgetFormChange: (fn: (prev: { description: string; amount: string; date: string; expense_type: string }) => { description: string; amount: string; date: string; expense_type: string }) => void
