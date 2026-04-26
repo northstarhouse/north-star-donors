@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect } from 'react'
 import { List, Trash2, X, Users, ChevronLeft, Download, Star, Tags } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -153,7 +153,7 @@ export default function ListsPage() {
   const selectedFresh = selected ? listDonors.find(d => d.id === selected.id) ?? selected : null
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-1">
       <Sidebar activePage="lists" />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
@@ -194,7 +194,7 @@ export default function ListsPage() {
               <div className="flex flex-col items-center justify-center py-24 gap-2 text-stone-400">
                 <List size={32} strokeWidth={1} />
                 <p className="text-sm">No lists yet.</p>
-                <p className="text-xs">Check donors on the Donations page and click "Add to a new or existing list…"</p>
+                <p className="text-xs">Check donors on the Donations page and click "Add to a new or existing listâ€¦"</p>
               </div>
             ) : (
               <div className="divide-y divide-stone-100">
@@ -239,7 +239,7 @@ export default function ListsPage() {
                       className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs rounded-lg font-medium"
                       style={{ background: 'var(--gold)' }}
                     >
-                      <Tags size={12} /> Add to a new or existing list…
+                      <Tags size={12} /> Add to a new or existing listâ€¦
                     </button>
                     <button onClick={() => setSelectedIds(new Set())} className="text-xs text-stone-400 hover:text-stone-600 ml-auto">
                       Clear
@@ -296,7 +296,7 @@ export default function ListsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right font-medium text-stone-700" onClick={() => setSelected(donor)}>
-                          {donor.current_year_total > 0 ? fmt(donor.current_year_total) : <span className="text-stone-300">—</span>}
+                          {donor.current_year_total > 0 ? fmt(donor.current_year_total) : <span className="text-stone-300">â€”</span>}
                         </td>
                         <td className="px-4 py-3 text-right text-stone-600" onClick={() => setSelected(donor)}>
                           {fmt(Math.max(donor.lifetime_total, donor.historical_lifetime_giving))}
@@ -342,3 +342,4 @@ export default function ListsPage() {
     </div>
   )
 }
+

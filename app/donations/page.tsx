@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useMemo } from 'react'
 import { Heart, UserPlus, Tags, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -162,7 +162,7 @@ export default function Home() {
   const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-1">
       <Sidebar activePage="donations" />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
@@ -198,7 +198,7 @@ export default function Home() {
               <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
                 <p className="text-xs text-stone-400 font-medium mb-1">Current Donors</p>
                 <p className="text-2xl font-semibold text-stone-800">{currentCount}</p>
-                <p className="text-xs text-stone-400 mt-0.5">gave in {currentYear - 1}–{currentYear}</p>
+                <p className="text-xs text-stone-400 mt-0.5">gave in {currentYear - 1}â€“{currentYear}</p>
               </div>
               <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
                 <p className="text-xs text-stone-400 font-medium mb-1">Members</p>
@@ -289,3 +289,4 @@ export default function Home() {
     </div>
   )
 }
+

@@ -1,10 +1,10 @@
-'use client'
+﻿'use client'
 import { useState, useEffect, useRef } from 'react'
 import { Award, Plus, X, Pencil, Check, Upload } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
-/* ── Types ───────────────────────────────────────────────── */
+/* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 interface Sponsor {
   id: number
   'Business Name': string
@@ -39,13 +39,13 @@ interface Ack {
   notes: string | null
 }
 
-/* ── Tiers (in-kind value) ───────────────────────────────── */
+/* â”€â”€ Tiers (in-kind value) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const TIERS = [
   { name: 'Innovator', min: 5000, range: '$5,000+', color: '#7c3aed', bg: '#f3f0ff', border: '#c4b5fd',
-    benefits: ['Builder benefits, plus:', 'One "Sponsor Highlight" article in one of our quarterly newsletters', 'An 8″×8″ commemorative brick placed as part of the brick terrace capital project', 'Picnic lunch or reception for you and ten guests in the North Star House'] },
-  { name: 'Builder', min: 2500, range: '$2,500–$4,999', color: '#1565c0', bg: '#e3f2fd', border: '#90caf9',
-    benefits: ['Believer benefits, plus:', 'Named Solo Sponsor of one NSHC event (name/logo in materials, event signage, recognized from stage)', 'A 4″×8″ commemorative brick placed as part of the brick terrace capital project', 'Personal VIP tour of the upstairs construction project!'] },
-  { name: 'Believer', min: 1000, range: '$1,000–$2,499', color: '#2e7d32', bg: '#e8f5e9', border: '#a5d6a7',
+    benefits: ['Builder benefits, plus:', 'One "Sponsor Highlight" article in one of our quarterly newsletters', 'An 8â€³Ã—8â€³ commemorative brick placed as part of the brick terrace capital project', 'Picnic lunch or reception for you and ten guests in the North Star House'] },
+  { name: 'Builder', min: 2500, range: '$2,500â€“$4,999', color: '#1565c0', bg: '#e3f2fd', border: '#90caf9',
+    benefits: ['Believer benefits, plus:', 'Named Solo Sponsor of one NSHC event (name/logo in materials, event signage, recognized from stage)', 'A 4â€³Ã—8â€³ commemorative brick placed as part of the brick terrace capital project', 'Personal VIP tour of the upstairs construction project!'] },
+  { name: 'Believer', min: 1000, range: '$1,000â€“$2,499', color: '#2e7d32', bg: '#e8f5e9', border: '#a5d6a7',
     benefits: ['Company name/logo listed as a Sponsor in event programs, newsletters, website and yearly Sponsorship Banner', 'Invitation to State of the Star membership celebration', 'Two complimentary tickets to a NSHC event', 'Custom made plaque with yearly stars', 'Sponsor Spotlight on our social media platforms'] },
 ]
 
@@ -53,7 +53,7 @@ function getTier(total: number) {
   return TIERS.find(t => total >= t.min) ?? null
 }
 
-/* ── Helpers ─────────────────────────────────────────────── */
+/* â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const fmt = (n: number) => '$' + n.toLocaleString()
 const inputCls = 'w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 bg-white'
 const goldBtn = { background: 'var(--gold)' }
@@ -64,7 +64,7 @@ const EMPTY_FORM: Partial<Sponsor> = {
   'Mailing Address': '', 'Date Recieved': '', 'Notes': '',
 }
 
-/* ── Component ───────────────────────────────────────────── */
+/* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function SponsorsPage() {
   const [sponsors, setSponsors] = useState<Sponsor[] | null>(null)
   const [allInKind, setAllInKind] = useState<InKind[]>([])
@@ -94,7 +94,7 @@ export default function SponsorsPage() {
 
   function today() { return new Date().toISOString().slice(0, 10) }
 
-  /* ── Load ──────────────────────────────────────────────── */
+  /* â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   useEffect(() => {
     supabase.from('Sponsors').select('*').order('Date Recieved', { ascending: false, nullsFirst: false }).order('id', { ascending: false }).then(({ data }) => {
       if (data) setSponsors(data as Sponsor[])
@@ -112,7 +112,7 @@ export default function SponsorsPage() {
       .then(({ data }) => { if (data) setInkind(data as InKind[]) })
   }, [selected])
 
-  /* ── Derived ───────────────────────────────────────────── */
+  /* â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   function inKindTotal(sponsorId: number) {
     return allInKind.filter(e => e.sponsor_id === sponsorId).reduce((s, e) => s + (Number(e.value) || 0), 0)
   }
@@ -131,7 +131,7 @@ export default function SponsorsPage() {
   const totalInKindAll = allInKind.reduce((s, e) => s + (Number(e.value) || 0), 0)
   const tieredCount = visibleSponsors.filter(s => getTier(inKindTotal(s.id))).length
 
-  /* ── Actions ───────────────────────────────────────────── */
+  /* â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   function switchTab(t: 'current' | 'past' | 'potential') {
     setTab(t)
     setSelected(null)
@@ -234,9 +234,9 @@ export default function SponsorsPage() {
     e.target.value = ''
   }
 
-  /* ── Render ────────────────────────────────────────────── */
+  /* â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-1">
       <Sidebar activePage="sponsors" />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
@@ -279,7 +279,7 @@ export default function SponsorsPage() {
 
         <div className="px-8 pb-8 flex-1">
           {sponsors === null ? (
-            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading sponsors…</div>
+            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading sponsorsâ€¦</div>
           ) : (
             <div className="grid gap-5 grid-cols-[320px_1fr]" style={{ height: 'calc(100vh - 200px)' }}>
               {/* List */}
@@ -372,7 +372,7 @@ export default function SponsorsPage() {
                       </div>
                       <div className="flex gap-2">
                         <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg disabled:opacity-50 font-medium" style={goldBtn}>
-                          {editSaving ? 'Saving…' : 'Save'}
+                          {editSaving ? 'Savingâ€¦' : 'Save'}
                         </button>
                         <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                       </div>
@@ -386,14 +386,14 @@ export default function SponsorsPage() {
                         <img src={selected.logo_url} alt="logo" className="max-h-14 max-w-36 object-contain border border-stone-200 rounded-lg p-1" />
                         <button onClick={() => logoRef.current?.click()} disabled={logoUploading}
                           className="text-xs px-3 py-1.5 border rounded-lg hover:bg-stone-50" style={{ color: 'var(--gold)', borderColor: 'var(--gold)' }}>
-                          {logoUploading ? 'Uploading…' : 'Replace'}
+                          {logoUploading ? 'Uploadingâ€¦' : 'Replace'}
                         </button>
                       </div>
                     ) : (
                       <button onClick={() => logoRef.current?.click()} disabled={logoUploading}
                         className="w-full py-3 text-sm rounded-lg border-dashed border-2 flex items-center justify-center gap-2 hover:bg-stone-50 transition-colors"
                         style={{ color: 'var(--gold)', borderColor: 'var(--gold)' }}>
-                        <Upload size={13} />{logoUploading ? 'Uploading…' : 'Upload Logo'}
+                        <Upload size={13} />{logoUploading ? 'Uploadingâ€¦' : 'Upload Logo'}
                       </button>
                     )}
                     <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
@@ -434,9 +434,9 @@ export default function SponsorsPage() {
                           </div>
                           {tier && (
                             <div className="rounded-lg p-3 mb-3 text-xs space-y-1" style={{ background: tier.bg, border: `1px solid ${tier.border}`, color: tier.color }}>
-                              <p className="font-bold">{tier.name} Benefits · {tier.range}</p>
+                              <p className="font-bold">{tier.name} Benefits Â· {tier.range}</p>
                               {tier.benefits.map((b, i) => (
-                                <p key={i} style={{ paddingLeft: b.endsWith(':') ? 0 : 12 }}>{b.endsWith(':') ? b : `• ${b}`}</p>
+                                <p key={i} style={{ paddingLeft: b.endsWith(':') ? 0 : 12 }}>{b.endsWith(':') ? b : `â€¢ ${b}`}</p>
                               ))}
                             </div>
                           )}
@@ -446,7 +446,7 @@ export default function SponsorsPage() {
                     <form onSubmit={submitInKind} className="bg-stone-50 rounded-lg p-3 mb-3 space-y-2">
                       <div>
                         <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Scope of Work *</label>
-                        <textarea className={inputCls + ' resize-none'} rows={2} required placeholder="Describe the in-kind work or service…"
+                        <textarea className={inputCls + ' resize-none'} rows={2} required placeholder="Describe the in-kind work or serviceâ€¦"
                           value={inkindForm.description} onChange={e => setInkindForm(f => ({ ...f, description: e.target.value }))} />
                       </div>
                       <div className="grid grid-cols-2 gap-2">
@@ -461,7 +461,7 @@ export default function SponsorsPage() {
                       </div>
                       <button type="submit" disabled={inkindSaving || !inkindForm.description || !inkindForm.value}
                         className="w-full py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                        {inkindSaving ? 'Saving…' : 'Add In-Kind Entry'}
+                        {inkindSaving ? 'Savingâ€¦' : 'Add In-Kind Entry'}
                       </button>
                     </form>
                     {inkind.length === 0 ? (
@@ -496,16 +496,16 @@ export default function SponsorsPage() {
                         </div>
                         <div>
                           <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Method</label>
-                          <input className={inputCls} placeholder="Letter, email, call…" value={ackForm.method} onChange={e => setAckForm(f => ({ ...f, method: e.target.value }))} />
+                          <input className={inputCls} placeholder="Letter, email, callâ€¦" value={ackForm.method} onChange={e => setAckForm(f => ({ ...f, method: e.target.value }))} />
                         </div>
                       </div>
                       <div>
                         <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Notes</label>
-                        <textarea className={inputCls + ' resize-none'} rows={2} placeholder="Details…" value={ackForm.notes} onChange={e => setAckForm(f => ({ ...f, notes: e.target.value }))} />
+                        <textarea className={inputCls + ' resize-none'} rows={2} placeholder="Detailsâ€¦" value={ackForm.notes} onChange={e => setAckForm(f => ({ ...f, notes: e.target.value }))} />
                       </div>
                       <button type="submit" disabled={ackSaving}
                         className="w-full py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                        {ackSaving ? 'Saving…' : 'Log Acknowledgment'}
+                        {ackSaving ? 'Savingâ€¦' : 'Log Acknowledgment'}
                       </button>
                     </form>
                     {acks.length === 0 ? (
@@ -571,7 +571,7 @@ export default function SponsorsPage() {
               <div className="flex gap-2 pt-1">
                 <button type="submit" disabled={addSaving || !addForm['Business Name']}
                   className="flex-1 py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                  {addSaving ? 'Saving…' : 'Add Sponsor'}
+                  {addSaving ? 'Savingâ€¦' : 'Add Sponsor'}
                 </button>
                 <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
               </div>
@@ -583,7 +583,7 @@ export default function SponsorsPage() {
   )
 }
 
-/* ── Sub-components ──────────────────────────────────────── */
+/* â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
@@ -638,3 +638,4 @@ function InfoRow({ label, value, href }: { label: string; value: string | null |
     </div>
   )
 }
+

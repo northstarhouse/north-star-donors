@@ -1,10 +1,10 @@
-'use client'
+﻿'use client'
 import { useState, useEffect } from 'react'
 import { Megaphone, Plus, X, Pencil, Trash2, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
-/* ── Types ───────────────────────────────────────────────── */
+/* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 type OutreachStatus = 'planned' | 'in_progress' | 'completed' | 'no_response' | 'follow_up'
 
 interface OutreachEntry {
@@ -40,7 +40,7 @@ const goldBtn = { background: 'var(--gold)' }
 
 const EMPTY_FORM = { area: '', title: '', contact: '', date: '', status: 'planned' as OutreachStatus, notes: '', submitted_by: '' }
 
-/* ── Component ───────────────────────────────────────────── */
+/* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function OutreachPage() {
   const [entries, setEntries] = useState<OutreachEntry[] | null>(null)
   const [selected, setSelected] = useState<OutreachEntry | null>(null)
@@ -57,13 +57,13 @@ export default function OutreachPage() {
   const [filterArea, setFilterArea] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<OutreachStatus | 'all'>('all')
 
-  /* ── Load ────────────────────────────────────────────────── */
+  /* â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   useEffect(() => {
     supabase.from('outreach_entries').select('*').order('area').order('created_at', { ascending: false })
       .then(({ data }) => setEntries(data as OutreachEntry[] ?? []))
   }, [])
 
-  /* ── Actions ─────────────────────────────────────────────── */
+  /* â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   async function submitAdd(e: React.FormEvent) {
     e.preventDefault()
     if (!addForm.area || !addForm.title) return
@@ -123,7 +123,7 @@ export default function OutreachPage() {
     })
   }
 
-  /* ── Derived ─────────────────────────────────────────────── */
+  /* â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   const allAreas = [...new Set((entries ?? []).map(e => e.area))].sort()
 
   const visible = (entries ?? []).filter(e => {
@@ -139,9 +139,9 @@ export default function OutreachPage() {
 
   const totalOpen = (entries ?? []).filter(e => e.status !== 'completed').length
 
-  /* ── Render ──────────────────────────────────────────────── */
+  /* â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-1">
       <Sidebar activePage="outreach" />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
@@ -207,7 +207,7 @@ export default function OutreachPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-stone-400 mb-1 block">Area *</label>
-                    <input required list="area-suggestions" className={inputCls} placeholder="e.g. Donors, Media, Community…"
+                    <input required list="area-suggestions" className={inputCls} placeholder="e.g. Donors, Media, Communityâ€¦"
                       value={addForm.area} onChange={e => setAddForm(f => ({ ...f, area: e.target.value }))} />
                     <datalist id="area-suggestions">
                       {allAreas.map(a => <option key={a} value={a} />)}
@@ -247,7 +247,7 @@ export default function OutreachPage() {
                 <div className="flex gap-2">
                   <button type="submit" disabled={addSaving || !addForm.area || !addForm.title}
                     className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                    {addSaving ? 'Saving…' : 'Add Entry'}
+                    {addSaving ? 'Savingâ€¦' : 'Add Entry'}
                   </button>
                   <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                 </div>
@@ -257,7 +257,7 @@ export default function OutreachPage() {
 
           {/* Content */}
           {entries === null ? (
-            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
+            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loadingâ€¦</div>
           ) : (
             <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
               {/* Grouped list */}
@@ -389,7 +389,7 @@ export default function OutreachPage() {
                       <div className="flex gap-2">
                         <button onClick={saveEdit} disabled={editSaving}
                           className="flex-1 py-2 text-white text-sm rounded-lg disabled:opacity-50 font-medium" style={goldBtn}>
-                          {editSaving ? 'Saving…' : 'Save'}
+                          {editSaving ? 'Savingâ€¦' : 'Save'}
                         </button>
                         <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                       </div>
@@ -439,3 +439,4 @@ export default function OutreachPage() {
     </div>
   )
 }
+

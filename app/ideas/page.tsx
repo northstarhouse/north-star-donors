@@ -1,10 +1,10 @@
-'use client'
+﻿'use client'
 import { useState, useEffect } from 'react'
 import { Lightbulb, Plus, X, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
-/* ── Types ───────────────────────────────────────────────── */
+/* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 type IdeaStatus = 'Active' | 'Exploring' | 'Completed'
 
 interface Idea {
@@ -37,7 +37,7 @@ const EMPTY_FORM = {
   budget: '', notes: '', blockers: '', gaps: '', updates: '',
 }
 
-/* ── Component ───────────────────────────────────────────── */
+/* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function IdeasPage() {
   const [ideas, setIdeas] = useState<Idea[] | null>(null)
   const [selected, setSelected] = useState<Idea | null>(null)
@@ -50,13 +50,13 @@ export default function IdeasPage() {
   const [editForm, setEditForm] = useState<Omit<Partial<Idea>, 'budget'> & { budget?: string }>({})
   const [editSaving, setEditSaving] = useState(false)
 
-  /* ── Load ─────────────────────────────────────────────── */
+  /* â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   useEffect(() => {
     supabase.from('Ideas').select('*').order('created_at', { ascending: false })
       .then(({ data }) => setIdeas((data as Idea[]) ?? []))
   }, [])
 
-  /* ── Actions ─────────────────────────────────────────── */
+  /* â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   async function submitAdd(e: React.FormEvent) {
     e.preventDefault()
     if (!addForm.title) return
@@ -117,7 +117,7 @@ export default function IdeasPage() {
     if (selected?.id === id) setSelected(null)
   }
 
-  /* ── Derived ─────────────────────────────────────────── */
+  /* â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   const grouped = STATUS_ORDER.map(status => ({
     status,
     items: (ideas ?? []).filter(i => i.status === status),
@@ -125,9 +125,9 @@ export default function IdeasPage() {
 
   const totalActive = (ideas ?? []).filter(i => i.status === 'Active').length
 
-  /* ── Render ──────────────────────────────────────────── */
+  /* â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-1">
       <Sidebar activePage="ideas" />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
@@ -193,7 +193,7 @@ export default function IdeasPage() {
                 </div>
                 <div>
                   <label className="text-xs text-stone-400 mb-1 block">Notes</label>
-                  <textarea className={inputCls + ' resize-none'} rows={2} placeholder="Description or background…"
+                  <textarea className={inputCls + ' resize-none'} rows={2} placeholder="Description or backgroundâ€¦"
                     value={addForm.notes} onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -210,13 +210,13 @@ export default function IdeasPage() {
                 </div>
                 <div>
                   <label className="text-xs text-stone-400 mb-1 block">Updates</label>
-                  <textarea className={inputCls + ' resize-none'} rows={2} placeholder="Latest progress…"
+                  <textarea className={inputCls + ' resize-none'} rows={2} placeholder="Latest progressâ€¦"
                     value={addForm.updates} onChange={e => setAddForm(f => ({ ...f, updates: e.target.value }))} />
                 </div>
                 <div className="flex gap-2">
                   <button type="submit" disabled={addSaving || !addForm.title}
                     className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                    {addSaving ? 'Saving…' : 'Add Idea'}
+                    {addSaving ? 'Savingâ€¦' : 'Add Idea'}
                   </button>
                   <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                 </div>
@@ -226,7 +226,7 @@ export default function IdeasPage() {
 
           {/* Content */}
           {ideas === null ? (
-            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
+            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loadingâ€¦</div>
           ) : (
             <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
               {/* Grouped list */}
@@ -355,7 +355,7 @@ export default function IdeasPage() {
                       <div className="flex gap-2">
                         <button onClick={saveEdit} disabled={editSaving}
                           className="flex-1 py-2 text-white text-sm rounded-lg disabled:opacity-50 font-medium" style={goldBtn}>
-                          {editSaving ? 'Saving…' : 'Save'}
+                          {editSaving ? 'Savingâ€¦' : 'Save'}
                         </button>
                         <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                       </div>
@@ -409,3 +409,4 @@ export default function IdeasPage() {
     </div>
   )
 }
+

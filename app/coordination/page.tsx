@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 import { useState, useEffect } from 'react'
 import { Plus, X, Pencil, Trash2, MessageSquare } from 'lucide-react'
 
@@ -15,7 +15,7 @@ function CoordIcon({ size = 16 }: { size?: number }) {
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
-/* ── Types ───────────────────────────────────────────────── */
+/* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 type CoordStatus = 'open' | 'in_progress' | 'resolved'
 
 interface CoordItem {
@@ -56,7 +56,7 @@ const FEASIBILITY_STYLES: Record<string, string> = {
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
 
-/* ── Component ───────────────────────────────────────────── */
+/* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function CoordinationPage() {
   const [items, setItems] = useState<CoordItem[] | null>(null)
   const [selected, setSelected] = useState<CoordItem | null>(null)
@@ -77,7 +77,7 @@ export default function CoordinationPage() {
 
   const [filterStatus, setFilterStatus] = useState<CoordStatus | 'all'>('all')
 
-  /* ── Load ────────────────────────────────────────────────── */
+  /* â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   useEffect(() => {
     supabase.from('coordination_items').select('*').order('created_at', { ascending: false })
       .then(({ data }) => { if (data) setItems(data as CoordItem[]) })
@@ -89,7 +89,7 @@ export default function CoordinationPage() {
       .then(({ data }) => { if (data) setComments(data as CoordComment[]) })
   }, [selected])
 
-  /* ── Actions ─────────────────────────────────────────────── */
+  /* â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   async function submitAdd(e: React.FormEvent) {
     e.preventDefault()
     if (!addForm.area || !addForm.need) return
@@ -150,15 +150,15 @@ export default function CoordinationPage() {
     setComments(prev => prev.filter(c => c.id !== id))
   }
 
-  /* ── Derived ─────────────────────────────────────────────── */
+  /* â”€â”€ Derived â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   const visible = filterStatus === 'all' ? (items ?? []) : (items ?? []).filter(c => c.status === filterStatus)
   const openCount = items?.filter(c => c.status === 'open').length ?? 0
   const inProgressCount = items?.filter(c => c.status === 'in_progress').length ?? 0
   const resolvedCount = items?.filter(c => c.status === 'resolved').length ?? 0
 
-  /* ── Render ──────────────────────────────────────────────── */
+  /* â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-1">
       <Sidebar activePage="coordination" />
 
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
@@ -209,7 +209,7 @@ export default function CoordinationPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-stone-400 mb-1 block">Area *</label>
-                    <input required className={inputCls} placeholder="e.g. Marketing, Finance, Events…"
+                    <input required className={inputCls} placeholder="e.g. Marketing, Finance, Eventsâ€¦"
                       value={addForm.area} onChange={e => setAddForm(f => ({ ...f, area: e.target.value }))} />
                   </div>
                   <div>
@@ -226,7 +226,7 @@ export default function CoordinationPage() {
                 <div className="flex gap-2">
                   <button type="submit" disabled={addSaving || !addForm.area || !addForm.need}
                     className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                    {addSaving ? 'Saving…' : 'Add Item'}
+                    {addSaving ? 'Savingâ€¦' : 'Add Item'}
                   </button>
                   <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                 </div>
@@ -236,7 +236,7 @@ export default function CoordinationPage() {
 
           {/* Two-col layout */}
           {items === null ? (
-            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading…</div>
+            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loadingâ€¦</div>
           ) : (
             <div className={`grid gap-5 ${selected ? 'grid-cols-[320px_1fr]' : 'grid-cols-1'}`}>
               {/* List */}
@@ -323,7 +323,7 @@ export default function CoordinationPage() {
                       <div className="flex gap-2">
                         <button onClick={saveEdit} disabled={editSaving}
                           className="flex-1 py-2 text-white text-sm rounded-lg disabled:opacity-50 font-medium" style={goldBtn}>
-                          {editSaving ? 'Saving…' : 'Save'}
+                          {editSaving ? 'Savingâ€¦' : 'Save'}
                         </button>
                         <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                       </div>
@@ -374,7 +374,7 @@ export default function CoordinationPage() {
                     )}
 
                     <form onSubmit={submitComment} className="space-y-2">
-                      <textarea className={inputCls + ' resize-none bg-stone-50'} rows={3} placeholder="Add a comment…"
+                      <textarea className={inputCls + ' resize-none bg-stone-50'} rows={3} placeholder="Add a commentâ€¦"
                         value={commentBody} onChange={e => setCommentBody(e.target.value)} />
                       <div className="grid grid-cols-2 gap-2">
                         <div>
@@ -384,7 +384,7 @@ export default function CoordinationPage() {
                         <div>
                           <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Feasibility</label>
                           <select className={inputCls} value={commentFeasibility} onChange={e => setCommentFeasibility(e.target.value)}>
-                            <option value="">— none —</option>
+                            <option value="">â€” none â€”</option>
                             <option value="Do-able">Do-able</option>
                             <option value="Not feasible">Not feasible</option>
                             <option value="Needs discussion">Needs discussion</option>
@@ -394,7 +394,7 @@ export default function CoordinationPage() {
                       </div>
                       <button type="submit" disabled={commentSaving || !commentBody.trim()}
                         className="w-full py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                        {commentSaving ? 'Posting…' : 'Post Comment'}
+                        {commentSaving ? 'Postingâ€¦' : 'Post Comment'}
                       </button>
                     </form>
                   </div>
@@ -408,7 +408,7 @@ export default function CoordinationPage() {
   )
 }
 
-/* ── Sub-components ──────────────────────────────────────── */
+/* â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 function StatCard({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
@@ -417,3 +417,4 @@ function StatCard({ label, value, color }: { label: string; value: string; color
     </div>
   )
 }
+
