@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { BarChart2, Plus, X, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
@@ -435,6 +435,7 @@ function FormsSection() {
   const [source, setSource] = useState<'supabase' | 'wix'>('wix')
   const [notesDraft, setNotesDraft] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
+  const scrollYRef = useRef(0)
 
   useEffect(() => {
     let cancelled = false
@@ -502,6 +503,10 @@ function FormsSection() {
 
   useEffect(() => {
     setNotesDraft(selected?.internal_notes ?? '')
+  }, [selected])
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: scrollYRef.current })
   }, [selected])
 
   const rows = data?.submissions ?? []
@@ -591,7 +596,7 @@ function FormsSection() {
                     const preview = [first, last].filter(Boolean).join(' ') || email || Object.values(sub.fields).find(Boolean) || ''
                     return (
                       <button key={sub.id}
-                        onClick={() => setSelected(prev => prev?.id === sub.id ? null : sub)}
+                        onClick={() => { scrollYRef.current = window.scrollY; setSelected(prev => prev?.id === sub.id ? null : sub) }}
                         className={`w-full text-left px-5 py-3 border-b border-stone-50 last:border-0 transition-colors ${selected?.id === sub.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
