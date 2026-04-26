@@ -435,6 +435,7 @@ function FormsSection() {
   const [source, setSource] = useState<'supabase' | 'wix'>('wix')
   const [notesDraft, setNotesDraft] = useState('')
   const [notesSaving, setNotesSaving] = useState(false)
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set())
   const scrollYRef = useRef(0)
 
   useEffect(() => {
@@ -581,11 +582,30 @@ function FormsSection() {
               <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
                 <div className="px-5 py-4 border-b border-stone-100">
                   <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>Selected Form</p>
-                      <p className="text-sm font-semibold text-stone-800">{activeGroup.name}</p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        className="w-4 h-4 accent-amber-500 cursor-pointer flex-shrink-0"
+                        checked={activeGroup.items.length > 0 && activeGroup.items.every(s => checkedIds.has(s.id))}
+                        ref={el => { if (el) el.indeterminate = activeGroup.items.some(s => checkedIds.has(s.id)) && !activeGroup.items.every(s => checkedIds.has(s.id)) }}
+                        onChange={e => {
+                          setCheckedIds(prev => {
+                            const next = new Set(prev)
+                            if (e.target.checked) activeGroup.items.forEach(s => next.add(s.id))
+                            else activeGroup.items.forEach(s => next.delete(s.id))
+                            return next
+                          })
+                        }}
+                      />
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>Selected Form</p>
+                        <p className="text-sm font-semibold text-stone-800">{activeGroup.name}</p>
+                      </div>
                     </div>
-                    <p className="text-xs text-stone-400">{activeGroup.items.length} message{activeGroup.items.length !== 1 ? 's' : ''}</p>
+                    <div className="text-right">
+                      {checkedIds.size > 0 && <p className="text-xs font-medium text-amber-700">{checkedIds.size} checked</p>}
+                      <p className="text-xs text-stone-400">{activeGroup.items.length} message{activeGroup.items.length !== 1 ? 's' : ''}</p>
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -594,19 +614,37 @@ function FormsSection() {
                     const last  = sub.fields['Last Name']  || ''
                     const email = sub.fields['Email'] || sub.fields['Email Address'] || ''
                     const preview = [first, last].filter(Boolean).join(' ') || email || Object.values(sub.fields).find(Boolean) || ''
+                    const isChecked = checkedIds.has(sub.id)
                     return (
-                      <button key={sub.id}
-                        onClick={() => { scrollYRef.current = window.scrollY; setSelected(prev => prev?.id === sub.id ? null : sub) }}
-                        className={`w-full text-left px-5 py-3 border-b border-stone-50 last:border-0 transition-colors ${selected?.id === sub.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="min-w-0">
-                            {sub.internal_notes && <p className="text-xs text-amber-800 bg-amber-100/80 rounded-md px-2 py-1 mb-2 truncate">{sub.internal_notes}</p>}
-                            {preview && <p className="text-sm text-stone-700 truncate">{preview}</p>}
-                            {email && email !== preview && <p className="text-xs text-stone-400 mt-0.5 truncate">{email}</p>}
+                      <div key={sub.id}
+                        className={`flex items-start gap-3 px-5 py-3 border-b border-stone-50 last:border-0 transition-colors ${selected?.id === sub.id ? 'bg-amber-50/80' : isChecked ? 'bg-amber-50/40' : 'hover:bg-stone-50'}`}>
+                        <input
+                          type="checkbox"
+                          className="mt-1 w-4 h-4 accent-amber-500 cursor-pointer flex-shrink-0"
+                          checked={isChecked}
+                          onChange={e => {
+                            e.stopPropagation()
+                            setCheckedIds(prev => {
+                              const next = new Set(prev)
+                              if (e.target.checked) next.add(sub.id)
+                              else next.delete(sub.id)
+                              return next
+                            })
+                          }}
+                        />
+                        <button
+                          className="flex-1 text-left min-w-0"
+                          onClick={() => { scrollYRef.current = window.scrollY; setSelected(prev => prev?.id === sub.id ? null : sub) }}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="min-w-0">
+                              {sub.internal_notes && <p className="text-xs text-amber-800 bg-amber-100/80 rounded-md px-2 py-1 mb-2 truncate">{sub.internal_notes}</p>}
+                              {preview && <p className="text-sm text-stone-700 truncate">{preview}</p>}
+                              {email && email !== preview && <p className="text-xs text-stone-400 mt-0.5 truncate">{email}</p>}
+                            </div>
+                            <p className="text-xs text-stone-500 flex-shrink-0">{fmtTs(sub.created_at)}</p>
                           </div>
-                          <p className="text-xs text-stone-500 flex-shrink-0">{fmtTs(sub.created_at)}</p>
-                        </div>
-                      </button>
+                        </button>
+                      </div>
                     )
                   })}
                 </div>
