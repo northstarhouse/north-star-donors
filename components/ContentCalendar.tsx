@@ -18,6 +18,13 @@ export interface CalEntry {
   created_at: string
 }
 
+interface CalendarComment {
+  id: number
+  month: string
+  content: string
+  created_at: string
+}
+
 /* -- Constants ---------------------------------------------- */
 const CHANNELS: Channel[]      = ['Social', 'Email', 'Blog', 'Events']
 const STATUSES: EntryStatus[]  = ['draft', 'scheduled', 'published']
@@ -103,9 +110,10 @@ export default function ContentCalendar() {
   const [editForm, setEditForm] = useState({ title: '', channel: 'Social' as Channel, notes: '', status: 'draft' as EntryStatus })
   const [editSaving, setEditSaving] = useState(false)
 
-  const [sideNotes, setSideNotes]     = useState('')
-  const [notesDirty, setNotesDirty]   = useState(false)
-  const [notesSaving, setNotesSaving] = useState(false)
+  const [comments, setComments] = useState<CalendarComment[]>([])
+  const [commentsLoading, setCommentsLoading] = useState(true)
+  const [commentDraft, setCommentDraft] = useState('')
+  const [commentSaving, setCommentSaving] = useState(false)
   const [templateSaving, setTemplateSaving] = useState(false)
   const [seededMonthKey, setSeededMonthKey] = useState<string | null>(null)
 
@@ -131,8 +139,12 @@ export default function ContentCalendar() {
   useEffect(() => { loadEntries() }, [loadEntries])
 
   useEffect(() => {
-    supabase.from('calendar_notes').select('content').eq('month', monthKey).maybeSingle()
-      .then(({ data }) => { setSideNotes(data?.content ?? ''); setNotesDirty(false) })
+    setCommentsLoading(true)
+    supabase.from('calendar_comments').select('*').eq('month', monthKey).order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setComments((data as CalendarComment[]) ?? [])
+        setCommentsLoading(false)
+      })
   }, [monthKey])
 
   /* -- Navigation -------------------------------------------- */
@@ -177,14 +189,16 @@ export default function ContentCalendar() {
     setEntries(prev => prev.filter(e => e.id !== id))
   }
 
-  async function saveNotes() {
-    setNotesSaving(true)
-    await supabase.from('calendar_notes').upsert(
-      { month: monthKey, content: sideNotes, updated_at: new Date().toISOString() },
-      { onConflict: 'month' }
-    )
-    setNotesDirty(false)
-    setNotesSaving(false)
+  async function saveComment() {
+    if (!commentDraft.trim()) return
+    setCommentSaving(true)
+    const { data } = await supabase.from('calendar_comments').insert({
+      month: monthKey,
+      content: commentDraft.trim(),
+    }).select().single()
+    if (data) setComments(prev => [data as CalendarComment, ...prev])
+    setCommentDraft('')
+    setCommentSaving(false)
   }
 
   /* -- Derived ----------------------------------------------- */
@@ -323,6 +337,52 @@ export default function ContentCalendar() {
           </div>
         </div>
 
+        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Month Comments</p>
+              <h3 className="text-sm font-bold text-stone-800 mt-1">{MONTHS[month]} {year}</h3>
+            </div>
+          </div>
+
+          <div className="bg-stone-50 rounded-xl border border-stone-200 p-3 mb-4">
+            <textarea
+              className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-200 text-stone-700 bg-white"
+              rows={3}
+              placeholder={`Add a comment for ${MONTHS[month]}...`}
+              value={commentDraft}
+              onChange={e => setCommentDraft(e.target.value)}
+            />
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={saveComment}
+                disabled={commentSaving || !commentDraft.trim()}
+                className="px-4 py-1.5 text-white text-xs rounded-lg font-medium disabled:opacity-40"
+                style={{ background: 'var(--gold)' }}
+              >
+                {commentSaving ? 'Saving...' : 'Post Comment'}
+              </button>
+            </div>
+          </div>
+
+          {commentsLoading ? (
+            <p className="text-sm text-stone-400">Loading comments...</p>
+          ) : comments.length === 0 ? (
+            <p className="text-sm text-stone-300 italic">No month comments yet.</p>
+          ) : (
+            <div className="space-y-3">
+              {comments.map(comment => (
+                <div key={comment.id} className="rounded-xl border border-stone-100 bg-stone-50/70 px-3 py-3">
+                  <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">{comment.content}</p>
+                  <p className="text-[10px] text-stone-400 mt-2">
+                    {new Date(comment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* ---- Sidebar ---- */}
@@ -449,33 +509,6 @@ export default function ContentCalendar() {
           </div>
         )}
 
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
-          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">This Month&apos;s Rhythm</p>
-          <div className="space-y-2.5">
-            <div className="flex items-start gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0 mt-1" />
-              <div>
-                <p className="text-xs font-semibold text-stone-700">Team Meeting</p>
-                <p className="text-[11px] text-stone-400">{MONTHS[month]} {ftDay} - 10am</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0 mt-1" />
-              <div>
-                <p className="text-xs font-semibold text-stone-700">Monthly Newsletter</p>
-                <p className="text-[11px] text-stone-400">1st of the month</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0 mt-1" />
-              <div>
-                <p className="text-xs font-semibold text-stone-700">Social Roundup</p>
-                <p className="text-[11px] text-stone-400">Weekly - Fridays</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Channel legend */}
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
           <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">Channels</p>
@@ -491,25 +524,6 @@ export default function ContentCalendar() {
 
         {/* Quick Add */}
         <QuickAdd monthKey={monthKey} onAdded={loadEntries} />
-
-        {/* Notes */}
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
-          <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-2">{MONTHS[month]} Notes</p>
-          <textarea
-            className="w-full text-xs text-stone-600 border border-stone-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-200 bg-white"
-            rows={6}
-            placeholder={`Planning notes for ${MONTHS[month]}...`}
-            value={sideNotes}
-            onChange={e => { setSideNotes(e.target.value); setNotesDirty(true) }}
-          />
-          {notesDirty && (
-            <button onClick={saveNotes} disabled={notesSaving}
-              className="mt-1.5 w-full py-1.5 text-xs text-white rounded-lg font-medium disabled:opacity-40"
-              style={{ background: 'var(--gold)' }}>
-              {notesSaving ? 'Saving...' : 'Save Notes'}
-            </button>
-          )}
-        </div>
 
       </div>
     </div>
