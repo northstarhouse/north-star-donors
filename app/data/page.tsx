@@ -11,6 +11,8 @@ type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'event
 const HONEYBOOK_URL = 'https://script.google.com/macros/s/AKfycbw968UYNRchd6-Nm8V-tEeo48vuPEe3xqfPgKGibhQEP2td2B8mgUs5ThDrkDrmH4WGNA/exec'
 // Deploy wix-webapp.gs and paste the URL here
 const WIX_URL = 'https://script.google.com/macros/s/AKfycbzY3c6_xF2ucrZrQnZLa1bcU2TIcFadBH9UEeIbJYMKumvxygql8ulN-67q1Vu_WM4h/exec'
+// Deploy wix-forms-webapp.gs and paste the URL here. Falls back to WIX_URL until this is set.
+const FORMS_URL = WIX_URL
 const HONEYBOOK_CACHE_KEY = 'north-star-donors:honeybook:v1'
 const HONEYBOOK_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7
 
@@ -459,13 +461,14 @@ function FormsSection() {
         return
       }
 
-      if (!WIX_URL) {
+      const formsUrl = FORMS_URL || WIX_URL
+      if (!formsUrl) {
         if (!cancelled) setData({ submissions: [] })
         return
       }
 
       try {
-        const response = await fetch(WIX_URL)
+        const response = await fetch(formsUrl)
         const json = await response.json()
         if (!cancelled) {
           setSource('wix')
