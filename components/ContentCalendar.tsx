@@ -66,21 +66,6 @@ const RHYTHM_RULES: RhythmRule[] = [
   { week: 4, weekday: 5, channel: 'Social', title: 'Volunteer Outreach - Docents' },
 ]
 
-const WEEK_LABELS: Record<1 | 2 | 3 | 4, string> = {
-  1: 'First Week',
-  2: 'Second Week',
-  3: 'Third Week',
-  4: 'Fourth Week',
-}
-
-const WEEKDAY_LABELS: Record<1 | 2 | 3 | 4 | 5, string> = {
-  1: 'Monday',
-  2: 'Tuesday',
-  3: 'Wednesday',
-  4: 'Thursday',
-  5: 'Friday',
-}
-
 /* -- Helpers ------------------------------------------------ */
 const pad = (n: number) => String(n).padStart(2, '0')
 
@@ -338,33 +323,36 @@ export default function ContentCalendar() {
           </div>
         </div>
 
-        {/* Day detail panel */}
+      </div>
+
+      {/* ---- Sidebar ---- */}
+      <div className="w-72 flex-shrink-0 space-y-3">
         {selectedDay && (
-          <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-stone-800">{MONTHS[month]} {selectedDay}, {year}</h3>
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+            <div className="flex items-start justify-between gap-2 mb-4">
+              <div>
+                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Selected Day</p>
+                <h3 className="text-sm font-bold text-stone-800 mt-1">{MONTHS[month]} {selectedDay}, {year}</h3>
                 {selectedDay === ftDay && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Team Meeting - 10am</span>
+                  <p className="text-[11px] text-emerald-700 mt-1">Team Meeting - 10am</p>
                 )}
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => { setShowAdd(v => !v); setEditId(null); setAddForm({ title: '', channel: 'Social', notes: '', status: 'draft' }) }}
-                  className="flex items-center gap-1 px-3 py-1.5 text-xs text-white rounded-lg font-medium"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-xs text-white rounded-lg font-medium"
                   style={{ background: 'var(--gold)' }}>
                   <Plus size={11} /> Add
                 </button>
-                <button onClick={() => { setSelectedDay(null); setShowAdd(false) }}
+                <button onClick={() => { setSelectedDay(null); setShowAdd(false); setEditId(null) }}
                   className="p-1.5 text-stone-300 hover:text-stone-500 rounded-lg hover:bg-stone-100">
                   <X size={14} />
                 </button>
               </div>
             </div>
 
-            {/* Inline add form */}
             {showAdd && (
-              <div className="bg-stone-50 rounded-xl border border-stone-200 p-4 mb-4 space-y-2.5">
+              <div className="bg-stone-50 rounded-xl border border-stone-200 p-3 mb-4 space-y-2.5">
                 <input autoFocus className={inCls} placeholder="Title..."
                   value={addForm.title} onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) saveAdd() }} />
@@ -394,9 +382,8 @@ export default function ContentCalendar() {
               </div>
             )}
 
-            {/* Entry list */}
             {!loadingEnt && selEnts.length === 0 && !showAdd && (
-              <p className="text-xs text-stone-300 italic text-center py-6">No content planned. Click Add to create an entry.</p>
+              <p className="text-xs text-stone-300 italic py-4">No content planned. Click Add to create an entry.</p>
             )}
             <div className="space-y-2">
               {selEnts.map(e => {
@@ -461,39 +448,6 @@ export default function ContentCalendar() {
             </div>
           </div>
         )}
-      </div>
-
-      {/* ---- Sidebar ---- */}
-      <div className="w-72 flex-shrink-0 space-y-3">
-
-        {/* Recurring rhythm */}
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
-          <div className="mb-3">
-            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Posting Structure</p>
-            <p className="text-[11px] text-stone-400 mt-1">{MONTHS[month]} {year}</p>
-            <p className="text-[10px] text-stone-300 mt-1">This structure is auto-seeded into the calendar for the month.</p>
-          </div>
-          <div className="space-y-3">
-            {[1, 2, 3, 4].map(week => (
-              <div key={week}>
-                <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">{WEEK_LABELS[week as 1 | 2 | 3 | 4]}</p>
-                <div className="space-y-1.5">
-                  {monthRhythm.filter(rule => rule.week === week).map(rule => (
-                    <div key={`${rule.week}-${rule.weekday}-${rule.title}`} className="rounded-lg border border-stone-100 bg-stone-50/70 px-2.5 py-2">
-                      <div className="flex items-start gap-2">
-                        <span className="w-2 h-2 rounded-full flex-shrink-0 mt-1" style={{ background: CH[rule.channel].bar }} />
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-semibold text-stone-700">{WEEKDAY_LABELS[rule.weekday]} {rule.day} - {rule.title}</p>
-                          {rule.notes && <p className="text-[10px] text-stone-400 mt-0.5">{rule.notes}</p>}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
 
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
           <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-3">This Month&apos;s Rhythm</p>
