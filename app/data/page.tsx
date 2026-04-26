@@ -120,7 +120,7 @@ const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm fo
 const goldBtn = { background: 'var(--gold)' }
 const fmt$ = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.round((a / b) * 100)}%` : 'â€”'
+  const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.round((a / b) * 100)}%` : '-'
 
 function readHoneyBookCache() {
   if (typeof window === 'undefined') return null
@@ -363,7 +363,7 @@ function HoneyBookSection() {
     return () => ctrl.abort()
   }, [])
 
-  if (rows === null) return <div className="text-center py-16 text-stone-400 text-sm">Loadingâ€¦</div>
+  if (rows === null) return <div className="text-center py-16 text-stone-400 text-sm">Loading...</div>
   if (rows.length === 0) return <div className="text-center py-16 text-stone-400 text-sm">No leads yet.</div>
 
   const tourPct     = rows.length > 0 ? Math.round((tours.length  / rows.length) * 100) : 0
@@ -418,14 +418,14 @@ function HoneyBookSection() {
   return (
     <div className="space-y-5">
       {/* Period label */}
-      <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest">Jan â€“ Apr 2026</p>
+      <p className="text-xs font-semibold text-stone-400 uppercase tracking-widest">Jan - Apr 2026</p>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {([
           { label: 'Inquiries',      value: rows.length.toString(),    sub: 'leads received' },
           { label: 'Toured',         value: tours.length.toString(),   sub: `${tourPct}% of inquiries` },
-          { label: 'Booked',         value: booked.length.toString(),  sub: `${bookPct}% of inquiries Â· ${tourToBook}% of tours` },
+          { label: 'Booked',         value: booked.length.toString(),  sub: `${bookPct}% of inquiries - ${tourToBook}% of tours` },
           { label: 'Revenue Booked', value: fmt$(totalValue),          sub: `${fmt$(totalPaid)} collected` },
         ]).map(({ label, value, sub }) => (
           <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
@@ -444,7 +444,7 @@ function HoneyBookSection() {
 
           {/* Monthly leads vs booked bar chart */}
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5">
-            <p className="text-sm font-semibold text-stone-700 mb-1">Inquiries Â· Tours Â· Bookings by Month</p>
+            <p className="text-sm font-semibold text-stone-700 mb-1">Inquiries - Tours - Bookings by Month</p>
             <div className="flex items-center gap-5 mb-4">
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-stone-200" /><span className="text-xs text-stone-500">Inquiries</span></div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-sm bg-amber-300" /><span className="text-xs text-stone-500">Tours</span></div>
@@ -530,7 +530,7 @@ function HoneyBookSection() {
                     <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: srcColor(src) }} />
                     <span className="text-xs font-medium text-stone-700">{src}</span>
                   </div>
-                  <span className="text-xs text-stone-400 font-semibold">{count} <span className="font-normal text-stone-300">Â· {Math.round((count / rows.length) * 100)}%</span></span>
+                  <span className="text-xs text-stone-400 font-semibold">{count} <span className="font-normal text-stone-300">- {Math.round((count / rows.length) * 100)}%</span></span>
                 </div>
                 <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
                   <div className="h-full rounded-full" style={{ width: `${(count / rows.length) * 100}%`, background: srcColor(src) }} />
@@ -711,7 +711,7 @@ function FormsSection() {
 
   return (
     <div className="space-y-4">
-      {data === null ? <div className="text-center py-16 text-stone-400 text-sm">Loadingâ€¦</div> : (
+      {data === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading...</div> : (
         <>
           {rows.length === 0 && (
             <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
@@ -797,7 +797,7 @@ function FormsSection() {
                 </div>
               </div>
             )}
-            {rows.length > 0 && <div className="text-xs text-stone-400 px-1">{rows.length} submission{rows.length !== 1 ? 's' : ''} across {formNames.length} form{formNames.length !== 1 ? 's' : ''} Â· {source === 'supabase' ? 'loaded from Supabase' : 'live from Wix'}</div>}
+            {rows.length > 0 && <div className="text-xs text-stone-400 px-1">{rows.length} submission{rows.length !== 1 ? 's' : ''} across {formNames.length} form{formNames.length !== 1 ? 's' : ''} - {source === 'supabase' ? 'loaded from Supabase' : 'live from Wix'}</div>}
           </div>
 
           {selected ? (
@@ -826,7 +826,7 @@ function FormsSection() {
                     className="px-3 py-1.5 text-xs text-white rounded-lg disabled:opacity-50"
                     style={goldBtn}
                   >
-                    {notesSaving ? 'Savingâ€¦' : 'Save Notes'}
+                    {notesSaving ? 'Saving...' : 'Save Notes'}
                   </button>
                 </div>
               </div>
@@ -938,13 +938,13 @@ function EmailSection() {
             <div><label className="text-xs text-stone-400 mb-1 block">Notes</label>
               <textarea className={inputCls + ' resize-none'} rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
             <div className="flex gap-2">
-              <button type="submit" disabled={saving || !form.campaign_name} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Savingâ€¦' : 'Add'}</button>
+              <button type="submit" disabled={saving || !form.campaign_name} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Saving...' : 'Add'}</button>
               <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
             </div>
           </form>
         </div>
       )}
-      {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loadingâ€¦</div> : (
+      {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading...</div> : (
         <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
             {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No campaigns logged yet.</div> : (
@@ -961,10 +961,10 @@ function EmailSection() {
                     className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === r.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
                     <td className="px-4 py-3 font-medium text-stone-800">{r.campaign_name}
                       {r.platform && <span className="ml-2 text-xs text-stone-400">{r.platform}</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-600">{r.sent?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-600">{r.sent?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
                     <td className="px-4 py-3 text-right font-medium text-stone-700">{pct(r.opened, r.sent)}</td>
                     <td className="px-4 py-3 text-right text-stone-600">{pct(r.clicked, r.sent)}</td>
-                    <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : 'â€”'}</td>
+                    <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : '-'}</td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -1002,7 +1002,7 @@ function EmailSection() {
                   <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Notes</label>
                     <textarea className={inputCls + ' resize-none'} rows={3} value={editForm.notes ?? ''} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
                   <div className="flex gap-2">
-                    <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg font-medium" style={goldBtn}>{editSaving ? 'Savingâ€¦' : 'Save'}</button>
+                    <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg font-medium" style={goldBtn}>{editSaving ? 'Saving...' : 'Save'}</button>
                     <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg">Cancel</button>
                   </div>
                 </div>
@@ -1011,10 +1011,10 @@ function EmailSection() {
                   <Field label="Platform" value={selected.platform} />
                   <Field label="Date" value={selected.date ? fmtDate(selected.date) : null} />
                   <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Sent</p><p className="text-sm font-semibold text-stone-800">{selected.sent?.toLocaleString() ?? 'â€”'}</p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Opened</p><p className="text-sm font-semibold text-stone-800">{selected.opened?.toLocaleString() ?? 'â€”'} <span className="text-stone-400 font-normal text-xs">({pct(selected.opened, selected.sent)})</span></p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Clicked</p><p className="text-sm font-semibold text-stone-800">{selected.clicked?.toLocaleString() ?? 'â€”'} <span className="text-stone-400 font-normal text-xs">({pct(selected.clicked, selected.sent)})</span></p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Unsubscribed</p><p className="text-sm font-semibold text-stone-800">{selected.unsubscribed?.toLocaleString() ?? 'â€”'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Sent</p><p className="text-sm font-semibold text-stone-800">{selected.sent?.toLocaleString() ?? '-'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Opened</p><p className="text-sm font-semibold text-stone-800">{selected.opened?.toLocaleString() ?? '-'} <span className="text-stone-400 font-normal text-xs">({pct(selected.opened, selected.sent)})</span></p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Clicked</p><p className="text-sm font-semibold text-stone-800">{selected.clicked?.toLocaleString() ?? '-'} <span className="text-stone-400 font-normal text-xs">({pct(selected.clicked, selected.sent)})</span></p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Unsubscribed</p><p className="text-sm font-semibold text-stone-800">{selected.unsubscribed?.toLocaleString() ?? '-'}</p></div>
                   </div>
                   <Field label="Notes" value={selected.notes} />
                 </div>
@@ -1123,7 +1123,7 @@ function SocialSection() {
             <div className="grid grid-cols-2 gap-3">
               <div><label className="text-xs text-stone-400 mb-1 block">Platform *</label>
                 <select required className={inputCls} value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}>
-                  <option value="">Selectâ€¦</option>
+                  <option value="">Select...</option>
                   {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
                 </select></div>
               <div><label className="text-xs text-stone-400 mb-1 block">Date</label>
@@ -1144,13 +1144,13 @@ function SocialSection() {
             <div><label className="text-xs text-stone-400 mb-1 block">Notes</label>
               <textarea className={inputCls + ' resize-none'} rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
             <div className="flex gap-2">
-              <button type="submit" disabled={saving || !form.platform} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Savingâ€¦' : 'Add'}</button>
+              <button type="submit" disabled={saving || !form.platform} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Saving...' : 'Add'}</button>
               <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
             </div>
           </form>
         </div>
       )}
-      {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loadingâ€¦</div> : (
+      {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading...</div> : (
         <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
             {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No posts logged yet.</div> : (
@@ -1168,10 +1168,10 @@ function SocialSection() {
                     <td className="px-4 py-3">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${platformBadge[r.platform] ?? 'bg-stone-100 text-stone-500'}`}>{r.platform}</span>
                     </td>
-                    <td className="px-4 py-3 text-stone-600 max-w-[200px] truncate">{r.content ?? <span className="text-stone-300">â€”</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-700 font-medium">{r.likes?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-600">{r.reach?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : 'â€”'}</td>
+                    <td className="px-4 py-3 text-stone-600 max-w-[200px] truncate">{r.content ?? <span className="text-stone-300">-</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-700 font-medium">{r.likes?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-600">{r.reach?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : '-'}</td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -1213,7 +1213,7 @@ function SocialSection() {
                   <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Notes</label>
                     <textarea className={inputCls + ' resize-none'} rows={2} value={editForm.notes ?? ''} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
                   <div className="flex gap-2">
-                    <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg font-medium" style={goldBtn}>{editSaving ? 'Savingâ€¦' : 'Save'}</button>
+                    <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg font-medium" style={goldBtn}>{editSaving ? 'Saving...' : 'Save'}</button>
                     <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg">Cancel</button>
                   </div>
                 </div>
@@ -1221,10 +1221,10 @@ function SocialSection() {
                 <div className="space-y-3">
                   <Field label="Date" value={selected.date ? fmtDate(selected.date) : null} />
                   <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Likes</p><p className="text-sm font-semibold text-stone-800">{selected.likes?.toLocaleString() ?? 'â€”'}</p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Comments</p><p className="text-sm font-semibold text-stone-800">{selected.comments?.toLocaleString() ?? 'â€”'}</p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Shares</p><p className="text-sm font-semibold text-stone-800">{selected.shares?.toLocaleString() ?? 'â€”'}</p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Reach</p><p className="text-sm font-semibold text-stone-800">{selected.reach?.toLocaleString() ?? 'â€”'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Likes</p><p className="text-sm font-semibold text-stone-800">{selected.likes?.toLocaleString() ?? '-'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Comments</p><p className="text-sm font-semibold text-stone-800">{selected.comments?.toLocaleString() ?? '-'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Shares</p><p className="text-sm font-semibold text-stone-800">{selected.shares?.toLocaleString() ?? '-'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Reach</p><p className="text-sm font-semibold text-stone-800">{selected.reach?.toLocaleString() ?? '-'}</p></div>
                   </div>
                   {selected.content && <Field label="Content" value={selected.content} />}
                   {selected.link && <div><p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Link</p>
@@ -1247,7 +1247,7 @@ function SocialSection() {
           {latestFB && <span className="text-xs text-stone-400">{fmtPeriod(latestFB.period)}</span>}
         </div>
         {fbRows === null ? (
-          <div className="text-center py-10 text-stone-400 text-sm">Loadingâ€¦</div>
+          <div className="text-center py-10 text-stone-400 text-sm">Loading...</div>
         ) : fbRows.length === 0 ? (
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-12 gap-2 text-stone-400">
             <p className="text-sm">No Facebook data yet.</p>
@@ -1264,9 +1264,9 @@ function SocialSection() {
                 ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null; sub: string }[]).map(({ label, value, d, sub }) => (
                   <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
                     <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
-                    <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value ?? 'â€”'}</p>
+                    <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value ?? '-'}</p>
                     <p className="text-[10px] text-stone-400">{sub}</p>
-                    {d && <p className={`text-xs mt-2 font-medium flex items-center gap-0.5 ${d.up ? 'text-emerald-600' : 'text-red-500'}`}><span>{d.up ? 'â–²' : 'â–¼'}</span><span>{Math.abs(d.pct)}%</span><span className="text-stone-400 font-normal ml-0.5">vs last mo.</span></p>}
+                    {d && <p className={`text-xs mt-2 font-medium flex items-center gap-0.5 ${d.up ? 'text-emerald-600' : 'text-red-500'}`}><span>{d.up ? '+' : '-'}</span><span>{Math.abs(d.pct)}%</span><span className="text-stone-400 font-normal ml-0.5">vs last mo.</span></p>}
                   </div>
                 ))}
               </div>
@@ -1286,14 +1286,14 @@ function SocialSection() {
                         {fmtPeriod(r.period)}
                         {i === 0 && <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">Latest</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-stone-700">{r.page_followers?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.page_engaged_users?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.post_count?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-700">{r.page_followers?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.page_engaged_users?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.post_count?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{fbRows.length} month{fbRows.length !== 1 ? 's' : ''} of data Â· synced monthly via Meta Graph API</div>
+              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{fbRows.length} month{fbRows.length !== 1 ? 's' : ''} of data - synced monthly via Meta Graph API</div>
             </div>
           </>
         )}
@@ -1430,7 +1430,7 @@ function EventsSection() {
   const totalRevenue = (rows ?? []).reduce((s, r) => s + (r.revenue ?? 0), 0)
 
   const fmtWixDate = (s: string | null) => {
-    if (!s) return 'â€”'
+    if (!s) return '-'
     return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
@@ -1447,7 +1447,7 @@ function EventsSection() {
       <div>
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Wix Events</p>
         {wixEvents === null ? (
-          <div className="text-center py-10 text-stone-400 text-sm">Loadingâ€¦</div>
+          <div className="text-center py-10 text-stone-400 text-sm">Loading...</div>
         ) : wixEvents.length === 0 ? (
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex items-center justify-center py-10 text-stone-400 text-sm">No events found on Wix.</div>
         ) : (
@@ -1467,13 +1467,13 @@ function EventsSection() {
                       <span className="font-medium text-stone-800">{e.title}</span>
                       {e.status && <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${WIX_STATUS_COLORS[e.status] ?? 'bg-stone-100 text-stone-400'}`}>{e.status}</span>}
                     </td>
-                    <td className="px-4 py-3 text-stone-500 text-xs">{e.location || 'â€”'}</td>
-                    <td className="px-4 py-3 text-right text-stone-700">{e.rsvp_total ?? e.tickets_sold ?? <span className="text-stone-300">â€”</span>}</td>
+                    <td className="px-4 py-3 text-stone-500 text-xs">{e.location || '-'}</td>
+                    <td className="px-4 py-3 text-right text-stone-700">{e.rsvp_total ?? e.tickets_sold ?? <span className="text-stone-300">-</span>}</td>
                     <td className="px-4 py-3 text-right text-stone-400 text-xs">{fmtWixDate(e.start)}</td>
                   </tr>
                 ))}</tbody>
               </table>
-              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{wixEvents.length} event{wixEvents.length !== 1 ? 's' : ''} Â· live from Wix</div>
+              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{wixEvents.length} event{wixEvents.length !== 1 ? 's' : ''} - live from Wix</div>
             </div>
             {wixSelected && (
               <DetailPanel onClose={() => setWixSelected(null)}>
@@ -1486,8 +1486,8 @@ function EventsSection() {
                   <Field label="End"   value={fmtWixDate(wixSelected.end)} />
                   <Field label="Location" value={wixSelected.location || null} />
                   <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">RSVPs</p><p className="text-sm font-semibold text-stone-800">{wixSelected.rsvp_total?.toLocaleString() ?? 'â€”'}</p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Tickets Sold</p><p className="text-sm font-semibold text-stone-800">{wixSelected.tickets_sold?.toLocaleString() ?? 'â€”'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">RSVPs</p><p className="text-sm font-semibold text-stone-800">{wixSelected.rsvp_total?.toLocaleString() ?? '-'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Tickets Sold</p><p className="text-sm font-semibold text-stone-800">{wixSelected.tickets_sold?.toLocaleString() ?? '-'}</p></div>
                   </div>
                   {wixSelected.description && <Field label="Description" value={wixSelected.description} />}
                   {wixSelected.url && <a href={wixSelected.url} target="_blank" rel="noreferrer" className="text-xs text-amber-700 hover:underline">View on Wix â†’</a>}
@@ -1540,13 +1540,13 @@ function EventsSection() {
             <div><label className="text-xs text-stone-400 mb-1 block">Notes</label>
               <textarea className={inputCls + ' resize-none'} rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
             <div className="flex gap-2">
-              <button type="submit" disabled={saving || !form.event_name} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Savingâ€¦' : 'Add'}</button>
+              <button type="submit" disabled={saving || !form.event_name} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Saving...' : 'Add'}</button>
               <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
             </div>
           </form>
         </div>
       )}
-      {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loadingâ€¦</div> : (
+      {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading...</div> : (
         <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
             {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No events logged yet.</div> : (
@@ -1562,9 +1562,9 @@ function EventsSection() {
                     className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === r.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
                     <td className="px-4 py-3 font-medium text-stone-800">{r.event_name}
                       {r.venue && <span className="ml-2 text-xs text-stone-400">{r.venue}</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-700 font-medium">{r.attendance?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-600">{r.revenue != null ? fmt$(r.revenue) : <span className="text-stone-300">â€”</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : 'â€”'}</td>
+                    <td className="px-4 py-3 text-right text-stone-700 font-medium">{r.attendance?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-600">{r.revenue != null ? fmt$(r.revenue) : <span className="text-stone-300">-</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : '-'}</td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -1598,7 +1598,7 @@ function EventsSection() {
                   <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Notes</label>
                     <textarea className={inputCls + ' resize-none'} rows={3} value={editForm.notes ?? ''} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
                   <div className="flex gap-2">
-                    <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg font-medium" style={goldBtn}>{editSaving ? 'Savingâ€¦' : 'Save'}</button>
+                    <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg font-medium" style={goldBtn}>{editSaving ? 'Saving...' : 'Save'}</button>
                     <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg">Cancel</button>
                   </div>
                 </div>
@@ -1607,8 +1607,8 @@ function EventsSection() {
                   <Field label="Date" value={selected.date ? fmtDate(selected.date) : null} />
                   <Field label="Venue" value={selected.venue} />
                   <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Attendance</p><p className="text-sm font-semibold text-stone-800">{selected.attendance?.toLocaleString() ?? 'â€”'}</p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Revenue</p><p className="text-sm font-semibold text-stone-800">{selected.revenue != null ? fmt$(selected.revenue) : 'â€”'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Attendance</p><p className="text-sm font-semibold text-stone-800">{selected.attendance?.toLocaleString() ?? '-'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Revenue</p><p className="text-sm font-semibold text-stone-800">{selected.revenue != null ? fmt$(selected.revenue) : '-'}</p></div>
                   </div>
                   <Field label="Notes" value={selected.notes} />
                 </div>
@@ -1656,7 +1656,7 @@ function AnalyticsSection() {
       .then(r => r.json())
       .then(json => {
         clearTimeout(timer)
-        const pages   = json.pages   ?? { rows: [], error: 'Pages not returned by script â€” redeploy wix-webapp.gs' }
+        const pages   = json.pages   ?? { rows: [], error: 'Pages not returned by script - redeploy wix-webapp.gs' }
         const cities  = json.cities  ?? { rows: [] }
         const sources = json.sources ?? { rows: [] }
         setTopPages(pages); setTopCities(cities); setTopSources(sources)
@@ -1665,7 +1665,7 @@ function AnalyticsSection() {
       .catch(e => {
         clearTimeout(timer)
         if (cachedWix) return  // keep showing cached on error
-        const msg = e?.name === 'AbortError' ? 'Script timed out â€” check Apps Script logs' : String(e)
+        const msg = e?.name === 'AbortError' ? 'Script timed out - check Apps Script logs' : String(e)
         setTopPages({ rows: [], error: msg }); setTopCities({ rows: [] }); setTopSources({ rows: [] })
       })
   }, [])
@@ -1679,7 +1679,7 @@ function AnalyticsSection() {
     return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   }
   const fmtDur = (s: number | null) => {
-    if (!s) return 'â€”'
+    if (!s) return '-'
     const m = Math.floor(s / 60), sec = Math.round(s % 60)
     return m > 0 ? `${m}m ${sec}s` : `${sec}s`
   }
@@ -1700,7 +1700,7 @@ function AnalyticsSection() {
     { label: 'Sessions',     value: latest.sessions?.toLocaleString(),                                            d: delta(latest.sessions, prev?.sessions ?? null),     sub: 'total visits' },
     { label: 'Page Views',   value: latest.page_views?.toLocaleString(),                                          d: delta(latest.page_views, prev?.page_views ?? null), sub: 'screens viewed' },
     { label: 'Avg Duration', value: fmtDur(latest.avg_session_duration),                                          d: null,                                               sub: 'per session' },
-    { label: 'Bounce Rate',  value: latest.bounce_rate != null ? `${(latest.bounce_rate*100).toFixed(1)}%` : 'â€”', d: null,                                               sub: 'left after 1 page' },
+    { label: 'Bounce Rate',  value: latest.bounce_rate != null ? `${(latest.bounce_rate*100).toFixed(1)}%` : '-', d: null,                                               sub: 'left after 1 page' },
   ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null; sub: string }[] : []
   const CHANNELS: { key: keyof AnalyticsEntry; label: string; color: string }[] = [
     { key: 'sessions_organic',  label: 'Organic Search', color: '#4ade80' },
@@ -1719,7 +1719,7 @@ function AnalyticsSection() {
       <div className="order-2">
       {/* â”€â”€ GA4 Top Pages â”€â”€ */}
       {topPages === null ? (
-        <div className="text-center py-10 text-stone-400 text-sm">Loading pagesâ€¦</div>
+        <div className="text-center py-10 text-stone-400 text-sm">Loading pages...</div>
       ) : topPages.rows.length > 0 ? (() => {
         const filtered = topPages.rows.filter(r => !r.path.startsWith('/dashboard'))
         const maxViews = Math.max(...filtered.map(r => r.views), 1)
@@ -1734,7 +1734,7 @@ function AnalyticsSection() {
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
             <div className="px-5 pt-5 pb-3">
               <p className="text-sm font-semibold text-stone-700">Pages &amp; Screens</p>
-              <p className="text-xs text-stone-400 mt-0.5">{totalViews.toLocaleString()} total views Â· {topPages.period ?? 'last 90 days'}</p>
+              <p className="text-xs text-stone-400 mt-0.5">{totalViews.toLocaleString()} total views - {topPages.period ?? 'last 90 days'}</p>
             </div>
             <table className="w-full text-sm">
               <thead>
@@ -1762,8 +1762,8 @@ function AnalyticsSection() {
                       <td className="px-4 py-3 text-right font-bold text-stone-800">{page.views.toLocaleString()}</td>
                       <td className="px-4 py-3 text-right text-stone-600">{(page.users ?? 0).toLocaleString()}</td>
                       <td className="px-4 py-3 text-right text-stone-600">{page.sessions.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{page.engRate != null ? `${Math.round(page.engRate * 100)}%` : 'â€”'}</td>
-                      <td className="px-5 py-3 text-right text-stone-600">{page.avgDuration != null ? fmtDurS(page.avgDuration) : 'â€”'}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{page.engRate != null ? `${Math.round(page.engRate * 100)}%` : '-'}</td>
+                      <td className="px-5 py-3 text-right text-stone-600">{page.avgDuration != null ? fmtDurS(page.avgDuration) : '-'}</td>
                     </tr>
                   )
                 })}
@@ -1774,7 +1774,7 @@ function AnalyticsSection() {
       })() : (
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center py-10">
           <p className="font-medium text-stone-500 mb-1 text-sm">No page data available</p>
-          <p className="text-xs text-stone-400">{topPages.error ?? 'GA4 returned 0 rows â€” confirm the property ID and that the deploying Google account has Viewer access.'}</p>
+          <p className="text-xs text-stone-400">{topPages.error ?? 'GA4 returned 0 rows - confirm the property ID and that the deploying Google account has Viewer access.'}</p>
         </div>
       )}
 
@@ -1870,7 +1870,7 @@ function AnalyticsSection() {
                     <p className="text-[10px] text-stone-400">{sub}</p>
                     {d && (
                       <p className={`text-xs mt-2 font-medium flex items-center gap-0.5 ${d.up ? 'text-emerald-600' : 'text-red-500'}`}>
-                        <span>{d.up ? 'â–²' : 'â–¼'}</span><span>{Math.abs(d.pct)}%</span>
+                        <span>{d.up ? '+' : '-'}</span><span>{Math.abs(d.pct)}%</span>
                         <span className="text-stone-400 font-normal ml-0.5">vs last mo.</span>
                       </p>
                     )}
@@ -1904,7 +1904,7 @@ function AnalyticsSection() {
                         <p className="text-[10px] text-stone-400 font-medium">{c.label}</p>
                         <p className="text-sm font-bold text-stone-800">{val.toLocaleString()}</p>
                         <p className="text-[10px] text-stone-400">{pctVal}% of sessions
-                          {pd && <span className={`ml-1 font-medium ${pd.up ? 'text-emerald-600' : 'text-red-400'}`}>{pd.up ? 'â–²' : 'â–¼'}{Math.abs(pd.pct)}%</span>}
+                          {pd && <span className={`ml-1 font-medium ${pd.up ? 'text-emerald-600' : 'text-red-400'}`}>{pd.up ? '+' : '-'}{Math.abs(pd.pct)}%</span>}
                         </p>
                       </div>
                     </div>
@@ -1969,22 +1969,22 @@ function AnalyticsSection() {
                         {fmtPeriodLong(r.period)}
                         {i === 0 && <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">Latest</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-stone-700">{r.users?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-700">{r.users?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
                       <td className="px-4 py-3 text-right">
-                        <span className="text-stone-700">{r.sessions?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</span>
-                        {sd && <span className={`ml-1.5 text-[10px] font-medium ${sd.up ? 'text-emerald-600' : 'text-red-400'}`}>{sd.up ? 'â–²' : 'â–¼'}{Math.abs(sd.pct)}%</span>}
+                        <span className="text-stone-700">{r.sessions?.toLocaleString() ?? <span className="text-stone-300">-</span>}</span>
+                        {sd && <span className={`ml-1.5 text-[10px] font-medium ${sd.up ? 'text-emerald-600' : 'text-red-400'}`}>{sd.up ? '+' : '-'}{Math.abs(sd.pct)}%</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.sessions_organic?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.sessions_direct?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.sessions_referral?.toLocaleString() ?? <span className="text-stone-300">â€”</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.bounce_rate != null ? `${(r.bounce_rate * 100).toFixed(1)}%` : <span className="text-stone-300">â€”</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.sessions_organic?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.sessions_direct?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.sessions_referral?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.bounce_rate != null ? `${(r.bounce_rate * 100).toFixed(1)}%` : <span className="text-stone-300">-</span>}</td>
                       <td className="px-4 py-3 text-right text-stone-600">{fmtDur(r.avg_session_duration)}</td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
-            <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{rows.length} month{rows.length !== 1 ? 's' : ''} of data Â· synced monthly via Google Analytics</div>
+            <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{rows.length} month{rows.length !== 1 ? 's' : ''} of data - synced monthly via Google Analytics</div>
           </div>
         </>
       )}
@@ -2083,7 +2083,7 @@ function FeedbackSection() {
             <button key={t} onClick={() => setFilter(t)}
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterTag === t ? 'text-white shadow-sm' : 'bg-white border border-stone-200 text-stone-500 hover:text-stone-700'}`}
               style={filterTag === t ? goldBtn : {}}>
-              {t}{t !== 'All' && rows ? ` Â· ${rows.filter(r => r.tag === t).length}` : ''}
+              {t}{t !== 'All' && rows ? ` - ${rows.filter(r => r.tag === t).length}` : ''}
             </button>
           ))}
         </div>
@@ -2118,7 +2118,7 @@ function FeedbackSection() {
               <div>
                 <label className="text-xs text-stone-400 mb-1 block">Source <span className="text-stone-300">(optional)</span></label>
                 <select className={inputCls} value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))}>
-                  <option value="">â€” select source â€”</option>
+                  <option value="">- select source -</option>
                   {FEEDBACK_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
@@ -2130,7 +2130,7 @@ function FeedbackSection() {
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700">Cancel</button>
               <button type="submit" disabled={saving} className="px-4 py-2 text-sm text-white rounded-lg disabled:opacity-50" style={goldBtn}>
-                {saving ? 'Savingâ€¦' : 'Save'}
+                {saving ? 'Saving...' : 'Save'}
               </button>
             </div>
           </form>
@@ -2139,7 +2139,7 @@ function FeedbackSection() {
 
       {/* list */}
       {rows === null ? (
-        <div className="text-center py-16 text-stone-400 text-sm">Loadingâ€¦</div>
+        <div className="text-center py-16 text-stone-400 text-sm">Loading...</div>
       ) : visible.length === 0 ? (
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
           <p className="text-sm">{rows.length === 0 ? 'No feedback yet.' : `No ${filterTag} feedback.`}</p>
@@ -2161,7 +2161,7 @@ function FeedbackSection() {
                   <textarea rows={3} className={inputCls + ' resize-none'} value={editContent} onChange={e => setEC(e.target.value)} />
                   <div className="grid grid-cols-2 gap-3">
                     <select className={inputCls} value={editSource} onChange={e => setES(e.target.value)}>
-                      <option value="">â€” select source â€”</option>
+                      <option value="">- select source -</option>
                       {FEEDBACK_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                     <input type="date" className={inputCls} value={editDate} onChange={e => setED(e.target.value)} />
@@ -2169,7 +2169,7 @@ function FeedbackSection() {
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setEditing(null)} className="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-700">Cancel</button>
                     <button onClick={saveEdit} disabled={editSaving} className="px-3 py-1.5 text-xs text-white rounded-lg disabled:opacity-50" style={goldBtn}>
-                      {editSaving ? 'Savingâ€¦' : 'Save'}
+                      {editSaving ? 'Saving...' : 'Save'}
                     </button>
                   </div>
                 </div>

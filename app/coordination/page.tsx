@@ -212,7 +212,7 @@ export default function CoordinationPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-stone-400 mb-1 block">Area *</label>
-                    <input required className={inputCls} placeholder="e.g. Marketing, Finance, Eventsâ€¦"
+                    <input required className={inputCls} placeholder="e.g. Marketing, Finance, Events..."
                       value={addForm.area} onChange={e => setAddForm(f => ({ ...f, area: e.target.value }))} />
                   </div>
                   <div>
@@ -229,7 +229,7 @@ export default function CoordinationPage() {
                 <div className="flex gap-2">
                   <button type="submit" disabled={addSaving || !addForm.area || !addForm.need}
                     className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                    {addSaving ? 'Savingâ€¦' : 'Add Item'}
+                    {addSaving ? 'Saving...' : 'Add Item'}
                   </button>
                   <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                 </div>
@@ -239,7 +239,7 @@ export default function CoordinationPage() {
 
           {/* Two-col layout */}
           {items === null ? (
-            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loadingâ€¦</div>
+            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading...</div>
           ) : (
             <div className={`grid gap-5 ${selected ? 'grid-cols-[320px_1fr]' : 'grid-cols-1'}`}>
               {/* List */}
@@ -326,7 +326,7 @@ export default function CoordinationPage() {
                       <div className="flex gap-2">
                         <button onClick={saveEdit} disabled={editSaving}
                           className="flex-1 py-2 text-white text-sm rounded-lg disabled:opacity-50 font-medium" style={goldBtn}>
-                          {editSaving ? 'Savingâ€¦' : 'Save'}
+                          {editSaving ? 'Saving...' : 'Save'}
                         </button>
                         <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                       </div>
@@ -377,7 +377,7 @@ export default function CoordinationPage() {
                     )}
 
                     <form onSubmit={submitComment} className="space-y-2">
-                      <textarea className={inputCls + ' resize-none bg-stone-50'} rows={3} placeholder="Add a commentâ€¦"
+                      <textarea className={inputCls + ' resize-none bg-stone-50'} rows={3} placeholder="Add a comment..."
                         value={commentBody} onChange={e => setCommentBody(e.target.value)} />
                       <div className="grid grid-cols-2 gap-2">
                         <div>
@@ -387,7 +387,7 @@ export default function CoordinationPage() {
                         <div>
                           <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Feasibility</label>
                           <select className={inputCls} value={commentFeasibility} onChange={e => setCommentFeasibility(e.target.value)}>
-                            <option value="">â€” none â€”</option>
+                            <option value="">- none -</option>
                             <option value="Do-able">Do-able</option>
                             <option value="Not feasible">Not feasible</option>
                             <option value="Needs discussion">Needs discussion</option>
@@ -397,7 +397,7 @@ export default function CoordinationPage() {
                       </div>
                       <button type="submit" disabled={commentSaving || !commentBody.trim()}
                         className="w-full py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                        {commentSaving ? 'Postingâ€¦' : 'Post Comment'}
+                        {commentSaving ? 'Posting...' : 'Post Comment'}
                       </button>
                     </form>
                   </div>
@@ -420,4 +420,3 @@ function StatCard({ label, value, color }: { label: string; value: string; color
     </div>
   )
 }
-

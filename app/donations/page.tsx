@@ -204,7 +204,7 @@ export default function Home() {
               <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
                 <p className="text-xs text-stone-400 font-medium mb-1">Current Donors</p>
                 <p className="text-2xl font-semibold text-stone-800">{currentCount}</p>
-                <p className="text-xs text-stone-400 mt-0.5">gave in {currentYear - 1}â€“{currentYear}</p>
+                <p className="text-xs text-stone-400 mt-0.5">gave in {currentYear - 1}-{currentYear}</p>
               </div>
               <div className="bg-white rounded-xl border border-stone-200 px-5 py-4 shadow-sm">
                 <p className="text-xs text-stone-400 font-medium mb-1">Members</p>
@@ -295,4 +295,3 @@ export default function Home() {
     </div>
   )
 }
-

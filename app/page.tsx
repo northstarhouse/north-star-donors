@@ -119,7 +119,7 @@ function TaskRow({
                 value={editTitle} onChange={e => onEditTitleChange(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') onSaveEdit(task.id); if (e.key === 'Escape') onCancelEdit() }} />
               <button onClick={() => onSaveEdit(task.id)} className="px-2 py-0.5 text-white text-xs rounded-lg" style={goldBtn}>Save</button>
-              <button onClick={onCancelEdit} className="px-2 py-0.5 bg-stone-100 text-stone-500 text-xs rounded-lg">âœ•</button>
+              <button onClick={onCancelEdit} className="px-2 py-0.5 bg-stone-100 text-stone-500 text-xs rounded-lg">X</button>
             </div>
           ) : (
             <p className={`text-sm text-stone-800 ${task.status === 'done' ? 'line-through' : ''}`}>{task.title}</p>
@@ -148,14 +148,14 @@ function TaskRow({
           ) : claiming ? (
             <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
               <input autoFocus className="border border-stone-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 w-28"
-                placeholder="Your nameâ€¦" value={claimInput} onChange={e => setClaimInput(e.target.value)}
+                placeholder="Your name..." value={claimInput} onChange={e => setClaimInput(e.target.value)}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && claimInput.trim()) { onClaim(task.id, claimInput.trim()); setClaiming(false); setClaimInput('') }
                   if (e.key === 'Escape') { setClaiming(false); setClaimInput('') }
                 }} />
               <button onClick={() => { if (claimInput.trim()) { onClaim(task.id, claimInput.trim()); setClaiming(false); setClaimInput('') } }}
                 disabled={!claimInput.trim()}
-                className="px-2 py-1 text-white text-xs rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>âœ“</button>
+                className="px-2 py-1 text-white text-xs rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>OK</button>
               <button onClick={() => { setClaiming(false); setClaimInput('') }} className="p-1 text-stone-300 hover:text-stone-500"><X size={12} /></button>
             </div>
           ) : (
@@ -208,7 +208,7 @@ function TaskRow({
             ) : (
               <button onClick={() => onTriggerUpload(task.id)} disabled={uploadingTaskId === task.id}
                 className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border border-dashed border-stone-300 text-stone-400 hover:border-amber-300 hover:text-amber-600 transition-colors disabled:opacity-40">
-                <Paperclip size={12} />{uploadingTaskId === task.id ? 'Uploadingâ€¦' : 'Attach a file'}
+                <Paperclip size={12} />{uploadingTaskId === task.id ? 'Uploading...' : 'Attach a file'}
               </button>
             )
           )}
@@ -238,7 +238,7 @@ function TaskAttachment({ url, onReplace, uploading }: { url: string; onReplace:
       )}
       <button onClick={onReplace} disabled={uploading}
         className="opacity-0 group-hover:opacity-100 text-[10px] text-stone-400 hover:text-amber-600 px-2 py-1 rounded border border-stone-200 hover:border-amber-300 transition-all flex-shrink-0 disabled:opacity-40">
-        {uploading ? 'Uploadingâ€¦' : 'Replace'}
+        {uploading ? 'Uploading...' : 'Replace'}
       </button>
     </div>
   )

@@ -345,7 +345,7 @@ export default function ContentCalendar() {
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-bold text-stone-800">{MONTHS[month]} {selectedDay}, {year}</h3>
                 {selectedDay === ftDay && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Team Meeting · 10am</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Team Meeting - 10am</span>
                 )}
               </div>
               <div className="flex items-center gap-1.5">
@@ -365,7 +365,7 @@ export default function ContentCalendar() {
             {/* Inline add form */}
             {showAdd && (
               <div className="bg-stone-50 rounded-xl border border-stone-200 p-4 mb-4 space-y-2.5">
-                <input autoFocus className={inCls} placeholder="Title…"
+                <input autoFocus className={inCls} placeholder="Title..."
                   value={addForm.title} onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) saveAdd() }} />
                 <div className="grid grid-cols-2 gap-2">
@@ -378,13 +378,13 @@ export default function ContentCalendar() {
                     {STATUSES.map(s => <option key={s}>{s}</option>)}
                   </select>
                 </div>
-                <textarea className={inCls + ' resize-none'} rows={2} placeholder="Notes…"
+                <textarea className={inCls + ' resize-none'} rows={2} placeholder="Notes..."
                   value={addForm.notes} onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))} />
                 <div className="flex gap-2">
                   <button onClick={saveAdd} disabled={addSaving || !addForm.title}
                     className="px-4 py-1.5 text-white text-xs rounded-lg font-medium disabled:opacity-40"
                     style={{ background: 'var(--gold)' }}>
-                    {addSaving ? 'Saving…' : 'Save'}
+                    {addSaving ? 'Saving...' : 'Save'}
                   </button>
                   <button onClick={() => setShowAdd(false)}
                     className="px-3 py-1.5 bg-stone-100 text-stone-500 text-xs rounded-lg hover:bg-stone-200">
@@ -424,7 +424,7 @@ export default function ContentCalendar() {
                           <button onClick={saveEdit} disabled={editSaving}
                             className="px-3 py-1 text-white text-xs rounded-lg font-medium disabled:opacity-40"
                             style={{ background: 'var(--gold)' }}>
-                            {editSaving ? 'Saving…' : 'Save'}
+                            {editSaving ? 'Saving...' : 'Save'}
                           </button>
                           <button onClick={() => setEditId(null)}
                             className="px-3 py-1 bg-stone-100 text-stone-500 text-xs rounded-lg hover:bg-stone-200">
@@ -502,7 +502,7 @@ export default function ContentCalendar() {
               <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0 mt-1" />
               <div>
                 <p className="text-xs font-semibold text-stone-700">Team Meeting</p>
-                <p className="text-[11px] text-stone-400">{MONTHS[month]} {ftDay} · 10am</p>
+                <p className="text-[11px] text-stone-400">{MONTHS[month]} {ftDay} - 10am</p>
               </div>
             </div>
             <div className="flex items-start gap-2">
@@ -516,7 +516,7 @@ export default function ContentCalendar() {
               <span className="w-2 h-2 rounded-full bg-amber-400 flex-shrink-0 mt-1" />
               <div>
                 <p className="text-xs font-semibold text-stone-700">Social Roundup</p>
-                <p className="text-[11px] text-stone-400">Weekly · Fridays</p>
+                <p className="text-[11px] text-stone-400">Weekly - Fridays</p>
               </div>
             </div>
           </div>
@@ -544,7 +544,7 @@ export default function ContentCalendar() {
           <textarea
             className="w-full text-xs text-stone-600 border border-stone-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-200 bg-white"
             rows={6}
-            placeholder={`Planning notes for ${MONTHS[month]}…`}
+            placeholder={`Planning notes for ${MONTHS[month]}...`}
             value={sideNotes}
             onChange={e => { setSideNotes(e.target.value); setNotesDirty(true) }}
           />
@@ -552,7 +552,7 @@ export default function ContentCalendar() {
             <button onClick={saveNotes} disabled={notesSaving}
               className="mt-1.5 w-full py-1.5 text-xs text-white rounded-lg font-medium disabled:opacity-40"
               style={{ background: 'var(--gold)' }}>
-              {notesSaving ? 'Saving…' : 'Save Notes'}
+              {notesSaving ? 'Saving...' : 'Save Notes'}
             </button>
           )}
         </div>
@@ -599,7 +599,7 @@ function QuickAdd({ monthKey, onAdded }: { monthKey: string; onAdded: () => void
         <form onSubmit={save} className="space-y-2">
           <input required autoFocus
             className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-200 text-stone-700 bg-white"
-            placeholder="Title…"
+            placeholder="Title..."
             value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
           <input required type="date"
             className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-200 text-stone-700 bg-white"
@@ -618,15 +618,16 @@ function QuickAdd({ monthKey, onAdded }: { monthKey: string; onAdded: () => void
           </div>
           <textarea
             className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs focus:outline-none text-stone-600 bg-white resize-none"
-            rows={2} placeholder="Notes…"
+            rows={2} placeholder="Notes..."
             value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
           <button type="submit" disabled={saving || !form.title || !form.date}
             className="w-full py-1.5 text-white text-xs rounded-lg font-medium disabled:opacity-40"
             style={{ background: 'var(--gold)' }}>
-            {saving ? 'Adding…' : 'Add Entry'}
+            {saving ? 'Adding...' : 'Add Entry'}
           </button>
         </form>
       )}
     </div>
   )
 }
+

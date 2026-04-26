@@ -199,7 +199,7 @@ export default function ListsPage() {
               <div className="flex flex-col items-center justify-center py-24 gap-2 text-stone-400">
                 <List size={32} strokeWidth={1} />
                 <p className="text-sm">No lists yet.</p>
-                <p className="text-xs">Check donors on the Donations page and click "Add to a new or existing listâ€¦"</p>
+                <p className="text-xs">Check donors on the Donations page and click "Add to a new or existing list..."</p>
               </div>
             ) : (
               <div className="divide-y divide-stone-100">
@@ -244,7 +244,7 @@ export default function ListsPage() {
                       className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs rounded-lg font-medium"
                       style={{ background: 'var(--gold)' }}
                     >
-                      <Tags size={12} /> Add to a new or existing listâ€¦
+                      <Tags size={12} /> Add to a new or existing list...
                     </button>
                     <button onClick={() => setSelectedIds(new Set())} className="text-xs text-stone-400 hover:text-stone-600 ml-auto">
                       Clear
@@ -301,7 +301,7 @@ export default function ListsPage() {
                           </span>
                         </td>
                         <td className="px-4 py-3 text-right font-medium text-stone-700" onClick={() => setSelected(donor)}>
-                          {donor.current_year_total > 0 ? fmt(donor.current_year_total) : <span className="text-stone-300">â€”</span>}
+                          {donor.current_year_total > 0 ? fmt(donor.current_year_total) : <span className="text-stone-300">-</span>}
                         </td>
                         <td className="px-4 py-3 text-right text-stone-600" onClick={() => setSelected(donor)}>
                           {fmt(Math.max(donor.lifetime_total, donor.historical_lifetime_giving))}
@@ -347,4 +347,3 @@ export default function ListsPage() {
     </div>
   )
 }
-

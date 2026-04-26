@@ -210,7 +210,7 @@ export default function OutreachPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-stone-400 mb-1 block">Area *</label>
-                    <input required list="area-suggestions" className={inputCls} placeholder="e.g. Donors, Media, Communityâ€¦"
+                    <input required list="area-suggestions" className={inputCls} placeholder="e.g. Donors, Media, Community..."
                       value={addForm.area} onChange={e => setAddForm(f => ({ ...f, area: e.target.value }))} />
                     <datalist id="area-suggestions">
                       {allAreas.map(a => <option key={a} value={a} />)}
@@ -250,7 +250,7 @@ export default function OutreachPage() {
                 <div className="flex gap-2">
                   <button type="submit" disabled={addSaving || !addForm.area || !addForm.title}
                     className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                    {addSaving ? 'Savingâ€¦' : 'Add Entry'}
+                    {addSaving ? 'Saving...' : 'Add Entry'}
                   </button>
                   <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                 </div>
@@ -260,7 +260,7 @@ export default function OutreachPage() {
 
           {/* Content */}
           {entries === null ? (
-            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loadingâ€¦</div>
+            <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading...</div>
           ) : (
             <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
               {/* Grouped list */}
@@ -392,7 +392,7 @@ export default function OutreachPage() {
                       <div className="flex gap-2">
                         <button onClick={saveEdit} disabled={editSaving}
                           className="flex-1 py-2 text-white text-sm rounded-lg disabled:opacity-50 font-medium" style={goldBtn}>
-                          {editSaving ? 'Savingâ€¦' : 'Save'}
+                          {editSaving ? 'Saving...' : 'Save'}
                         </button>
                         <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
                       </div>
@@ -442,4 +442,3 @@ export default function OutreachPage() {
     </div>
   )
 }
-
