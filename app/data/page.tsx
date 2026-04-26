@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
 /* ── Types ───────────────────────────────────────────────── */
-type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'events'
+type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'events' | 'feedback'
 
 // Paste your deployed Apps Script web app URL here after deploying honeybook-webapp.gs
 const HONEYBOOK_URL = 'https://script.google.com/macros/s/AKfycbw968UYNRchd6-Nm8V-tEeo48vuPEe3xqfPgKGibhQEP2td2B8mgUs5ThDrkDrmH4WGNA/exec'
@@ -132,6 +132,7 @@ const TABS: { id: DataTab; label: string }[] = [
   { id: 'email',     label: 'Email Results' },
   { id: 'social',    label: 'Socials' },
   { id: 'events',    label: 'Event Data' },
+  { id: 'feedback',  label: 'Feedback' },
 ]
 
 /* ── Main ────────────────────────────────────────────────── */
@@ -168,6 +169,7 @@ export default function DataPage() {
           {tab === 'email'     && <EmailSection />}
           {tab === 'social'    && <SocialSection />}
           {tab === 'events'    && <EventsSection />}
+          {tab === 'feedback'  && <FeedbackSection />}
         </div>
       </div>
     </div>
@@ -1683,6 +1685,18 @@ function AnalyticsSection() {
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   FEEDBACK SECTION
+══════════════════════════════════════════════════════════ */
+function FeedbackSection() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-3 text-stone-400">
+      <p className="text-sm font-medium text-stone-500">Feedback</p>
+      <p className="text-xs text-center max-w-xs">Nothing here yet. Add your feedback sources to get started.</p>
     </div>
   )
 }
