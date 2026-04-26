@@ -122,6 +122,7 @@ export default function ContentCalendar() {
   const [notesDirty, setNotesDirty]   = useState(false)
   const [notesSaving, setNotesSaving] = useState(false)
   const [templateSaving, setTemplateSaving] = useState(false)
+  const [seededMonthKey, setSeededMonthKey] = useState<string | null>(null)
 
   const monthKey = `${year}-${pad(month + 1)}`
 
@@ -241,6 +242,12 @@ export default function ContentCalendar() {
     setTemplateSaving(false)
     loadEntries()
   }
+
+  useEffect(() => {
+    if (loadingEnt || templateSaving || seededMonthKey === monthKey) return
+    setSeededMonthKey(monthKey)
+    void applyMonthTemplate()
+  }, [loadingEnt, templateSaving, seededMonthKey, monthKey])
 
   /* -- Render ------------------------------------------------ */
   return (
@@ -444,18 +451,10 @@ export default function ContentCalendar() {
 
         {/* Recurring rhythm */}
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <div>
-              <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Posting Structure</p>
-              <p className="text-[11px] text-stone-400 mt-1">{MONTHS[month]} {year}</p>
-            </div>
-            <button
-              onClick={applyMonthTemplate}
-              disabled={templateSaving}
-              className="px-2.5 py-1 text-[10px] text-white rounded-lg font-medium disabled:opacity-40"
-              style={{ background: 'var(--gold)' }}>
-              {templateSaving ? 'Adding...' : 'Apply Template'}
-            </button>
+          <div className="mb-3">
+            <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Posting Structure</p>
+            <p className="text-[11px] text-stone-400 mt-1">{MONTHS[month]} {year}</p>
+            <p className="text-[10px] text-stone-300 mt-1">This structure is auto-seeded into the calendar for the month.</p>
           </div>
           <div className="space-y-3">
             {[1, 2, 3, 4].map(week => (
