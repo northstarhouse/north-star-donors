@@ -337,7 +337,7 @@ function fetchWixEvents() {
   var limit = 100;
 
   while (true) {
-    var resp = UrlFetchApp.fetch('https://www.wixapis.com/events/v1/events/query', {
+    var resp = UrlFetchApp.fetch('https://www.wixapis.com/events/v3/events/query', {
       method: 'POST',
       contentType: 'application/json',
       headers: {
@@ -346,7 +346,7 @@ function fetchWixEvents() {
       },
       payload: JSON.stringify({
         query: {
-          sort: [{ fieldName: 'start.timestamp', order: 'DESC' }],
+          sort: [{ fieldName: 'scheduling.startDate', order: 'DESC' }],
           paging: { limit: limit, offset: offset }
         }
       }),
@@ -355,25 +355,32 @@ function fetchWixEvents() {
 
     if (resp.getResponseCode() !== 200) {
       Logger.log('Events error ' + resp.getResponseCode() + ': ' + resp.getContentText());
-      return { events: [], error: 'HTTP ' + resp.getResponseCode() };
+      return { events: [], error: 'HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText().substring(0, 200) };
     }
 
     var json = JSON.parse(resp.getContentText());
     var rows = json.events || [];
 
     rows.forEach(function(e) {
-      var loc = e.location || {};
+      var loc      = e.location || {};
+      var sched    = e.scheduling || {};
+      var config   = sched.config || {};
+      var reg      = e.registration || {};
+      var rsvp     = reg.rsvpCollection || null;
+      var ticketing = reg.ticketing || null;
+      var pageUrl  = e.eventPageUrl || {};
+
       all.push({
-        id:          e.id,
-        title:       e.title || '',
-        status:      e.status || '',
-        start:       e.dateAndTimeSettings && e.dateAndTimeSettings.startDate ? e.dateAndTimeSettings.startDate : (e.scheduling && e.scheduling.config && e.scheduling.config.startDate ? e.scheduling.config.startDate : null),
-        end:         e.dateAndTimeSettings && e.dateAndTimeSettings.endDate   ? e.dateAndTimeSettings.endDate   : (e.scheduling && e.scheduling.config && e.scheduling.config.endDate   ? e.scheduling.config.endDate   : null),
-        location:    loc.name || loc.address || '',
-        description: e.description || '',
-        rsvp_total:  e.registration && e.registration.rsvpCollection ? (e.registration.rsvpCollection.total || 0) : null,
-        tickets_sold: e.registration && e.registration.ticketing ? (e.registration.ticketing.totalSold || 0) : null,
-        url:         e.eventPageUrl ? e.eventPageUrl.base + e.eventPageUrl.path : null
+        id:           e.id,
+        title:        e.title || '',
+        status:       e.status || '',
+        start:        config.startDate || null,
+        end:          config.endDate   || null,
+        location:     loc.name || (loc.address && loc.address.formattedAddress) || '',
+        description:  e.description || '',
+        rsvp_total:   rsvp     ? (rsvp.total     || 0) : null,
+        tickets_sold: ticketing ? (ticketing.totalSold || 0) : null,
+        url:          pageUrl.base ? pageUrl.base + (pageUrl.path || '') : null
       });
     });
 
