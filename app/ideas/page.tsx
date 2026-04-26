@@ -406,7 +406,7 @@ export default function IdeasPage() {
                 budgetSaving={budgetSaving}
                 onClose={() => selectIdea(null)}
                 onDelete={deleteIdea}
-                onStartEdit={() => { setEditForm({ ...selected, budget: selected.budget != null ? String(selected.budget) : '' }); setEditing(true) }}
+                onStartEdit={() => { setEditForm({ title: selected.title, status: selected.status, submitted_by: selected.submitted_by, notes: selected.notes, blockers: selected.blockers, gaps: selected.gaps, updates: selected.updates, budget: selected.budget != null ? String(selected.budget) : '' }); setEditing(true) }}
                 onCancelEdit={() => setEditing(false)}
                 onSaveEdit={saveEdit}
                 onEditFormChange={setEditForm}
