@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link'
-import { LayoutDashboard, Heart, List, Award, Megaphone, Lightbulb, BarChart2, CalendarDays } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { LayoutDashboard, Heart, List, Award, Megaphone, Lightbulb, BarChart2, CalendarDays, Ellipsis, ChevronRight } from 'lucide-react'
 
 function CoordIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; strokeWidth?: number }) {
   return (
@@ -13,57 +14,121 @@ function CoordIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; strokeWid
   )
 }
 
-const NAV = [
-  { id: 'dashboard',   label: 'Development',       icon: LayoutDashboard, href: '/' },
-  { id: 'donations',   label: 'Donations',          icon: Heart,           href: '/donations/' },
-  { id: 'sponsors',    label: 'Sponsors',           icon: Award,           href: '/sponsors/' },
-  { id: 'lists',       label: 'Lists',              icon: List,            href: '/lists/' },
-  { id: 'coordination', label: 'Cross-Coordination', icon: CoordIcon,      href: '/coordination/' },
-  { id: 'outreach',     label: 'Outreach',           icon: Megaphone,      href: '/outreach/' },
-  { id: 'ideas',        label: 'Ideas & Initiatives', icon: Lightbulb,     href: '/ideas/' },
+const MAIN_NAV = [
+  { id: 'dashboard', label: 'Development', icon: LayoutDashboard, href: '/' },
+  { id: 'outreach', label: 'Outreach', icon: Megaphone, href: '/outreach/' },
+  { id: 'data', label: 'Data', icon: BarChart2, href: '/data/' },
+  { id: 'donations', label: 'Donations', icon: Heart, href: '/donations/' },
+  { id: 'sponsors', label: 'Sponsors', icon: Award, href: '/sponsors/' },
+  { id: 'ideas', label: 'Ideas & Initiatives', icon: Lightbulb, href: '/ideas/' },
+  { id: 'coordination', label: 'Cross-Coordination', icon: CoordIcon, href: '/coordination/' },
   { id: 'content-calendar', label: 'Content Calendar', icon: CalendarDays, href: '/content-calendar/' },
-  { id: 'data',         label: 'Data',               icon: BarChart2,     href: '/data/' },
-]
+] as const
+
+const MORE_NAV = [
+  { id: 'lists', label: 'Lists', icon: List, href: '/lists/' },
+] as const
 
 interface Props {
   activePage?: string
 }
 
-export default function Sidebar({ activePage }: Props) {
+function NavLink({
+  href,
+  active,
+  label,
+  children,
+}: {
+  href: string
+  active: boolean
+  label: string
+  children: React.ReactNode
+}) {
   return (
-    <aside style={{ width: 220, background: '#2a2a2e', minHeight: '100vh', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
-      <div style={{ padding: '20px 20px 14px' }}>
-        <img src="/north-star-donors/assets/logo.png" alt="North Star House" style={{ width: 195 }} />
-      </div>
-      <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)' }} />
-      <nav style={{ flex: 1, padding: '8px 8px 0' }}>
-        {NAV.map(({ id, label, icon: Icon, href }) => {
-          const active = activePage === id
-          return (
-            <Link
-              key={id}
-              href={href}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 9,
-                padding: '9px 12px',
-                borderRadius: 7,
-                marginBottom: 2,
-                fontSize: 12,
-                fontWeight: active ? 600 : 400,
-                background: active ? 'rgba(181,161,133,0.15)' : 'transparent',
-                color: active ? '#f0ebe3' : 'rgba(255,255,255,0.5)',
-                textDecoration: 'none',
-                transition: 'background 0.15s, color 0.15s',
-              }}
-            >
+    <Link
+      href={href}
+      aria-label={label}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 9,
+        padding: '9px 12px',
+        borderRadius: 7,
+        marginBottom: 2,
+        fontSize: 12,
+        fontWeight: active ? 600 : 400,
+        background: active ? 'rgba(181,161,133,0.15)' : 'transparent',
+        color: active ? '#f0ebe3' : 'rgba(255,255,255,0.5)',
+        textDecoration: 'none',
+        transition: 'background 0.15s, color 0.15s',
+      }}
+    >
+      {children}
+    </Link>
+  )
+}
+
+export default function Sidebar({ activePage }: Props) {
+  const [moreOpen, setMoreOpen] = useState(activePage === 'lists')
+
+  useEffect(() => {
+    if (activePage === 'lists') setMoreOpen(true)
+  }, [activePage])
+
+  const moreActive = activePage === 'lists'
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh', flexShrink: 0 }}>
+      <aside style={{ width: 220, background: '#2a2a2e', minHeight: '100vh', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '20px 20px 14px' }}>
+          <img src="/north-star-donors/assets/logo.png" alt="North Star House" style={{ width: 195 }} />
+        </div>
+        <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)' }} />
+        <nav style={{ flex: 1, padding: '8px 8px 0' }}>
+          {MAIN_NAV.map(({ id, label, icon: Icon, href }) => (
+            <NavLink key={id} href={href} label={label} active={activePage === id}>
               <Icon size={15} strokeWidth={1.75} />
               {label}
-            </Link>
-          )
-        })}
-      </nav>
-    </aside>
+            </NavLink>
+          ))}
+
+          <button
+            onClick={() => setMoreOpen(v => !v)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 9,
+              padding: '9px 12px',
+              borderRadius: 7,
+              marginBottom: 2,
+              fontSize: 12,
+              fontWeight: moreActive || moreOpen ? 600 : 400,
+              background: moreActive || moreOpen ? 'rgba(181,161,133,0.15)' : 'transparent',
+              color: moreActive || moreOpen ? '#f0ebe3' : 'rgba(255,255,255,0.5)',
+              border: 'none',
+              textAlign: 'left',
+              cursor: 'pointer',
+              transition: 'background 0.15s, color 0.15s',
+            }}
+          >
+            <Ellipsis size={15} strokeWidth={1.75} />
+            <span style={{ flex: 1 }}>More</span>
+            <ChevronRight size={14} strokeWidth={1.75} style={{ transform: moreOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+          </button>
+        </nav>
+      </aside>
+
+      {moreOpen && (
+        <aside style={{ width: 180, background: '#34343a', minHeight: '100vh', borderLeft: '1px solid rgba(255,255,255,0.06)', padding: '76px 8px 0' }}>
+          {MORE_NAV.map(({ id, label, icon: Icon, href }) => (
+            <NavLink key={id} href={href} label={label} active={activePage === id}>
+              <Icon size={15} strokeWidth={1.75} />
+              {label}
+            </NavLink>
+          ))}
+        </aside>
+      )}
+    </div>
   )
 }
