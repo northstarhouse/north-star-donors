@@ -471,7 +471,7 @@ function FormsSection() {
         const json = await response.json()
         if (!cancelled) {
           setSource('wix')
-          setData(json.forms ?? { submissions: [] })
+          setData(json.submissions ? { submissions: json.submissions as WixSubmission[] } : (json.forms ?? { submissions: [] }))
         }
       } catch {
         if (!cancelled) setData({ submissions: [] })
