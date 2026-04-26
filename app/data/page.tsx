@@ -1767,7 +1767,7 @@ function AnalyticsSection() {
 type FeedbackTag = 'Venue' | 'Tour' | 'Volunteer' | 'Story' | 'Idea' | 'Other'
 interface FeedbackEntry {
   id: string; content: string; tag: FeedbackTag
-  source: string | null; created_at: string
+  source: string | null; date: string | null; created_at: string
 }
 
 const FEEDBACK_TAGS: FeedbackTag[] = ['Venue', 'Tour', 'Volunteer', 'Story', 'Idea', 'Other']
@@ -1782,7 +1782,7 @@ const TAG_COLORS: Record<FeedbackTag, string> = {
 }
 
 const FEEDBACK_SOURCES = ['Website Form', 'Google Review', 'Word of Mouth', 'Social Media', 'Other'] as const
-const FEEDBACK_EMPTY = { content: '', tag: 'Other' as FeedbackTag, source: '' }
+const FEEDBACK_EMPTY = { content: '', tag: 'Other' as FeedbackTag, source: '', date: '' }
 
 function FeedbackSection() {
   const [rows, setRows]         = useState<FeedbackEntry[] | null>(null)
@@ -1793,6 +1793,7 @@ function FeedbackSection() {
   const [editing, setEditing]   = useState<FeedbackEntry | null>(null)
   const [editContent, setEC]    = useState('')
   const [editSource, setES]     = useState('')
+  const [editDate, setED]       = useState('')
   const [editTag, setET]        = useState<FeedbackTag>('Other')
   const [editSaving, setEditSaving] = useState(false)
 
@@ -1811,6 +1812,7 @@ function FeedbackSection() {
       content: form.content.trim(),
       tag: form.tag,
       source: form.source || null,
+      date: form.date || null,
     }).select().single()
     if (error) { alert('Save failed: ' + error.message); setSaving(false); return }
     if (data) setRows(prev => [data as FeedbackEntry, ...(prev ?? [])])
@@ -1818,14 +1820,14 @@ function FeedbackSection() {
   }
 
   function startEdit(entry: FeedbackEntry) {
-    setEditing(entry); setEC(entry.content); setES(entry.source ?? ''); setET(entry.tag)
+    setEditing(entry); setEC(entry.content); setES(entry.source ?? ''); setED(entry.date ?? ''); setET(entry.tag)
   }
 
   async function saveEdit() {
     if (!editing) return
     setEditSaving(true)
     const { data } = await supabase.from('data_feedback').update({
-      content: editContent.trim(), tag: editTag, source: editSource.trim() || null,
+      content: editContent.trim(), tag: editTag, source: editSource.trim() || null, date: editDate || null,
     }).eq('id', editing.id).select().single()
     if (data) setRows(prev => prev?.map(r => r.id === editing.id ? data as FeedbackEntry : r) ?? null)
     setEditing(null); setEditSaving(false)
@@ -1881,12 +1883,18 @@ function FeedbackSection() {
               <textarea required rows={3} className={inputCls + ' resize-none'} placeholder="What did you hear?"
                 value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} />
             </div>
-            <div>
-              <label className="text-xs text-stone-400 mb-1 block">Source <span className="text-stone-300">(optional)</span></label>
-              <select className={inputCls} value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))}>
-                <option value="">— select source —</option>
-                {FEEDBACK_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-stone-400 mb-1 block">Source <span className="text-stone-300">(optional)</span></label>
+                <select className={inputCls} value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))}>
+                  <option value="">— select source —</option>
+                  {FEEDBACK_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-stone-400 mb-1 block">Date <span className="text-stone-300">(optional)</span></label>
+                <input type="date" className={inputCls} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} />
+              </div>
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700">Cancel</button>
@@ -1920,10 +1928,13 @@ function FeedbackSection() {
                     ))}
                   </div>
                   <textarea rows={3} className={inputCls + ' resize-none'} value={editContent} onChange={e => setEC(e.target.value)} />
-                  <select className={inputCls} value={editSource} onChange={e => setES(e.target.value)}>
-                    <option value="">— select source —</option>
-                    {FEEDBACK_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <select className={inputCls} value={editSource} onChange={e => setES(e.target.value)}>
+                      <option value="">— select source —</option>
+                      {FEEDBACK_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <input type="date" className={inputCls} value={editDate} onChange={e => setED(e.target.value)} />
+                  </div>
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setEditing(null)} className="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-700">Cancel</button>
                     <button onClick={saveEdit} disabled={editSaving} className="px-3 py-1.5 text-xs text-white rounded-lg disabled:opacity-50" style={goldBtn}>
@@ -1937,7 +1948,7 @@ function FeedbackSection() {
                     <div className="flex items-center gap-2 mb-2">
                       <span className={`text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full ${TAG_COLORS[entry.tag]}`}>{entry.tag}</span>
                       {entry.source && <span className="text-xs text-stone-400">{entry.source}</span>}
-                      <span className="text-xs text-stone-300 ml-auto">{fmtTs(entry.created_at)}</span>
+                      <span className="text-xs text-stone-300 ml-auto">{entry.date ? fmtTs(entry.date) : fmtTs(entry.created_at)}</span>
                     </div>
                     <p className="text-sm text-stone-700 whitespace-pre-wrap">{entry.content}</p>
                   </div>
