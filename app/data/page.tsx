@@ -16,6 +16,42 @@ const FORMS_URL = 'https://script.google.com/macros/s/AKfycbyn9AOM9U8iF-jZ_sVr7Q
 const HONEYBOOK_CACHE_KEY = 'north-star-donors:honeybook:v1'
 const HONEYBOOK_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7
 
+/* ── Cache helpers ───────────────────────────────────────── */
+const TTL_SCRIPT = 1000 * 60 * 30   // 30 min — Apps Script (slow external calls)
+const TTL_DB     = 1000 * 60 * 10   // 10 min — Supabase (fast but still a round-trip)
+
+function cacheRead<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const { data, expires } = JSON.parse(raw) as { data: T; expires: number }
+    if (Date.now() > expires) { localStorage.removeItem(key); return null }
+    return data
+  } catch { return null }
+}
+
+function cacheWrite<T>(key: string, data: T, ttl: number) {
+  try { localStorage.setItem(key, JSON.stringify({ data, expires: Date.now() + ttl })) } catch { /* quota */ }
+}
+
+function cacheClearAll() {
+  try {
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('north-star-donors:'))
+      .forEach(k => localStorage.removeItem(k))
+  } catch { /* */ }
+}
+
+const CK = {
+  wix:       'north-star-donors:wix:v1',
+  forms:     'north-star-donors:forms:v1',
+  email:     'north-star-donors:email:v1',
+  social:    'north-star-donors:social:v1',
+  events:    'north-star-donors:events:v1',
+  analytics: 'north-star-donors:analytics:v1',
+  feedback:  'north-star-donors:feedback:v1',
+}
+
 
 interface HoneyBookLead {
   id: string | number; row_num: number | null; project_name: string; full_name: string
@@ -144,11 +180,18 @@ export default function DataPage() {
       <Sidebar activePage="data" />
       <div className="flex-1 flex flex-col min-h-screen overflow-hidden" style={{ background: 'var(--page-bg)' }}>
         <div className="px-8 pt-8 pb-4">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
-              <BarChart2 size={16} className="text-stone-400" strokeWidth={1.5} />
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
+                <BarChart2 size={16} className="text-stone-400" strokeWidth={1.5} />
+              </div>
+              <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>Data</h1>
             </div>
-            <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>Data</h1>
+            <button
+              onClick={() => { cacheClearAll(); window.location.reload() }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-stone-500 bg-white border border-stone-200 rounded-lg shadow-sm hover:text-stone-700 hover:border-stone-300 transition-colors">
+              ↺ Refresh
+            </button>
           </div>
           {/* Sub-tabs */}
           <div className="flex gap-1 bg-white border border-stone-200 rounded-xl p-1 shadow-sm w-fit">
@@ -445,7 +488,10 @@ function FormsSection() {
 
     async function loadForms() {
       if (FORMS_URL) {
-        // Always fetch all submissions from Wix, then overlay status/notes from Supabase
+        // Show cached immediately
+        const cached = cacheRead<WixSubmission[]>(CK.forms)
+        if (cached && !cancelled) { setSource('wix'); setData({ submissions: cached }) }
+
         try {
           const response = await fetch(FORMS_URL)
           const json = await response.json()
@@ -465,17 +511,17 @@ function FormsSection() {
               )
             }
 
+            const merged = submissions.map(sub => ({
+              ...sub,
+              internal_notes: overrides[sub.id]?.notes ?? sub.internal_notes ?? null,
+              status: overrides[sub.id]?.status ?? sub.status,
+            }))
             setSource('wix')
-            setData({
-              submissions: submissions.map(sub => ({
-                ...sub,
-                internal_notes: overrides[sub.id]?.notes ?? sub.internal_notes ?? null,
-                status: overrides[sub.id]?.status ?? sub.status,
-              })),
-            })
+            setData({ submissions: merged })
+            cacheWrite(CK.forms, merged, TTL_SCRIPT)
           }
         } catch {
-          if (!cancelled) setData({ submissions: [] })
+          if (!cancelled && !cacheRead(CK.forms)) setData({ submissions: [] })
         }
         return
       }
@@ -731,8 +777,10 @@ function EmailSection() {
   const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
+    const cached = cacheRead<EmailEntry[]>(CK.email)
+    if (cached) setRows(cached)
     supabase.from('data_email').select('*').order('date', { ascending: false })
-      .then(({ data }) => setRows((data as EmailEntry[]) ?? []))
+      .then(({ data }) => { if (data) { setRows(data as EmailEntry[]); cacheWrite(CK.email, data, TTL_DB) } })
   }, [])
 
   const num = (s: string) => s ? parseInt(s) : null
@@ -907,10 +955,18 @@ function SocialSection() {
   const [fbRows, setFbRows] = useState<FacebookEntry[] | null>(null)
 
   useEffect(() => {
-    supabase.from('data_social').select('*').order('date', { ascending: false })
-      .then(({ data }) => setRows((data as SocialEntry[]) ?? []))
-    supabase.from('data_facebook').select('*').order('period', { ascending: false })
-      .then(({ data }) => setFbRows((data as FacebookEntry[]) ?? []))
+    type SocialCache = { social: SocialEntry[]; fb: FacebookEntry[] }
+    const cached = cacheRead<SocialCache>(CK.social)
+    if (cached) { setRows(cached.social); setFbRows(cached.fb) }
+    Promise.all([
+      supabase.from('data_social').select('*').order('date', { ascending: false }),
+      supabase.from('data_facebook').select('*').order('period', { ascending: false }),
+    ]).then(([s, f]) => {
+      const social = (s.data as SocialEntry[]) ?? []
+      const fb     = (f.data as FacebookEntry[]) ?? []
+      setRows(social); setFbRows(fb)
+      cacheWrite(CK.social, { social, fb }, TTL_DB)
+    })
   }, [])
 
   const latestFB = fbRows?.[0] ?? null
@@ -1172,8 +1228,10 @@ function EventsSection() {
   const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
+    const cached = cacheRead<EventEntry[]>(CK.events)
+    if (cached) setRows(cached)
     supabase.from('data_events').select('*').order('date', { ascending: false })
-      .then(({ data }) => setRows((data as EventEntry[]) ?? []))
+      .then(({ data }) => { if (data) { setRows(data as EventEntry[]); cacheWrite(CK.events, data, TTL_DB) } })
   }, [])
 
   async function submit(e: React.FormEvent) {
@@ -1347,21 +1405,35 @@ function AnalyticsSection() {
   const [chartMetric, setChartMetric] = useState<'sessions' | 'users' | 'page_views'>('sessions')
 
   useEffect(() => {
+    // GA monthly — Supabase
+    const cachedRows = cacheRead<AnalyticsEntry[]>(CK.analytics)
+    if (cachedRows) setRows(cachedRows)
     supabase.from('data_analytics').select('*').order('period', { ascending: false })
-      .then(({ data }) => setRows((data as AnalyticsEntry[]) ?? []))
-    if (!WIX_URL) { setTopPages({ rows: [] }); setTopCities({ rows: [] }); setTopSources({ rows: [] }); return }
+      .then(({ data }) => { if (data) { setRows(data as AnalyticsEntry[]); cacheWrite(CK.analytics, data, TTL_DB) } })
+
+    // Wix/GA4 — Apps Script
+    const cachedWix = cacheRead<{ pages: unknown; cities: unknown; sources: unknown }>(CK.wix)
+    if (cachedWix) {
+      setTopPages((cachedWix.pages as typeof topPages) ?? { rows: [] })
+      setTopCities((cachedWix.cities as typeof topCities) ?? { rows: [] })
+      setTopSources((cachedWix.sources as typeof topSources) ?? { rows: [] })
+    }
+    if (!WIX_URL) { if (!cachedWix) { setTopPages({ rows: [] }); setTopCities({ rows: [] }); setTopSources({ rows: [] }) } ; return }
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 20000)
     fetch(WIX_URL, { signal: ctrl.signal })
       .then(r => r.json())
       .then(json => {
         clearTimeout(timer)
-        setTopPages(json.pages   ?? { rows: [], error: 'Pages not returned by script — redeploy wix-webapp.gs' })
-        setTopCities(json.cities  ?? { rows: [] })
-        setTopSources(json.sources ?? { rows: [] })
+        const pages   = json.pages   ?? { rows: [], error: 'Pages not returned by script — redeploy wix-webapp.gs' }
+        const cities  = json.cities  ?? { rows: [] }
+        const sources = json.sources ?? { rows: [] }
+        setTopPages(pages); setTopCities(cities); setTopSources(sources)
+        cacheWrite(CK.wix, { pages, cities, sources }, TTL_SCRIPT)
       })
       .catch(e => {
         clearTimeout(timer)
+        if (cachedWix) return  // keep showing cached on error
         const msg = e?.name === 'AbortError' ? 'Script timed out — check Apps Script logs' : String(e)
         setTopPages({ rows: [], error: msg }); setTopCities({ rows: [] }); setTopSources({ rows: [] })
       })
@@ -1725,8 +1797,10 @@ function FeedbackSection() {
   const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
+    const cached = cacheRead<FeedbackEntry[]>(CK.feedback)
+    if (cached) setRows(cached)
     supabase.from('data_feedback').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => setRows((data as FeedbackEntry[]) ?? []))
+      .then(({ data }) => { if (data) { setRows(data as FeedbackEntry[]); cacheWrite(CK.feedback, data, TTL_DB) } })
   }, [])
 
   async function submit(e: React.FormEvent) {
