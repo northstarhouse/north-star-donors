@@ -470,8 +470,26 @@ function FormsSection() {
         const response = await fetch(FORMS_URL)
         const json = await response.json()
         if (!cancelled) {
+          const submissions = (json.submissions ? json.submissions as WixSubmission[] : (json.forms?.submissions ?? [])) as WixSubmission[]
+          const ids = submissions.map(sub => sub.id)
+          let notesById: Record<string, string | null> = {}
+
+          if (ids.length > 0) {
+            const { data: noteRows } = await supabase
+              .from('data_wix_forms')
+              .select('id, internal_notes')
+              .in('id', ids)
+
+            notesById = Object.fromEntries((noteRows ?? []).map(row => [row.id as string, (row.internal_notes as string | null) ?? null]))
+          }
+
           setSource('wix')
-          setData(json.submissions ? { submissions: json.submissions as WixSubmission[] } : (json.forms ?? { submissions: [] }))
+          setData({
+            submissions: submissions.map(sub => ({
+              ...sub,
+              internal_notes: notesById[sub.id] ?? sub.internal_notes ?? null,
+            })),
+          })
         }
       } catch {
         if (!cancelled) setData({ submissions: [] })
@@ -495,13 +513,20 @@ function FormsSection() {
   const fmtTs = (ts: string) => new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
   async function saveNotes() {
-    if (!selected || source !== 'supabase') return
+    if (!selected) return
     setNotesSaving(true)
     const noteValue = notesDraft.trim() || null
     const { error } = await supabase
       .from('data_wix_forms')
-      .update({ internal_notes: noteValue })
-      .eq('id', selected.id)
+      .upsert({
+        id: selected.id,
+        form_id: selected.form_id,
+        form_name: selected.form_name.trim(),
+        status: selected.status,
+        created_at: selected.created_at,
+        fields: selected.fields,
+        internal_notes: noteValue,
+      })
 
     if (!error) {
       setSelected(prev => prev ? { ...prev, internal_notes: noteValue } : prev)
@@ -524,7 +549,7 @@ function FormsSection() {
               </div>
             )}
             {grouped.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-4 gap-3">
                 {grouped.map(({ name, items }) => {
                   const isActive = name === activeFormName
                   const latest = items[0]
@@ -535,13 +560,13 @@ function FormsSection() {
                         setActiveForm(name)
                         setSelected(null)
                       }}
-                      className={`text-left rounded-xl border shadow-sm p-5 transition-colors ${isActive ? 'bg-amber-50/60 border-amber-200' : 'bg-white border-stone-200 hover:bg-stone-50'}`}
+                      className={`text-left rounded-xl border shadow-sm p-4 transition-colors ${isActive ? 'bg-amber-50/60 border-amber-200' : 'bg-white border-stone-200 hover:bg-stone-50'}`}
                     >
                       <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: isActive ? 'var(--gold)' : '#a8a29e' }}>Wix Form</p>
-                      <p className="text-base font-semibold text-stone-800 leading-snug">{name}</p>
-                      <p className="text-3xl font-bold text-stone-800 leading-none mt-4">{items.length}</p>
+                      <p className="text-sm font-semibold text-stone-800 leading-snug">{name}</p>
+                      <p className="text-2xl font-bold text-stone-800 leading-none mt-3">{items.length}</p>
                       <p className="text-xs text-stone-400 mt-1">submission{items.length !== 1 ? 's' : ''}</p>
-                      <p className="text-xs text-stone-400 mt-4">{latest ? `Latest: ${fmtTs(latest.created_at)}` : 'No submissions yet'}</p>
+                      <p className="text-[11px] text-stone-400 mt-3">{latest ? `Latest: ${fmtTs(latest.created_at)}` : 'No submissions yet'}</p>
                     </button>
                   )
                 })}
@@ -570,6 +595,7 @@ function FormsSection() {
                         className={`w-full text-left px-5 py-3 border-b border-stone-50 last:border-0 transition-colors ${selected?.id === sub.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
                         <div className="flex items-start justify-between gap-4">
                           <div className="min-w-0">
+                            {sub.internal_notes && <p className="text-xs text-amber-800 bg-amber-100/80 rounded-md px-2 py-1 mb-2 truncate">{sub.internal_notes}</p>}
                             {preview && <p className="text-sm text-stone-700 truncate">{preview}</p>}
                             {email && email !== preview && <p className="text-xs text-stone-400 mt-0.5 truncate">{email}</p>}
                           </div>
@@ -597,16 +623,16 @@ function FormsSection() {
                   rows={4}
                   value={notesDraft}
                   onChange={e => setNotesDraft(e.target.value)}
-                  placeholder={source === 'supabase' ? 'Add internal notes for this submission' : 'Notes are available after this submission is loaded from Supabase'}
-                  disabled={source !== 'supabase' || notesSaving}
+                  placeholder="Add internal notes for this submission"
+                  disabled={notesSaving}
                 />
                 <div className="flex items-center justify-between mt-2 gap-2">
                   <p className="text-[10px] text-stone-400">
-                    {source === 'supabase' ? 'Saved to Supabase for this submission.' : 'Notes editing is disabled while using live Wix fallback.'}
+                    Saved to Supabase for this submission.
                   </p>
                   <button
                     onClick={saveNotes}
-                    disabled={source !== 'supabase' || notesSaving}
+                    disabled={notesSaving}
                     className="px-3 py-1.5 text-xs text-white rounded-lg disabled:opacity-50"
                     style={goldBtn}
                   >
