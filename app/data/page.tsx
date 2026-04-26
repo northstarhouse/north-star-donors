@@ -1848,9 +1848,9 @@ function AnalyticsSection() {
 
       </div>
 
-      {/* â”€â”€ Google Analytics historical â”€â”€ */}
+      {/* Google Analytics historical */}
       {rows === null ? (
-        <div className="text-center py-16 text-stone-400 text-sm">Loadingâ€¦</div>
+        <div className="text-center py-16 text-stone-400 text-sm">Loading...</div>
       ) : rows.length === 0 ? (
         <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
           <p className="text-sm">No Google Analytics data yet.</p>
@@ -1858,15 +1858,15 @@ function AnalyticsSection() {
         </div>
       ) : (
         <>
-          <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Google Analytics Â· Monthly History</p>
+          <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider">Google Analytics - Monthly History</p>
           {latest && (
             <div>
-              <p className="text-xs text-stone-400 mb-3">{fmtPeriodLong(latest.period)} â€” most recent month</p>
+              <p className="text-xs text-stone-400 mb-3">{fmtPeriodLong(latest.period)} - most recent month</p>
               <div className="grid grid-cols-5 gap-3">
                 {metricCards.map(({ label, value, d, sub }) => (
                   <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
                     <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
-                    <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value ?? 'â€”'}</p>
+                    <p className="text-2xl font-bold text-stone-800 leading-none mb-1">{value ?? '-'}</p>
                     <p className="text-[10px] text-stone-400">{sub}</p>
                     {d && (
                       <p className={`text-xs mt-2 font-medium flex items-center gap-0.5 ${d.up ? 'text-emerald-600' : 'text-red-500'}`}>
