@@ -245,10 +245,44 @@ function TaskAttachment({ url, onReplace, uploading }: { url: string; onReplace:
 }
 
 /* â”€â”€ Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Types: strategic goals --------------------------------- */
+type GoalStatus = 'Not started' | 'In progress' | 'On track' | 'Complete' | 'Blocked'
+type GoalType   = 'annual' | 'future' | 'three_year_vision'
+
+interface StrategicGoal {
+  id: number
+  title: string
+  description: string | null
+  status: GoalStatus
+  lead: string | null
+  due_date: string | null
+  updates: string | null
+  goal_type: GoalType
+  category: string
+}
+
+const GOAL_STATUS_COLORS: Record<GoalStatus, { bg: string; color: string }> = {
+  'On track':    { bg: '#e8f5e9', color: '#2e7d32' },
+  'In progress': { bg: '#fff3e0', color: '#e65100' },
+  'Complete':    { bg: '#e3f2fd', color: '#1565c0' },
+  'Blocked':     { bg: '#ffebee', color: '#c62828' },
+  'Not started': { bg: '#f5f5f5', color: '#888' },
+}
+const GOAL_TYPE_LABELS: Record<GoalType, string> = {
+  annual:            'This Year',
+  future:            'Future',
+  three_year_vision: '3-Year Vision',
+}
+
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [taskTab, setTaskTab] = useState<TaskStatus>('todo')
+
+  const [goals, setGoals] = useState<StrategicGoal[]>([])
+  const [goalsLoading, setGoalsLoading] = useState(true)
+  const [goalTab, setGoalTab] = useState<GoalType>('annual')
+  const [expandedGoalId, setExpandedGoalId] = useState<number | null>(null)
 
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
@@ -278,6 +312,16 @@ export default function Dashboard() {
     if (data) { setTasks(data); cacheWrite('tasks', data, TTL_SHORT) }
     setLoading(false)
   }
+
+  useEffect(() => {
+    const cached = cacheRead<StrategicGoal[]>('strategic-goals')
+    if (cached) { setGoals(cached); setGoalsLoading(false) }
+    supabase.from('Strategic Goals').select('*').eq('category', 'Fund Development')
+      .then(({ data }) => {
+        if (data) { setGoals(data as StrategicGoal[]); cacheWrite('strategic-goals', data, TTL_SHORT) }
+        setGoalsLoading(false)
+      })
+  }, [])
 
   async function addTask() {
     if (!newTitle.trim()) return
@@ -406,8 +450,8 @@ export default function Dashboard() {
             </span>
             <span className="text-stone-300 text-xs">—</span>
             <span className="text-xs text-stone-400">Here&rsquo;s your development pipeline at a glance.</span>
-            <span className="ml-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-xs font-medium text-amber-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+            <span className="ml-2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-medium text-emerald-700">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
               Next Meeting: {fmtMeeting(nextFirstThursday())}
             </span>
           </div>
@@ -444,7 +488,11 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Task box */}
+          {/* Two-column body */}
+          <div className="flex gap-5 items-start">
+
+          {/* Left: Task box */}
+          <div className="flex-1 min-w-0">
           {loading ? (
             <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading...</div>
           ) : (
@@ -488,6 +536,108 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+          </div>{/* end left col */}
+
+          {/* Right: Fund Development goals */}
+          {(() => {
+            const fundGoals = goals.filter(g => g.goal_type === goalTab)
+            const allFund   = goals.filter(g => g.goal_type !== 'three_year_vision')
+            const done      = allFund.filter(g => g.status === 'Complete').length
+            const inprog    = allFund.filter(g => g.status === 'In progress' || g.status === 'On track').length
+            const donePct   = allFund.length ? Math.round((done / allFund.length) * 100) : 0
+            const inprogPct = allFund.length ? Math.round((inprog / allFund.length) * 100) : 0
+            return (
+              <div className="w-80 flex-shrink-0">
+                <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                  {/* Header */}
+                  <div className="px-5 py-4 border-b border-stone-100">
+                    <p className="text-sm font-bold text-stone-800 mb-3">Fund Development</p>
+                    {/* Progress bar */}
+                    {allFund.length > 0 && (
+                      <div className="mb-2">
+                        <div className="h-2 bg-stone-100 rounded-full overflow-hidden flex mb-1.5">
+                          <div className="h-full bg-emerald-400 transition-all" style={{ width: donePct + '%' }} />
+                          <div className="h-full bg-amber-300 transition-all" style={{ width: inprogPct + '%' }} />
+                        </div>
+                        <div className="flex items-center gap-3 text-[10px] text-stone-400">
+                          <span className="text-emerald-600 font-semibold">{done} complete</span>
+                          <span>{inprog} in progress</span>
+                          <span>{allFund.length - done - inprog} not started</span>
+                        </div>
+                      </div>
+                    )}
+                    {/* Tab toggle */}
+                    <div className="flex items-center gap-1 mt-3">
+                      {(['annual', 'future', 'three_year_vision'] as GoalType[]).map(t => (
+                        <button key={t} onClick={() => { setGoalTab(t); setExpandedGoalId(null) }}
+                          className="text-[11px] px-2.5 py-1 rounded-full font-medium transition-colors"
+                          style={{
+                            background: goalTab === t ? 'var(--gold)' : '#f5f0ea',
+                            color: goalTab === t ? '#fff' : '#666',
+                          }}>
+                          {GOAL_TYPE_LABELS[t]}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Goal list */}
+                  <div className="divide-y divide-stone-50 max-h-[520px] overflow-y-auto">
+                    {goalsLoading ? (
+                      <p className="text-xs text-stone-300 text-center py-8 italic">Loading…</p>
+                    ) : fundGoals.length === 0 ? (
+                      <p className="text-xs text-stone-300 text-center py-8 italic">No goals for this view.</p>
+                    ) : fundGoals.map(g => {
+                      const sc = GOAL_STATUS_COLORS[g.status] ?? GOAL_STATUS_COLORS['Not started']
+                      const expanded = expandedGoalId === g.id
+                      return (
+                        <div key={g.id} className="px-5 py-3.5">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold text-stone-800 leading-snug">{g.title}</p>
+                              {g.description && (
+                                <p className="text-[11px] text-stone-400 mt-0.5 leading-snug">{g.description}</p>
+                              )}
+                            </div>
+                            {goalTab !== 'three_year_vision' && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0"
+                                style={{ background: sc.bg, color: sc.color }}>
+                                {g.status}
+                              </span>
+                            )}
+                          </div>
+                          {goalTab !== 'three_year_vision' && (g.lead || g.due_date) && (
+                            <div className="flex items-center gap-3 mt-1.5 text-[11px] text-stone-400">
+                              {g.lead && <span>Lead: <span className="text-stone-500">{g.lead}</span></span>}
+                              {g.due_date && <span>Due: <span className="text-stone-500">{g.due_date}</span></span>}
+                            </div>
+                          )}
+                          {goalTab !== 'three_year_vision' && (
+                            <div className="flex justify-end mt-1">
+                              <button onClick={() => setExpandedGoalId(expanded ? null : g.id)}
+                                className="text-[11px] text-stone-300 hover:text-stone-500 underline transition-colors">
+                                {expanded ? 'Hide' : 'View Updates'}
+                              </button>
+                            </div>
+                          )}
+                          {expanded && (
+                            <div className="mt-2 pt-2 border-t border-stone-50">
+                              {g.updates
+                                ? <p className="text-[11px] text-stone-500 leading-relaxed whitespace-pre-wrap">{g.updates}</p>
+                                : <p className="text-[11px] text-stone-300 italic">No updates yet.</p>
+                              }
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
+          </div>{/* end two-col */}
         </div>
       </div>
 
