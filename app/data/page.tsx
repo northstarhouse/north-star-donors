@@ -13,6 +13,7 @@ const HONEYBOOK_URL = 'https://script.google.com/macros/s/AKfycbw968UYNRchd6-Nm8
 const WIX_URL = 'https://script.google.com/macros/s/AKfycbzY3c6_xF2ucrZrQnZLa1bcU2TIcFadBH9UEeIbJYMKumvxygql8ulN-67q1Vu_WM4h/exec'
 // Deploy wix-forms-webapp.gs and paste the URL here.
 const FORMS_URL = 'https://script.google.com/macros/s/AKfycbyn9AOM9U8iF-jZ_sVr7QpHpxn7nPr1UvRh-5Jov6F2-ife84cltgVsvv5xATyx98Xu/exec'
+const WIX_CLIENT_ID = '46191fb3-0113-44a7-9bd2-031200714fea'
 const HONEYBOOK_CACHE_KEY = 'north-star-donors:honeybook:v1'
 const HONEYBOOK_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7
 
@@ -48,6 +49,7 @@ const CK = {
   email:     'north-star-donors:email:v1',
   social:    'north-star-donors:social:v1',
   events:    'north-star-donors:events:v1',
+  wixEvents: 'north-star-donors:wix-events:v1',
   analytics: 'north-star-donors:analytics:v1',
   feedback:  'north-star-donors:feedback:v1',
 }
@@ -1243,22 +1245,64 @@ function EventsSection() {
     supabase.from('data_events').select('*').order('date', { ascending: false })
       .then(({ data }) => { if (data) { setRows(data as EventEntry[]); cacheWrite(CK.events, data, TTL_DB) } })
 
-    // Load Wix events from cached WIX_URL response or fetch fresh
-    type WixCache = { events?: { events: WixEvent[] } }
-    const cachedWix = cacheRead<WixCache>(CK.wix)
-    if (cachedWix?.events) { setWixEvents(cachedWix.events.events ?? []) }
-    if (WIX_URL) {
-      fetch(WIX_URL).then(r => r.json()).then(json => {
-        if (json.events) {
-          setWixEvents(json.events.events ?? [])
-          // merge into wix cache
-          const prev = cacheRead<Record<string, unknown>>(CK.wix) ?? {}
-          cacheWrite(CK.wix, { ...prev, events: json.events }, TTL_SCRIPT)
+    // Load Wix events directly from Wix API using anonymous token
+    const cachedEvents = cacheRead<WixEvent[]>(CK.wixEvents)
+    if (cachedEvents) setWixEvents(cachedEvents)
+
+    async function loadWixEvents() {
+      try {
+        // Step 1: get anonymous token
+        const tokenResp = await fetch('https://www.wixapis.com/oauth2/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ clientId: WIX_CLIENT_ID, grantType: 'anonymous' }),
+        })
+        const { access_token } = await tokenResp.json()
+        if (!access_token) { if (!cachedEvents) setWixEvents([]); return }
+
+        // Step 2: query events
+        const all: WixEvent[] = []
+        let offset = 0
+        while (true) {
+          const resp = await fetch('https://www.wixapis.com/events/v3/events/query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': access_token },
+            body: JSON.stringify({ query: { sort: [{ fieldName: 'scheduling.startDate', order: 'DESC' }], paging: { limit: 100, offset } } }),
+          })
+          const json = await resp.json()
+          const rows: Record<string, unknown>[] = json.events ?? []
+          rows.forEach((e: Record<string, unknown>) => {
+            const sched = (e.scheduling as Record<string, unknown>) ?? {}
+            const config = (sched.config as Record<string, unknown>) ?? {}
+            const loc = (e.location as Record<string, unknown>) ?? {}
+            const locAddr = (loc.address as Record<string, unknown>) ?? {}
+            const reg = (e.registration as Record<string, unknown>) ?? {}
+            const rsvp = (reg.rsvpCollection as Record<string, unknown>) ?? null
+            const ticketing = (reg.ticketing as Record<string, unknown>) ?? null
+            const pageUrl = (e.eventPageUrl as Record<string, unknown>) ?? {}
+            all.push({
+              id:           String(e.id ?? ''),
+              title:        String(e.title ?? ''),
+              status:       String(e.status ?? ''),
+              start:        (config.startDate as string) ?? null,
+              end:          (config.endDate   as string) ?? null,
+              location:     String(loc.name ?? locAddr.formattedAddress ?? ''),
+              description:  String(e.description ?? ''),
+              rsvp_total:   rsvp     ? Number(rsvp.total     ?? 0) : null,
+              tickets_sold: ticketing ? Number((ticketing as Record<string,unknown>).totalSold ?? 0) : null,
+              url:          pageUrl.base ? String(pageUrl.base) + String(pageUrl.path ?? '') : null,
+            })
+          })
+          if (rows.length < 100) break
+          offset += 100
         }
-      }).catch(() => { if (!cachedWix?.events) setWixEvents([]) })
-    } else if (!cachedWix?.events) {
-      setWixEvents([])
+        setWixEvents(all)
+        cacheWrite(CK.wixEvents, all, TTL_SCRIPT)
+      } catch {
+        if (!cachedEvents) setWixEvents([])
+      }
     }
+    loadWixEvents()
   }, [])
 
   async function submit(e: React.FormEvent) {
