@@ -1709,6 +1709,7 @@ const TAG_COLORS: Record<FeedbackTag, string> = {
   Other:     'bg-stone-100 text-stone-500',
 }
 
+const FEEDBACK_SOURCES = ['Website Form', 'Google Review', 'Word of Mouth', 'Social Media', 'Other'] as const
 const FEEDBACK_EMPTY = { content: '', tag: 'Other' as FeedbackTag, source: '' }
 
 function FeedbackSection() {
@@ -1732,11 +1733,12 @@ function FeedbackSection() {
     e.preventDefault()
     if (!form.content.trim()) return
     setSaving(true)
-    const { data } = await supabase.from('data_feedback').insert({
+    const { data, error } = await supabase.from('data_feedback').insert({
       content: form.content.trim(),
       tag: form.tag,
-      source: form.source.trim() || null,
+      source: form.source || null,
     }).select().single()
+    if (error) { alert('Save failed: ' + error.message); setSaving(false); return }
     if (data) setRows(prev => [data as FeedbackEntry, ...(prev ?? [])])
     setForm(FEEDBACK_EMPTY); setShowAdd(false); setSaving(false)
   }
@@ -1807,8 +1809,10 @@ function FeedbackSection() {
             </div>
             <div>
               <label className="text-xs text-stone-400 mb-1 block">Source <span className="text-stone-300">(optional)</span></label>
-              <input className={inputCls} placeholder="e.g. venue tour, email, walk-in"
-                value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))} />
+              <select className={inputCls} value={form.source} onChange={e => setForm(f => ({ ...f, source: e.target.value }))}>
+                <option value="">— select source —</option>
+                {FEEDBACK_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
             </div>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700">Cancel</button>
@@ -1842,7 +1846,10 @@ function FeedbackSection() {
                     ))}
                   </div>
                   <textarea rows={3} className={inputCls + ' resize-none'} value={editContent} onChange={e => setEC(e.target.value)} />
-                  <input className={inputCls} placeholder="Source (optional)" value={editSource} onChange={e => setES(e.target.value)} />
+                  <select className={inputCls} value={editSource} onChange={e => setES(e.target.value)}>
+                    <option value="">— select source —</option>
+                    {FEEDBACK_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
                   <div className="flex justify-end gap-2">
                     <button onClick={() => setEditing(null)} className="px-3 py-1.5 text-xs text-stone-500 hover:text-stone-700">Cancel</button>
                     <button onClick={saveEdit} disabled={editSaving} className="px-3 py-1.5 text-xs text-white rounded-lg disabled:opacity-50" style={goldBtn}>
