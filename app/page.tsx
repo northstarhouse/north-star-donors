@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Paperclip, FileText, User } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
 
 /* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -266,11 +267,15 @@ export default function Dashboard() {
   const attachmentInputRef = useRef<HTMLInputElement>(null)
   const pendingUploadTaskId = useRef<string | null>(null)
 
-  useEffect(() => { loadTasks() }, [])
+  useEffect(() => {
+    const cached = cacheRead<Task[]>('tasks')
+    if (cached) { setTasks(cached); setLoading(false) }
+    loadTasks()
+  }, [])
 
   async function loadTasks() {
     const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: false })
-    setTasks(data ?? [])
+    if (data) { setTasks(data); cacheWrite('tasks', data, TTL_SHORT) }
     setLoading(false)
   }
 

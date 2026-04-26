@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Lightbulb, Plus, X, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
 
 /* -- Types --------------------------------------------------- */
@@ -85,8 +86,10 @@ export default function IdeasPage() {
 
   /* -- Load --------------------------------------------------- */
   useEffect(() => {
+    const cached = cacheRead<Idea[]>('ideas')
+    if (cached) setIdeas(cached)
     supabase.from('Ideas').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => setIdeas((data as Idea[]) ?? []))
+      .then(({ data }) => { if (data) { setIdeas(data as Idea[]); cacheWrite('ideas', data, TTL_SHORT) } })
   }, [])
 
   useEffect(() => {

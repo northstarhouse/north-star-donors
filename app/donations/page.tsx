@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Heart, UserPlus, Tags, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import { Donor, Donation, DonorWithStats } from '@/lib/types'
 import { getTier, getStatus } from '@/lib/tiers'
 import DonorList from '@/components/DonorList'
@@ -79,6 +80,7 @@ export default function Home() {
 
       const built = (donorRows ?? []).map(d => buildDonorWithStats(d, donationsByDonor[d.id] ?? []))
       setDonors(built)
+      cacheWrite('donors', built, TTL_SHORT)
       setError(null)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load donors')
@@ -87,7 +89,11 @@ export default function Home() {
     }
   }
 
-  useEffect(() => { loadDonors() }, [])
+  useEffect(() => {
+    const cached = cacheRead<DonorWithStats[]>('donors')
+    if (cached) { setDonors(cached); setLoading(false) }
+    loadDonors()
+  }, [])
 
   async function handleUpdated() {
     await loadDonors()

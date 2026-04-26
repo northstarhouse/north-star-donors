@@ -13,6 +13,7 @@ function CoordIcon({ size = 16 }: { size?: number }) {
   )
 }
 import { supabase } from '@/lib/supabase'
+import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
 
 /* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -79,8 +80,10 @@ export default function CoordinationPage() {
 
   /* â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   useEffect(() => {
+    const cached = cacheRead<CoordItem[]>('coordination')
+    if (cached) setItems(cached)
     supabase.from('coordination_items').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setItems(data as CoordItem[]) })
+      .then(({ data }) => { if (data) { setItems(data as CoordItem[]); cacheWrite('coordination', data, TTL_SHORT) } })
   }, [])
 
   useEffect(() => {

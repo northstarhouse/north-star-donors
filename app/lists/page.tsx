@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { List, Trash2, X, Users, ChevronLeft, Download, Star, Tags } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import { DonorList, DonorWithStats, Donor, Donation } from '@/lib/types'
 import { getTier, getStatus } from '@/lib/tiers'
 import Sidebar from '@/components/Sidebar'
@@ -53,10 +54,13 @@ export default function ListsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showAddToList, setShowAddToList] = useState(false)
 
-  useEffect(() => { loadLists() }, [])
+  useEffect(() => {
+    const cached = cacheRead<DonorList[]>('lists')
+    if (cached) { setLists(cached); setLoading(false) }
+    loadLists()
+  }, [])
 
   async function loadLists() {
-    setLoading(true)
     const { data } = await supabase
       .from('lists')
       .select('id, name, created_at, list_donors(count)')
@@ -69,6 +73,7 @@ export default function ListsPage() {
       donor_count: l.list_donors?.[0]?.count ?? 0,
     }))
     setLists(mapped)
+    cacheWrite('lists', mapped, TTL_SHORT)
     setLoading(false)
   }
 

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { Megaphone, Plus, X, Pencil, Trash2, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
 
 /* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -59,8 +60,10 @@ export default function OutreachPage() {
 
   /* â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   useEffect(() => {
+    const cached = cacheRead<OutreachEntry[]>('outreach')
+    if (cached) setEntries(cached)
     supabase.from('outreach_entries').select('*').order('area').order('created_at', { ascending: false })
-      .then(({ data }) => setEntries(data as OutreachEntry[] ?? []))
+      .then(({ data }) => { if (data) { setEntries(data as OutreachEntry[]); cacheWrite('outreach', data, TTL_SHORT) } })
   }, [])
 
   /* â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */

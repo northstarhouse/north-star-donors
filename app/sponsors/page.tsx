@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Award, Plus, X, Pencil, Check, Upload } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
 
 /* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -96,11 +97,15 @@ export default function SponsorsPage() {
 
   /* â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   useEffect(() => {
+    const cs = cacheRead<Sponsor[]>('sponsors')
+    const ck = cacheRead<InKind[]>('sponsors-inkind')
+    if (cs) setSponsors(cs)
+    if (ck) setAllInKind(ck)
     supabase.from('Sponsors').select('*').order('Date Recieved', { ascending: false, nullsFirst: false }).order('id', { ascending: false }).then(({ data }) => {
-      if (data) setSponsors(data as Sponsor[])
+      if (data) { setSponsors(data as Sponsor[]); cacheWrite('sponsors', data, TTL_SHORT) }
     })
     supabase.from('Sponsor In-Kind').select('*').then(({ data }) => {
-      if (data) setAllInKind(data as InKind[])
+      if (data) { setAllInKind(data as InKind[]); cacheWrite('sponsors-inkind', data, TTL_SHORT) }
     })
   }, [])
 
