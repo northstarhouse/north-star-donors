@@ -1214,6 +1214,14 @@ function SocialSection() {
 /* ══════════════════════════════════════════════════════════
    EVENTS SECTION
 ══════════════════════════════════════════════════════════ */
+interface WixEvent {
+  id: string; title: string; status: string
+  start: string | null; end: string | null
+  location: string; description: string
+  rsvp_total: number | null; tickets_sold: number | null
+  url: string | null
+}
+
 const EVENT_EMPTY = { event_name: '', date: '', attendance: '', revenue: '', venue: '', notes: '' }
 
 function EventsSection() {
@@ -1226,12 +1234,31 @@ function EventsSection() {
   type EditEventForm = Omit<Partial<EventEntry>, 'attendance'|'revenue'> & { attendance?: string; revenue?: string }
   const [editForm, setEditForm] = useState<EditEventForm>({})
   const [editSaving, setEditSaving] = useState(false)
+  const [wixEvents, setWixEvents] = useState<WixEvent[] | null>(null)
+  const [wixSelected, setWixSelected] = useState<WixEvent | null>(null)
 
   useEffect(() => {
     const cached = cacheRead<EventEntry[]>(CK.events)
     if (cached) setRows(cached)
     supabase.from('data_events').select('*').order('date', { ascending: false })
       .then(({ data }) => { if (data) { setRows(data as EventEntry[]); cacheWrite(CK.events, data, TTL_DB) } })
+
+    // Load Wix events from cached WIX_URL response or fetch fresh
+    type WixCache = { events?: { events: WixEvent[] } }
+    const cachedWix = cacheRead<WixCache>(CK.wix)
+    if (cachedWix?.events) { setWixEvents(cachedWix.events.events ?? []) }
+    if (WIX_URL) {
+      fetch(WIX_URL).then(r => r.json()).then(json => {
+        if (json.events) {
+          setWixEvents(json.events.events ?? [])
+          // merge into wix cache
+          const prev = cacheRead<Record<string, unknown>>(CK.wix) ?? {}
+          cacheWrite(CK.wix, { ...prev, events: json.events }, TTL_SCRIPT)
+        }
+      }).catch(() => { if (!cachedWix?.events) setWixEvents([]) })
+    } else if (!cachedWix?.events) {
+      setWixEvents([])
+    }
   }, [])
 
   async function submit(e: React.FormEvent) {
@@ -1269,8 +1296,78 @@ function EventsSection() {
   const totalAttendance = (rows ?? []).reduce((s, r) => s + (r.attendance ?? 0), 0)
   const totalRevenue = (rows ?? []).reduce((s, r) => s + (r.revenue ?? 0), 0)
 
+  const fmtWixDate = (s: string | null) => {
+    if (!s) return '—'
+    return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  const WIX_STATUS_COLORS: Record<string, string> = {
+    PUBLISHED: 'bg-emerald-100 text-emerald-700',
+    DRAFT:     'bg-stone-100 text-stone-500',
+    CANCELLED: 'bg-red-100 text-red-600',
+    ENDED:     'bg-stone-100 text-stone-400',
+  }
+
   return (
-    <div>
+    <div className="space-y-6">
+      {/* ── Wix Events ── */}
+      <div>
+        <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Wix Events</p>
+        {wixEvents === null ? (
+          <div className="text-center py-10 text-stone-400 text-sm">Loading…</div>
+        ) : wixEvents.length === 0 ? (
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex items-center justify-center py-10 text-stone-400 text-sm">No events found on Wix.</div>
+        ) : (
+          <div className={`grid gap-5 items-start ${wixSelected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+              <table className="w-full text-sm">
+                <thead><tr className="border-b border-stone-100">
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Event</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Location</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">RSVPs</th>
+                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Date</th>
+                </tr></thead>
+                <tbody>{wixEvents.map(e => (
+                  <tr key={e.id} onClick={() => setWixSelected(prev => prev?.id === e.id ? null : e)}
+                    className={`border-b border-stone-100 last:border-0 cursor-pointer transition-colors ${wixSelected?.id === e.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-stone-800">{e.title}</span>
+                      {e.status && <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${WIX_STATUS_COLORS[e.status] ?? 'bg-stone-100 text-stone-400'}`}>{e.status}</span>}
+                    </td>
+                    <td className="px-4 py-3 text-stone-500 text-xs">{e.location || '—'}</td>
+                    <td className="px-4 py-3 text-right text-stone-700">{e.rsvp_total ?? e.tickets_sold ?? <span className="text-stone-300">—</span>}</td>
+                    <td className="px-4 py-3 text-right text-stone-400 text-xs">{fmtWixDate(e.start)}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{wixEvents.length} event{wixEvents.length !== 1 ? 's' : ''} · live from Wix</div>
+            </div>
+            {wixSelected && (
+              <DetailPanel onClose={() => setWixSelected(null)}>
+                <div className="mb-4">
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${WIX_STATUS_COLORS[wixSelected.status] ?? 'bg-stone-100 text-stone-400'}`}>{wixSelected.status}</span>
+                  <h2 className="font-bold text-stone-800 text-base leading-snug mt-2">{wixSelected.title}</h2>
+                </div>
+                <div className="space-y-3">
+                  <Field label="Start" value={fmtWixDate(wixSelected.start)} />
+                  <Field label="End"   value={fmtWixDate(wixSelected.end)} />
+                  <Field label="Location" value={wixSelected.location || null} />
+                  <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">RSVPs</p><p className="text-sm font-semibold text-stone-800">{wixSelected.rsvp_total?.toLocaleString() ?? '—'}</p></div>
+                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Tickets Sold</p><p className="text-sm font-semibold text-stone-800">{wixSelected.tickets_sold?.toLocaleString() ?? '—'}</p></div>
+                  </div>
+                  {wixSelected.description && <Field label="Description" value={wixSelected.description} />}
+                  {wixSelected.url && <a href={wixSelected.url} target="_blank" rel="noreferrer" className="text-xs text-amber-700 hover:underline">View on Wix →</a>}
+                </div>
+              </DetailPanel>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Manual Event Log ── */}
+      <div>
+        <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Event Log</p>
       <div className="flex items-center justify-between mb-4">
         {rows && rows.length > 0 && (
           <div className="bg-white rounded-xl border border-stone-200 px-4 py-2.5 shadow-sm flex items-center gap-3">
@@ -1387,6 +1484,7 @@ function EventsSection() {
           ) : null}
         </div>
       )}
+      </div>
     </div>
   )
 }

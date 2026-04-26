@@ -24,9 +24,10 @@ function doGet() {
   var pages     = fetchTopPages();
   var cities    = fetchTopCities();
   var sources   = fetchTopSources();
+  var events    = fetchWixEvents();
 
   return ContentService
-    .createTextOutput(JSON.stringify({ analytics: analytics, forms: forms, pages: pages, cities: cities, sources: sources }))
+    .createTextOutput(JSON.stringify({ analytics: analytics, forms: forms, pages: pages, cities: cities, sources: sources, events: events }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -327,6 +328,61 @@ var KEY_LABELS = {
   'form_field':     'Inquiry Type',
   'form_field_1':   'Phone'
 };
+
+// ── Wix Events ────────────────────────────────────────────────────────────────
+
+function fetchWixEvents() {
+  var all = [];
+  var offset = 0;
+  var limit = 100;
+
+  while (true) {
+    var resp = UrlFetchApp.fetch('https://www.wixapis.com/events/v1/events/query', {
+      method: 'POST',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': WIX_TOKEN,
+        'wix-site-id':   WIX_SITE
+      },
+      payload: JSON.stringify({
+        query: {
+          sort: [{ fieldName: 'start.timestamp', order: 'DESC' }],
+          paging: { limit: limit, offset: offset }
+        }
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (resp.getResponseCode() !== 200) {
+      Logger.log('Events error ' + resp.getResponseCode() + ': ' + resp.getContentText());
+      return { events: [], error: 'HTTP ' + resp.getResponseCode() };
+    }
+
+    var json = JSON.parse(resp.getContentText());
+    var rows = json.events || [];
+
+    rows.forEach(function(e) {
+      var loc = e.location || {};
+      all.push({
+        id:          e.id,
+        title:       e.title || '',
+        status:      e.status || '',
+        start:       e.dateAndTimeSettings && e.dateAndTimeSettings.startDate ? e.dateAndTimeSettings.startDate : (e.scheduling && e.scheduling.config && e.scheduling.config.startDate ? e.scheduling.config.startDate : null),
+        end:         e.dateAndTimeSettings && e.dateAndTimeSettings.endDate   ? e.dateAndTimeSettings.endDate   : (e.scheduling && e.scheduling.config && e.scheduling.config.endDate   ? e.scheduling.config.endDate   : null),
+        location:    loc.name || loc.address || '',
+        description: e.description || '',
+        rsvp_total:  e.registration && e.registration.rsvpCollection ? (e.registration.rsvpCollection.total || 0) : null,
+        tickets_sold: e.registration && e.registration.ticketing ? (e.registration.ticketing.totalSold || 0) : null,
+        url:         e.eventPageUrl ? e.eventPageUrl.base + e.eventPageUrl.path : null
+      });
+    });
+
+    if (rows.length < limit) break;
+    offset += limit;
+  }
+
+  return { events: all };
+}
 
 function normalizeFields(raw) {
   var out = {};
