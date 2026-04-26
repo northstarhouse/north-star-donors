@@ -11,8 +11,8 @@ type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'event
 const HONEYBOOK_URL = 'https://script.google.com/macros/s/AKfycbw968UYNRchd6-Nm8V-tEeo48vuPEe3xqfPgKGibhQEP2td2B8mgUs5ThDrkDrmH4WGNA/exec'
 // Deploy wix-webapp.gs and paste the URL here
 const WIX_URL = 'https://script.google.com/macros/s/AKfycbzY3c6_xF2ucrZrQnZLa1bcU2TIcFadBH9UEeIbJYMKumvxygql8ulN-67q1Vu_WM4h/exec'
-// Deploy wix-forms-webapp.gs and paste the URL here. Falls back to WIX_URL until this is set.
-const FORMS_URL = WIX_URL
+// Deploy wix-forms-webapp.gs and paste the URL here.
+const FORMS_URL = ''
 const HONEYBOOK_CACHE_KEY = 'north-star-donors:honeybook:v1'
 const HONEYBOOK_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7
 
@@ -461,14 +461,13 @@ function FormsSection() {
         return
       }
 
-      const formsUrl = FORMS_URL || WIX_URL
-      if (!formsUrl) {
+      if (!FORMS_URL) {
         if (!cancelled) setData({ submissions: [] })
         return
       }
 
       try {
-        const response = await fetch(formsUrl)
+        const response = await fetch(FORMS_URL)
         const json = await response.json()
         if (!cancelled) {
           setSource('wix')
@@ -521,7 +520,7 @@ function FormsSection() {
             {rows.length === 0 && (
               <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
                 <p className="text-sm">No form submissions found.</p>
-                <p className="text-xs text-center max-w-xs">Sync Wix forms into Supabase for faster loads, or keep `WIX_URL` configured as a live fallback.</p>
+                <p className="text-xs text-center max-w-xs">{FORMS_URL ? 'Sync Wix forms into Supabase for faster loads.' : 'Deploy wix-forms-webapp.gs and paste the URL as FORMS_URL in page.tsx.'}</p>
               </div>
             )}
             {grouped.length > 0 && (
