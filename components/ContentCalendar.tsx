@@ -126,9 +126,9 @@ export default function ContentCalendar() {
     if (cached) { setEntries(cached); setLoadingEnt(false) }
 
     const start = `${monthKey}-01`
-    const end   = `${monthKey}-31`
+    const nextMonthStart = `${year + (month === 11 ? 1 : 0)}-${pad(((month + 1) % 12) + 1)}-01`
     supabase.from('content_calendar').select('*')
-      .gte('date', start).lte('date', end)
+      .gte('date', start).lt('date', nextMonthStart)
       .order('date').order('created_at')
       .then(({ data }) => {
         if (data) { setEntries(data as CalEntry[]); cacheWrite(ck, data, TTL_SHORT) }
@@ -236,12 +236,12 @@ export default function ContentCalendar() {
 
   async function applyMonthTemplate() {
     const start = `${monthKey}-01`
-    const end = `${monthKey}-31`
+    const nextMonthStart = `${year + (month === 11 ? 1 : 0)}-${pad(((month + 1) % 12) + 1)}-01`
     const { data: existingRows } = await supabase
       .from('content_calendar')
       .select('date, title')
       .gte('date', start)
-      .lte('date', end)
+      .lt('date', nextMonthStart)
 
     const existingKeys = new Set((existingRows ?? []).map(e => `${e.date}|${String(e.title).trim().toLowerCase()}`))
     const missing = monthRhythm.map(rule => ({
