@@ -653,7 +653,7 @@ function FormsSection() {
     window.scrollTo({ top: scrollYRef.current })
   }, [selected])
 
-  const rows = data?.submissions ?? []
+  const rows = (data?.submissions ?? []).filter(r => r.form_name.trim().toLowerCase() !== 'other form')
   const formNames = [...new Set(rows.map(r => r.form_name))].sort()
   const grouped = formNames.map(name => ({ name, items: rows.filter(r => r.form_name === name) }))
   const activeFormName = activeForm && formNames.includes(activeForm) ? activeForm : (formNames[0] ?? null)
