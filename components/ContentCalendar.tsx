@@ -192,6 +192,7 @@ export default function ContentCalendar() {
   async function toggleScheduled(entry: CalEntry) {
     const next: EntryStatus = entry.status === 'scheduled' ? 'draft' : 'scheduled'
     await supabase.from('content_calendar').update({ status: next }).eq('id', entry.id)
+    cacheWrite(`cal:${monthKey}`, [], 0)
     setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, status: next } : e))
   }
 
@@ -217,12 +218,7 @@ export default function ContentCalendar() {
   while (cells.length % 7 !== 0) cells.push(null)
 
   const uniqueEntries = entries.filter((entry, index, arr) =>
-    arr.findIndex(other =>
-      other.date === entry.date &&
-      other.title.trim().toLowerCase() === entry.title.trim().toLowerCase() &&
-      other.channel === entry.channel &&
-      other.status === entry.status
-    ) === index
+    arr.findIndex(other => other.id === entry.id) === index
   )
 
   const byDay: Record<string, CalEntry[]> = {}
