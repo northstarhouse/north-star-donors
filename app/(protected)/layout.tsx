@@ -1,5 +1,5 @@
-import RequireAuthStatic from '@/components/RequireAuthStatic'
+import PasswordGate from '@/components/PasswordGate'
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  return <RequireAuthStatic>{children}</RequireAuthStatic>
+  return <PasswordGate>{children}</PasswordGate>
 }
