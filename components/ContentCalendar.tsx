@@ -218,7 +218,11 @@ export default function ContentCalendar() {
   while (cells.length % 7 !== 0) cells.push(null)
 
   const uniqueEntries = entries.filter((entry, index, arr) =>
-    arr.findIndex(other => other.id === entry.id) === index
+    arr.findIndex(other =>
+      other.date === entry.date &&
+      other.title.trim().toLowerCase() === entry.title.trim().toLowerCase() &&
+      other.channel === entry.channel
+    ) === index
   )
 
   const byDay: Record<string, CalEntry[]> = {}
