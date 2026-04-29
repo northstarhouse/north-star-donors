@@ -15,6 +15,10 @@ export default function PasswordGate({ children }: { children: React.ReactNode }
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      // Clear any stale Supabase auth session left over from prior magic-link flow.
+      // Idempotent and harmless if no session exists.
+      try { await supabase.auth.signOut({ scope: 'local' }) } catch { /* ignore */ }
+
       const token = getAppToken()
       if (!token) { if (!cancelled) setState('locked'); return }
 
