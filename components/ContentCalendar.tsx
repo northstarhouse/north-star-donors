@@ -455,7 +455,7 @@ export default function ContentCalendar() {
               {selEnts.map(e => {
                 const isEdit = editId === e.id
                 return (
-                  <div key={e.id} className="flex items-start gap-3">
+                  <div key={e.id} className={`flex items-start gap-3 rounded-lg px-2 -mx-2 ${e.status === 'scheduled' ? 'border-l-2 border-amber-400 pl-2' : ''}`}>
                     <span className="mt-2 w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: CH[e.channel].bar }} />
                     {isEdit ? (
                       <div className="flex-1 bg-stone-50 rounded-xl border border-stone-200 p-3 space-y-2">
@@ -494,7 +494,6 @@ export default function ContentCalendar() {
                             <label className="flex items-center gap-1 cursor-pointer select-none" onClick={ev => ev.stopPropagation()}>
                               <input type="checkbox" checked={e.status === 'scheduled'} onChange={() => toggleScheduled(e)}
                                 className="w-3 h-3 accent-amber-500 cursor-pointer" />
-                              {e.status === 'scheduled' && <span className="text-[10px] font-medium text-amber-700">scheduled</span>}
                             </label>
                           </div>
                           {e.notes && <p className="text-xs text-stone-400 mt-1 leading-snug">{e.notes}</p>}
