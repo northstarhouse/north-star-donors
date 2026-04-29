@@ -494,7 +494,7 @@ export default function ContentCalendar() {
                             <label className="flex items-center gap-1 cursor-pointer select-none" onClick={ev => ev.stopPropagation()}>
                               <input type="checkbox" checked={e.status === 'scheduled'} onChange={() => toggleScheduled(e)}
                                 className="w-3 h-3 accent-amber-500 cursor-pointer" />
-                              <span className="text-[10px] text-stone-400">scheduled</span>
+                              {e.status === 'scheduled' && <span className="text-[10px] font-medium text-amber-700">scheduled</span>}
                             </label>
                           </div>
                           {e.notes && <p className="text-xs text-stone-400 mt-1 leading-snug">{e.notes}</p>}
