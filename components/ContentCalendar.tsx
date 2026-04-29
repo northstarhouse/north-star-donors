@@ -189,6 +189,12 @@ export default function ContentCalendar() {
     setEntries(prev => prev.filter(e => e.id !== id))
   }
 
+  async function toggleScheduled(entry: CalEntry) {
+    const next: EntryStatus = entry.status === 'scheduled' ? 'draft' : 'scheduled'
+    await supabase.from('content_calendar').update({ status: next }).eq('id', entry.id)
+    setEntries(prev => prev.map(e => e.id === entry.id ? { ...e, status: next } : e))
+  }
+
   async function saveComment() {
     if (!commentDraft.trim()) return
     setCommentSaving(true)
@@ -485,7 +491,11 @@ export default function ContentCalendar() {
                           <p className="text-sm font-medium text-stone-800 leading-snug">{e.title}</p>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${CH[e.channel].bg} ${CH[e.channel].text}`}>{e.channel}</span>
-                            <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${STATUS_PILL[e.status]}`}>{e.status}</span>
+                            <label className="flex items-center gap-1 cursor-pointer select-none" onClick={ev => ev.stopPropagation()}>
+                              <input type="checkbox" checked={e.status === 'scheduled'} onChange={() => toggleScheduled(e)}
+                                className="w-3 h-3 accent-amber-500 cursor-pointer" />
+                              <span className="text-[10px] text-stone-400">scheduled</span>
+                            </label>
                           </div>
                           {e.notes && <p className="text-xs text-stone-400 mt-1 leading-snug">{e.notes}</p>}
                         </div>
