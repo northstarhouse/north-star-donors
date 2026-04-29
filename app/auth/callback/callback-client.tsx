@@ -10,10 +10,11 @@ export default function CallbackClient() {
   const [errorMsg, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const code      = searchParams.get('code')
     const tokenHash = searchParams.get('token_hash')
     const type      = searchParams.get('type')
 
-    if (!tokenHash || !type) {
+    if (!code && !tokenHash) {
       setError('Sign-in link is missing required parameters. Try requesting a new one.')
       return
     }
@@ -21,10 +22,9 @@ export default function CallbackClient() {
     let cancelled = false
 
     ;(async () => {
-      const { error } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
-        type:       type as 'magiclink',
-      })
+      const { error } = code
+        ? await supabase.auth.exchangeCodeForSession(code)
+        : await supabase.auth.verifyOtp({ token_hash: tokenHash!, type: (type || 'magiclink') as 'magiclink' })
 
       if (cancelled) return
 
