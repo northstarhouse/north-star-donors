@@ -330,7 +330,7 @@ export default function ContentCalendar() {
                   </div>
                   {dayEnts.slice(0, 3).map(e => (
                     <div key={e.id}
-                      className={`text-[10px] font-medium px-1.5 py-0.5 rounded mb-0.5 truncate ${CH[e.channel].bg} ${CH[e.channel].text}`}>
+                      className={`text-[10px] font-medium px-1.5 py-0.5 rounded mb-0.5 truncate ${CH[e.channel].bg} ${CH[e.channel].text} ${e.status === 'scheduled' ? 'ring-1 ring-amber-400' : ''}`}>
                       {e.title}
                     </div>
                   ))}
