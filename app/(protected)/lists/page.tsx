@@ -138,12 +138,13 @@ export default function ListsPage() {
 
   function exportList() {
     const rows = [
-      ['Formal Name', 'Informal First Name', 'Address'],
-      ...listDonors.map(d => [
-        d.formal_name,
-        d.informal_first_name ?? '',
-        d.address ?? '',
-      ])
+      ['Formal Name', 'Informal Name', 'Address', 'City State Zip'],
+      ...listDonors.map(d => {
+        const parts = (d.address ?? '').split('\n')
+        const addressLine = parts[0] ?? ''
+        const cityStateZip = parts.slice(1).join(' ').trim()
+        return [d.formal_name, d.informal_first_name ?? '', addressLine, cityStateZip]
+      })
     ]
     const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n')
     const blob = new Blob([csv], { type: 'text/csv' })
