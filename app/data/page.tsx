@@ -1302,71 +1302,73 @@ function EventsSection() {
     supabase.from('data_events').select('*').order('date', { ascending: false })
       .then(({ data }) => { if (data) { setRows(data as EventEntry[]); cacheWrite(CK.events, data, TTL_DB) } })
 
-    // Load Wix events — try GAS proxy first (has revenue), fall back to direct Wix API
+    // Step 1: show cached events immediately
     const cachedEvents = cacheRead<WixEvent[]>(CK.wixEvents)
     if (cachedEvents) setWixEvents(cachedEvents)
 
     async function loadWixEvents() {
-      // Try GAS endpoint (includes revenue) with a 20s timeout
-      try {
-        const controller = new AbortController()
-        const tid = setTimeout(() => controller.abort(), 20000)
-        const resp = await fetch(WIX_URL, { signal: controller.signal })
-        clearTimeout(tid)
-        const json = await resp.json()
-        const evts: WixEvent[] = json.events?.events ?? []
-        if (evts.length) {
-          setWixEvents(evts)
-          cacheWrite(CK.wixEvents, evts, TTL_SCRIPT)
-          return
-        }
-      } catch { /* timed out or failed — fall through */ }
-
-      // Fallback: direct anonymous Wix API (fast, no revenue data)
+      // Always fetch basic event data from anonymous Wix API first (fast, reliable)
+      let baseEvents: WixEvent[] = []
       try {
         const tokenResp = await fetch('https://www.wixapis.com/oauth2/token', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ clientId: WIX_CLIENT_ID, grantType: 'anonymous' }),
         })
         const { access_token } = await tokenResp.json()
-        if (!access_token) { if (!cachedEvents) setWixEvents([]); return }
-        const all: WixEvent[] = []
-        let offset = 0
-        while (true) {
-          const r = await fetch('https://www.wixapis.com/events/v3/events/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': access_token },
-            body: JSON.stringify({ query: { sort: [{ fieldName: 'scheduling.startDate', order: 'DESC' }], paging: { limit: 100, offset } } }),
-          })
-          const json = await r.json()
-          const rows: Record<string, unknown>[] = json.events ?? []
-          rows.forEach((e: Record<string, unknown>) => {
-            const config = (((e.scheduling as Record<string,unknown>)?.config) as Record<string,unknown>) ?? {}
-            const loc    = (e.location as Record<string,unknown>) ?? {}
-            const locAddr = (loc.address as Record<string,unknown>) ?? {}
-            const reg    = (e.registration as Record<string,unknown>) ?? {}
-            const rsvp   = (reg.rsvpCollection as Record<string,unknown>) ?? null
-            const tix    = (reg.ticketing as Record<string,unknown>) ?? null
-            const pu     = (e.eventPageUrl as Record<string,unknown>) ?? {}
-            all.push({
-              id: String(e.id ?? ''), title: String(e.title ?? ''), status: String(e.status ?? ''),
-              start: (config.startDate as string) ?? null, end: (config.endDate as string) ?? null,
-              location: String(loc.name ?? locAddr.formattedAddress ?? ''),
-              description: String(e.description ?? ''),
-              rsvp_total:   rsvp ? Number((rsvp as Record<string,unknown>).total   ?? 0) : null,
-              tickets_sold: tix  ? Number((tix  as Record<string,unknown>).totalSold ?? 0) : null,
-              revenue: null, order_count: null, currency: 'USD',
-              url: pu.base ? String(pu.base) + String((pu as Record<string,unknown>).path ?? '') : null,
+        if (access_token) {
+          const all: WixEvent[] = []
+          let offset = 0
+          while (true) {
+            const r = await fetch('https://www.wixapis.com/events/v3/events/query', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': access_token },
+              body: JSON.stringify({ query: { sort: [{ fieldName: 'scheduling.startDate', order: 'DESC' }], paging: { limit: 100, offset } } }),
             })
-          })
-          if (rows.length < 100) break
-          offset += 100
+            const json = await r.json()
+            const rows: Record<string, unknown>[] = json.events ?? []
+            rows.forEach((e: Record<string, unknown>) => {
+              const config = (((e.scheduling as Record<string,unknown>)?.config) as Record<string,unknown>) ?? {}
+              const loc    = (e.location as Record<string,unknown>) ?? {}
+              const locAddr = (loc.address as Record<string,unknown>) ?? {}
+              const reg    = (e.registration as Record<string,unknown>) ?? {}
+              const rsvp   = (reg.rsvpCollection as Record<string,unknown>) ?? null
+              const tix    = (reg.ticketing as Record<string,unknown>) ?? null
+              const pu     = (e.eventPageUrl as Record<string,unknown>) ?? {}
+              all.push({
+                id: String(e.id ?? ''), title: String(e.title ?? ''), status: String(e.status ?? ''),
+                start: (config.startDate as string) ?? null, end: (config.endDate as string) ?? null,
+                location: String(loc.name ?? locAddr.formattedAddress ?? ''),
+                description: String(e.description ?? ''),
+                rsvp_total:   rsvp ? Number((rsvp as Record<string,unknown>).total    ?? 0) : null,
+                tickets_sold: tix  ? Number((tix  as Record<string,unknown>).totalSold ?? 0) : null,
+                revenue: null, order_count: null, currency: 'USD',
+                url: pu.base ? String(pu.base) + String((pu as Record<string,unknown>).path ?? '') : null,
+              })
+            })
+            if (rows.length < 100) break
+            offset += 100
+          }
+          baseEvents = all
+          setWixEvents(all)
+          cacheWrite(CK.wixEvents, all, TTL_SCRIPT)
         }
-        setWixEvents(all)
-        cacheWrite(CK.wixEvents, all, TTL_SCRIPT)
-      } catch {
-        if (!cachedEvents) setWixEvents([])
-      }
+      } catch { /* anonymous API failed */ }
+
+      if (!baseEvents.length && !cachedEvents) setWixEvents([])
+
+      // Step 2: enrich with revenue from GAS in the background (25s timeout)
+      try {
+        const ctrl = new AbortController()
+        const tid = setTimeout(() => ctrl.abort(), 25000)
+        const resp = await fetch(WIX_URL, { signal: ctrl.signal })
+        clearTimeout(tid)
+        const json = await resp.json()
+        const evts: WixEvent[] = json.events?.events ?? []
+        if (evts.length) {
+          setWixEvents(evts)
+          cacheWrite(CK.wixEvents, evts, TTL_SCRIPT)
+        }
+      } catch { /* GAS timed out or failed — keep base events */ }
     }
     loadWixEvents()
   }, [])
