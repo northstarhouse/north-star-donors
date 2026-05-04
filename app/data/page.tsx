@@ -219,7 +219,6 @@ function usePrefetchAll() {
     }
   }, [])
 }
-}
 
 /* â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function DataPage() {
@@ -1306,19 +1305,19 @@ function EventsSection() {
         const url = WIX_URL + '?t=' + Date.now()
         const resp = await fetch(url, { signal: ctrl.signal })
         clearTimeout(timer)
-        const text = await resp.text()
-        console.log('[wix-events] status:', resp.status, 'body preview:', text.slice(0, 200))
-        const json = JSON.parse(text)
-        const rawEvents = (json as any)?.events ?? json
-        const rows: Record<string, unknown>[] = Array.isArray(rawEvents)
-          ? rawEvents
-          : Array.isArray((rawEvents as any)?.events)
-            ? (rawEvents as any).events
-            : Array.isArray((json as any)?.events)
-              ? (json as any).events
+        const json = await resp.json()
+        if (!resp.ok) {
+          console.warn('[wix-events] non-ok response', resp.status, json)
+        }
+        const rows: Record<string, unknown>[] = Array.isArray((json as any)?.events)
+          ? (json as any).events
+          : Array.isArray((json as any)?.events?.events)
+            ? (json as any).events.events
+            : Array.isArray(json)
+              ? json
               : []
-        console.log('[wix-events] rows count:', rows.length, 'raw shape:', typeof rawEvents, 'hasNestedEvents:', Array.isArray((rawEvents as any)?.events))
-        if (!Array.isArray(rows)) { if (!cachedEvents) setWixEvents([]); return }
+        console.log('[wix-events] rows count:', rows.length, 'json keys:', Object.keys(json || {}))
+        if (!rows.length) { if (!cachedEvents) setWixEvents([]); return }
         const all: WixEvent[] = rows.map((e: Record<string, unknown>) => {
           const sched   = (e.scheduling as Record<string, unknown>) ?? {}
           const config  = (sched.config  as Record<string, unknown>) ?? {}
