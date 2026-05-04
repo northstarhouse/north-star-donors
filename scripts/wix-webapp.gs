@@ -331,57 +331,6 @@ var KEY_LABELS = {
 
 // ── Wix Events ────────────────────────────────────────────────────────────────
 
-function fetchOrderStatsForEvent(eventId) {
-  var revenue = 0;
-  var order_count = 0;
-  var currency = 'USD';
-  var offset = 0;
-  var limit = 100;
-
-  while (true) {
-    var resp = UrlFetchApp.fetch('https://www.wixapis.com/events/v1/orders/query', {
-      method: 'POST',
-      contentType: 'application/json',
-      headers: {
-        'Authorization': WIX_TOKEN,
-        'wix-site-id':   WIX_SITE
-      },
-      payload: JSON.stringify({
-        query: {
-          filter: {
-            'eventId': { '$eq': eventId },
-            'status':  { '$eq': 'PAID' }
-          },
-          paging: { limit: limit, offset: offset }
-        }
-      }),
-      muteHttpExceptions: true
-    });
-
-    if (resp.getResponseCode() !== 200) {
-      Logger.log('Orders error for event ' + eventId + ': ' + resp.getResponseCode() + ' ' + resp.getContentText().substring(0, 200));
-      break;
-    }
-
-    var json = JSON.parse(resp.getContentText());
-    var orders = json.orders || [];
-
-    orders.forEach(function(order) {
-      var price = order.totalPrice;
-      if (price && price.amount) {
-        revenue += parseFloat(price.amount) || 0;
-        if (price.currency) currency = price.currency;
-      }
-      order_count += 1;
-    });
-
-    if (orders.length < limit) break;
-    offset += limit;
-  }
-
-  return { revenue: revenue, order_count: order_count, currency: currency };
-}
-
 function fetchWixEvents() {
   // Phase 1: fetch all events
   var rawEvents = [];
