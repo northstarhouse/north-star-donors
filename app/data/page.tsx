@@ -1302,11 +1302,15 @@ function EventsSection() {
       if (!WIX_URL) { if (!cachedEvents) setWixEvents([]); return }
       try {
         const ctrl = new AbortController()
-        const timer = setTimeout(() => ctrl.abort(), 25000)
-        const resp = await fetch(WIX_URL, { signal: ctrl.signal })
+        const timer = setTimeout(() => ctrl.abort(), 55000)
+        const url = WIX_URL + '?t=' + Date.now()
+        const resp = await fetch(url, { signal: ctrl.signal })
         clearTimeout(timer)
-        const json = await resp.json()
+        const text = await resp.text()
+        console.log('[wix-events] status:', resp.status, 'body preview:', text.slice(0, 200))
+        const json = JSON.parse(text)
         const rows: Record<string, unknown>[] = (json.events as { events?: Record<string, unknown>[] })?.events ?? []
+        console.log('[wix-events] rows count:', rows.length)
         if (!Array.isArray(rows)) { if (!cachedEvents) setWixEvents([]); return }
         const all: WixEvent[] = rows.map((e: Record<string, unknown>) => {
           const sched   = (e.scheduling as Record<string, unknown>) ?? {}
@@ -1335,7 +1339,8 @@ function EventsSection() {
         })
         setWixEvents(all)
         cacheWrite(CK.wixEvents, all, TTL_SCRIPT)
-      } catch {
+      } catch (err) {
+        console.error('[wix-events] error:', err)
         if (!cachedEvents) setWixEvents([])
       }
     }
