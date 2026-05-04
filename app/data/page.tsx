@@ -49,7 +49,7 @@ const CK = {
   email:     'north-star-donors:email:v1',
   social:    'north-star-donors:social:v1',
   events:    'north-star-donors:events:v1',
-  wixEvents: 'north-star-donors:wix-events:v1',
+  wixEvents: 'north-star-donors:wix-events:v2',
   analytics: 'north-star-donors:analytics:v1',
   feedback:  'north-star-donors:feedback:v1',
 }

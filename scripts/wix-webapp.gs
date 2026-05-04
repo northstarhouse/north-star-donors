@@ -427,14 +427,32 @@ function fetchWixEvents() {
     var ticketing = reg.ticketing || null;
     var pageUrl   = e.eventPageUrl || {};
 
+    // Start/end: v3 API stores dates at scheduling.startDate or scheduling.config.startDate
+    var startDate = sched.startDate || config.startDate || null;
+    var endDate   = sched.endDate   || config.endDate   || null;
+
+    // Description may be a Wix rich-text object — extract plain text
+    var rawDesc = e.description || '';
+    var descText = '';
+    if (typeof rawDesc === 'string') {
+      descText = rawDesc;
+    } else if (rawDesc && rawDesc.nodes) {
+      rawDesc.nodes.forEach(function(block) {
+        (block.nodes || []).forEach(function(node) {
+          if (node.textData && node.textData.text) descText += node.textData.text + ' ';
+        });
+      });
+      descText = descText.trim();
+    }
+
     return {
       id:           e.id,
       title:        e.title || '',
       status:       e.status || '',
-      start:        config.startDate || null,
-      end:          config.endDate   || null,
+      start:        startDate,
+      end:          endDate,
       location:     loc.name || (loc.address && loc.address.formattedAddress) || '',
-      description:  e.description || '',
+      description:  descText,
       rsvp_total:   rsvp     ? (rsvp.total        || 0) : null,
       tickets_sold: ticketing ? (ticketing.totalSold || 0) : null,
       revenue:      null,
