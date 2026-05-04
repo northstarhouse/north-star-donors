@@ -331,22 +331,58 @@ var KEY_LABELS = {
 
 // ── Wix Events ────────────────────────────────────────────────────────────────
 
-var WIX_CLIENT_ID = '46191fb3-0113-44a7-9bd2-031200714fea';
+function fetchEventOrderStats() {
+  var stats = {};
+  var offset = 0;
+  var limit = 100;
 
-function getWixAnonToken() {
-  var resp = UrlFetchApp.fetch('https://www.wixapis.com/oauth2/token', {
-    method: 'POST',
-    contentType: 'application/json',
-    payload: JSON.stringify({ clientId: WIX_CLIENT_ID, grantType: 'anonymous' }),
-    muteHttpExceptions: true
-  });
-  var json = JSON.parse(resp.getContentText());
-  return json.access_token || null;
+  while (true) {
+    var resp = UrlFetchApp.fetch('https://www.wixapis.com/events/v1/orders/query', {
+      method: 'POST',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': WIX_TOKEN,
+        'wix-site-id':   WIX_SITE
+      },
+      payload: JSON.stringify({
+        query: {
+          filter: { status: { '$eq': 'PAID' } },
+          paging: { limit: limit, offset: offset }
+        }
+      }),
+      muteHttpExceptions: true
+    });
+
+    if (resp.getResponseCode() !== 200) {
+      Logger.log('Orders error ' + resp.getResponseCode() + ': ' + resp.getContentText().substring(0, 200));
+      break;
+    }
+
+    var json = JSON.parse(resp.getContentText());
+    var orders = json.orders || [];
+
+    orders.forEach(function(order) {
+      var eid = order.eventId;
+      if (!eid) return;
+      if (!stats[eid]) stats[eid] = { revenue: 0, order_count: 0, currency: 'USD' };
+      var price = order.totalPrice;
+      if (price && price.amount) {
+        stats[eid].revenue += parseFloat(price.amount) || 0;
+        if (price.currency) stats[eid].currency = price.currency;
+      }
+      stats[eid].order_count += 1;
+    });
+
+    if (orders.length < limit) break;
+    offset += limit;
+  }
+
+  return stats;
 }
 
 function fetchWixEvents() {
-  var token = getWixAnonToken();
-  if (!token) { Logger.log('Events: failed to get anon token'); return { events: [], error: 'Could not get access token' }; }
+  var orderStats = {};
+  try { orderStats = fetchEventOrderStats(); } catch(e) { Logger.log('Order stats error: ' + e); }
 
   var all = [];
   var offset = 0;
@@ -356,7 +392,10 @@ function fetchWixEvents() {
     var resp = UrlFetchApp.fetch('https://www.wixapis.com/events/v3/events/query', {
       method: 'POST',
       contentType: 'application/json',
-      headers: { 'Authorization': token },
+      headers: {
+        'Authorization': WIX_TOKEN,
+        'wix-site-id':   WIX_SITE
+      },
       payload: JSON.stringify({
         query: {
           sort: [{ fieldName: 'scheduling.startDate', order: 'DESC' }],
@@ -375,13 +414,14 @@ function fetchWixEvents() {
     var rows = json.events || [];
 
     rows.forEach(function(e) {
-      var loc      = e.location || {};
-      var sched    = e.scheduling || {};
-      var config   = sched.config || {};
-      var reg      = e.registration || {};
-      var rsvp     = reg.rsvpCollection || null;
+      var loc       = e.location || {};
+      var sched     = e.scheduling || {};
+      var config    = sched.config || {};
+      var reg       = e.registration || {};
+      var rsvp      = reg.rsvpCollection || null;
       var ticketing = reg.ticketing || null;
-      var pageUrl  = e.eventPageUrl || {};
+      var pageUrl   = e.eventPageUrl || {};
+      var stats     = orderStats[e.id] || {};
 
       all.push({
         id:           e.id,
@@ -391,8 +431,11 @@ function fetchWixEvents() {
         end:          config.endDate   || null,
         location:     loc.name || (loc.address && loc.address.formattedAddress) || '',
         description:  e.description || '',
-        rsvp_total:   rsvp     ? (rsvp.total     || 0) : null,
+        rsvp_total:   rsvp     ? (rsvp.total        || 0) : null,
         tickets_sold: ticketing ? (ticketing.totalSold || 0) : null,
+        revenue:      stats.revenue     != null ? stats.revenue     : null,
+        order_count:  stats.order_count != null ? stats.order_count : null,
+        currency:     stats.currency || 'USD',
         url:          pageUrl.base ? pageUrl.base + (pageUrl.path || '') : null
       });
     });

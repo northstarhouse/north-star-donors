@@ -207,55 +207,22 @@ function usePrefetchAll() {
       }).catch(() => {})
     }
 
-    // Wix analytics â€” skip if already cached
-    if (WIX_URL && !cacheRead(CK.wix)) {
+    // Wix analytics + events — skip fetching if both already cached
+    const needsWix = WIX_URL && !cacheRead(CK.wix)
+    const needsWixEvents = WIX_URL && !cacheRead(CK.wixEvents)
+    if (needsWix || needsWixEvents) {
       fetch(WIX_URL).then(r => r.json()).then(json => {
-        cacheWrite(CK.wix, {
-          pages:   json.pages   ?? { rows: [] },
-          cities:  json.cities  ?? { rows: [] },
-          sources: json.sources ?? { rows: [] },
-        }, TTL_SCRIPT)
-      }).catch(() => {})
-    }
-
-    // Wix events â€” skip if already cached
-    if (!cacheRead(CK.wixEvents)) {
-      fetch('https://www.wixapis.com/oauth2/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientId: WIX_CLIENT_ID, grantType: 'anonymous' }),
-      }).then(r => r.json()).then(async ({ access_token }) => {
-        if (!access_token) return
-        const all: WixEvent[] = []
-        let offset = 0
-        while (true) {
-          const resp = await fetch('https://www.wixapis.com/events/v3/events/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': access_token },
-            body: JSON.stringify({ query: { sort: [{ fieldName: 'scheduling.startDate', order: 'DESC' }], paging: { limit: 100, offset } } }),
-          })
-          const json = await resp.json()
-          const rows: Record<string, unknown>[] = json.events ?? []
-          rows.forEach((e: Record<string, unknown>) => {
-            const config = ((e.scheduling as Record<string,unknown>)?.config as Record<string,unknown>) ?? {}
-            const loc    = (e.location as Record<string,unknown>) ?? {}
-            const locAddr = (loc.address as Record<string,unknown>) ?? {}
-            const reg    = (e.registration as Record<string,unknown>) ?? {}
-            const rsvp   = (reg.rsvpCollection as Record<string,unknown>) ?? null
-            const tix    = (reg.ticketing as Record<string,unknown>) ?? null
-            const pu     = (e.eventPageUrl as Record<string,unknown>) ?? {}
-            all.push({ id: String(e.id ?? ''), title: String(e.title ?? ''), status: String(e.status ?? ''),
-              start: (config.startDate as string) ?? null, end: (config.endDate as string) ?? null,
-              location: String(loc.name ?? locAddr.formattedAddress ?? ''),
-              description: String(e.description ?? ''),
-              rsvp_total: rsvp ? Number(rsvp.total ?? 0) : null,
-              tickets_sold: tix ? Number(tix.totalSold ?? 0) : null,
-              url: pu.base ? String(pu.base) + String(pu.path ?? '') : null })
-          })
-          if (rows.length < 100) break
-          offset += 100
+        if (needsWix) {
+          cacheWrite(CK.wix, {
+            pages:   json.pages   ?? { rows: [] },
+            cities:  json.cities  ?? { rows: [] },
+            sources: json.sources ?? { rows: [] },
+          }, TTL_SCRIPT)
         }
-        cacheWrite(CK.wixEvents, all, TTL_SCRIPT)
+        const evts: WixEvent[] = json.events?.events ?? []
+        if (needsWixEvents && evts.length) {
+          cacheWrite(CK.wixEvents, evts, TTL_SCRIPT)
+        }
       }).catch(() => {})
     }
   }, [])
@@ -1310,6 +1277,7 @@ interface WixEvent {
   start: string | null; end: string | null
   location: string; description: string
   rsvp_total: number | null; tickets_sold: number | null
+  revenue: number | null; order_count: number | null; currency: string
   url: string | null
 }
 
@@ -1334,59 +1302,21 @@ function EventsSection() {
     supabase.from('data_events').select('*').order('date', { ascending: false })
       .then(({ data }) => { if (data) { setRows(data as EventEntry[]); cacheWrite(CK.events, data, TTL_DB) } })
 
-    // Load Wix events directly from Wix API using anonymous token
+    // Load Wix events via GAS proxy (includes revenue data)
     const cachedEvents = cacheRead<WixEvent[]>(CK.wixEvents)
     if (cachedEvents) setWixEvents(cachedEvents)
 
     async function loadWixEvents() {
       try {
-        // Step 1: get anonymous token
-        const tokenResp = await fetch('https://www.wixapis.com/oauth2/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId: WIX_CLIENT_ID, grantType: 'anonymous' }),
-        })
-        const { access_token } = await tokenResp.json()
-        if (!access_token) { if (!cachedEvents) setWixEvents([]); return }
-
-        // Step 2: query events
-        const all: WixEvent[] = []
-        let offset = 0
-        while (true) {
-          const resp = await fetch('https://www.wixapis.com/events/v3/events/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': access_token },
-            body: JSON.stringify({ query: { sort: [{ fieldName: 'scheduling.startDate', order: 'DESC' }], paging: { limit: 100, offset } } }),
-          })
-          const json = await resp.json()
-          const rows: Record<string, unknown>[] = json.events ?? []
-          rows.forEach((e: Record<string, unknown>) => {
-            const sched = (e.scheduling as Record<string, unknown>) ?? {}
-            const config = (sched.config as Record<string, unknown>) ?? {}
-            const loc = (e.location as Record<string, unknown>) ?? {}
-            const locAddr = (loc.address as Record<string, unknown>) ?? {}
-            const reg = (e.registration as Record<string, unknown>) ?? {}
-            const rsvp = (reg.rsvpCollection as Record<string, unknown>) ?? null
-            const ticketing = (reg.ticketing as Record<string, unknown>) ?? null
-            const pageUrl = (e.eventPageUrl as Record<string, unknown>) ?? {}
-            all.push({
-              id:           String(e.id ?? ''),
-              title:        String(e.title ?? ''),
-              status:       String(e.status ?? ''),
-              start:        (config.startDate as string) ?? null,
-              end:          (config.endDate   as string) ?? null,
-              location:     String(loc.name ?? locAddr.formattedAddress ?? ''),
-              description:  String(e.description ?? ''),
-              rsvp_total:   rsvp     ? Number(rsvp.total     ?? 0) : null,
-              tickets_sold: ticketing ? Number((ticketing as Record<string,unknown>).totalSold ?? 0) : null,
-              url:          pageUrl.base ? String(pageUrl.base) + String(pageUrl.path ?? '') : null,
-            })
-          })
-          if (rows.length < 100) break
-          offset += 100
+        const resp = await fetch(WIX_URL)
+        const json = await resp.json()
+        const evts: WixEvent[] = json.events?.events ?? []
+        if (evts.length) {
+          setWixEvents(evts)
+          cacheWrite(CK.wixEvents, evts, TTL_SCRIPT)
+        } else if (!cachedEvents) {
+          setWixEvents([])
         }
-        setWixEvents(all)
-        cacheWrite(CK.wixEvents, all, TTL_SCRIPT)
       } catch {
         if (!cachedEvents) setWixEvents([])
       }
@@ -1441,9 +1371,15 @@ function EventsSection() {
     ENDED:     'bg-stone-100 text-stone-400',
   }
 
+  // Summary stats across all Wix events
+  const wixTotalRevenue    = (wixEvents ?? []).reduce((s, e) => s + (e.revenue ?? 0), 0)
+  const wixTotalTickets    = (wixEvents ?? []).reduce((s, e) => s + (e.tickets_sold ?? 0), 0)
+  const wixTotalRsvps      = (wixEvents ?? []).reduce((s, e) => s + (e.rsvp_total ?? 0), 0)
+  const wixHasRevenue      = (wixEvents ?? []).some(e => e.revenue != null)
+
   return (
     <div className="space-y-6">
-      {/* â”€â”€ Wix Events â”€â”€ */}
+      {/* — Wix Events — */}
       <div>
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Wix Events</p>
         {wixEvents === null ? (
@@ -1451,50 +1387,90 @@ function EventsSection() {
         ) : wixEvents.length === 0 ? (
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex items-center justify-center py-10 text-stone-400 text-sm">No events found on Wix.</div>
         ) : (
-          <div className={`grid gap-5 items-start ${wixSelected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
-            <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-stone-100">
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Event</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Location</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">RSVPs</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Date</th>
-                </tr></thead>
-                <tbody>{wixEvents.map(e => (
-                  <tr key={e.id} onClick={() => setWixSelected(prev => prev?.id === e.id ? null : e)}
-                    className={`border-b border-stone-100 last:border-0 cursor-pointer transition-colors ${wixSelected?.id === e.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
-                    <td className="px-4 py-3">
-                      <span className="font-medium text-stone-800">{e.title}</span>
-                      {e.status && <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${WIX_STATUS_COLORS[e.status] ?? 'bg-stone-100 text-stone-400'}`}>{e.status}</span>}
-                    </td>
-                    <td className="px-4 py-3 text-stone-500 text-xs">{e.location || '-'}</td>
-                    <td className="px-4 py-3 text-right text-stone-700">{e.rsvp_total ?? e.tickets_sold ?? <span className="text-stone-300">-</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-400 text-xs">{fmtWixDate(e.start)}</td>
-                  </tr>
-                ))}</tbody>
-              </table>
-              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{wixEvents.length} event{wixEvents.length !== 1 ? 's' : ''} - live from Wix</div>
+          <>
+            {/* Summary stats */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="bg-white rounded-xl border border-stone-200 px-4 py-3 shadow-sm">
+                <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Total Events</p>
+                <p className="text-xl font-semibold text-stone-800">{wixEvents.length}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-stone-200 px-4 py-3 shadow-sm">
+                <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">{wixHasRevenue ? 'Tickets Sold' : 'RSVPs'}</p>
+                <p className="text-xl font-semibold text-stone-800">{(wixHasRevenue ? wixTotalTickets : wixTotalRsvps).toLocaleString()}</p>
+              </div>
+              <div className="bg-white rounded-xl border border-stone-200 px-4 py-3 shadow-sm">
+                <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Ticket Revenue</p>
+                <p className="text-xl font-semibold" style={{ color: 'var(--gold)' }}>{wixHasRevenue ? fmt$(wixTotalRevenue) : '-'}</p>
+              </div>
             </div>
-            {wixSelected && (
-              <DetailPanel onClose={() => setWixSelected(null)}>
-                <div className="mb-4">
-                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${WIX_STATUS_COLORS[wixSelected.status] ?? 'bg-stone-100 text-stone-400'}`}>{wixSelected.status}</span>
-                  <h2 className="font-bold text-stone-800 text-base leading-snug mt-2">{wixSelected.title}</h2>
-                </div>
-                <div className="space-y-3">
-                  <Field label="Start" value={fmtWixDate(wixSelected.start)} />
-                  <Field label="End"   value={fmtWixDate(wixSelected.end)} />
-                  <Field label="Location" value={wixSelected.location || null} />
-                  <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">RSVPs</p><p className="text-sm font-semibold text-stone-800">{wixSelected.rsvp_total?.toLocaleString() ?? '-'}</p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Tickets Sold</p><p className="text-sm font-semibold text-stone-800">{wixSelected.tickets_sold?.toLocaleString() ?? '-'}</p></div>
+
+            <div className={`grid gap-5 items-start ${wixSelected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
+              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-stone-100">
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Event</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Location</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Tickets / RSVPs</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Revenue</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Date</th>
+                  </tr></thead>
+                  <tbody>{wixEvents.map(e => (
+                    <tr key={e.id} onClick={() => setWixSelected(prev => prev?.id === e.id ? null : e)}
+                      className={`border-b border-stone-100 last:border-0 cursor-pointer transition-colors ${wixSelected?.id === e.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
+                      <td className="px-4 py-3">
+                        <span className="font-medium text-stone-800">{e.title}</span>
+                        {e.status && <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${WIX_STATUS_COLORS[e.status] ?? 'bg-stone-100 text-stone-400'}`}>{e.status}</span>}
+                      </td>
+                      <td className="px-4 py-3 text-stone-500 text-xs">{e.location || '-'}</td>
+                      <td className="px-4 py-3 text-right text-stone-700">{e.tickets_sold ?? e.rsvp_total ?? <span className="text-stone-300">-</span>}</td>
+                      <td className="px-4 py-3 text-right font-medium" style={{ color: e.revenue != null ? 'var(--gold)' : undefined }}>
+                        {e.revenue != null ? fmt$(e.revenue) : <span className="text-stone-300">-</span>}
+                      </td>
+                      <td className="px-4 py-3 text-right text-stone-400 text-xs">{fmtWixDate(e.start)}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+                <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{wixEvents.length} event{wixEvents.length !== 1 ? 's' : ''} - live from Wix</div>
+              </div>
+              {wixSelected && (
+                <DetailPanel onClose={() => setWixSelected(null)}>
+                  <div className="mb-4">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${WIX_STATUS_COLORS[wixSelected.status] ?? 'bg-stone-100 text-stone-400'}`}>{wixSelected.status}</span>
+                    <h2 className="font-bold text-stone-800 text-base leading-snug mt-2">{wixSelected.title}</h2>
                   </div>
-                  {wixSelected.description && <Field label="Description" value={wixSelected.description} />}
-                  {wixSelected.url && <a href={wixSelected.url} target="_blank" rel="noreferrer" className="text-xs text-amber-700 hover:underline">View on Wix â†’</a>}
-                </div>
-              </DetailPanel>
-            )}
-          </div>
+                  <div className="space-y-3">
+                    <Field label="Start"    value={fmtWixDate(wixSelected.start)} />
+                    <Field label="End"      value={fmtWixDate(wixSelected.end)} />
+                    <Field label="Location" value={wixSelected.location || null} />
+                    {wixSelected.tickets_sold != null ? (
+                      <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
+                        <div>
+                          <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Tickets Sold</p>
+                          <p className="text-lg font-semibold text-stone-800">{wixSelected.tickets_sold.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Revenue</p>
+                          <p className="text-lg font-semibold" style={{ color: 'var(--gold)' }}>
+                            {wixSelected.revenue != null ? fmt$(wixSelected.revenue) : '-'}
+                          </p>
+                        </div>
+                      </div>
+                    ) : wixSelected.rsvp_total != null ? (
+                      <div className="bg-stone-50 rounded-xl p-3">
+                        <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">RSVPs</p>
+                        <p className="text-lg font-semibold text-stone-800">{wixSelected.rsvp_total.toLocaleString()}</p>
+                      </div>
+                    ) : null}
+                    {wixSelected.order_count != null && wixSelected.order_count > 0 && (
+                      <Field label="Orders" value={String(wixSelected.order_count)} />
+                    )}
+                    {wixSelected.description && <Field label="Description" value={wixSelected.description} />}
+                    {wixSelected.url && <a href={wixSelected.url} target="_blank" rel="noreferrer" className="text-xs text-amber-700 hover:underline">View on Wix →</a>}
+                  </div>
+                </DetailPanel>
+              )}
+            </div>
+          </>
         )}
       </div>
 
