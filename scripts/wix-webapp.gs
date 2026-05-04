@@ -11,7 +11,7 @@
 // ── Find your GA4 property ID: analytics.google.com → Admin → Property Settings → Property ID
 var GA4_PROPERTY_ID = '492911563';
 
-var WIX_TOKEN = 'IST.eyJraWQiOiJQb3pIX2FDMiIsImFsZyI6IlJTMjU2In0.eyJkYXRhIjoie1wiaWRcIjpcImU0NjhlNTliLTY0NDItNDBkNy1iYWEzLTM1MGMzZmFjYjY2ZFwiLFwiaWRlbnRpdHlcIjp7XCJ0eXBlXCI6XCJhcHBsaWNhdGlvblwiLFwiaWRcIjpcImU0M2YyYjAxLTUxMDktNGM5OC1iMDNlLTg4NTZhZmQwOGY5YlwifSxcInRlbmFudFwiOntcInR5cGVcIjpcImFjY291bnRcIixcImlkXCI6XCI3ZjM4ODdlZS01ODU2LTRkZTUtOTk3NC03ZjQwZGExODQwYWNcIn19IiwiaWF0IjoxNzc3MTAzMjYxfQ.Jk0Hm9layHNR-d2T5aFWLVAaBZVR-idFFQi6MSppkdynoDb_MQHQ6dL1HR5s0ff3ETnzI4gCnyHBoSN61Kz3SqvHQSKGfxSnwUAstDJSulOTElC66m1sDBEC4BaIyCgROSnNnEgnw2hcCgG4Q8UXyfxZlFsidCsPjxGhhVHLLG1wu3Lp4qTGmjzWc0DKxuydd04c-s6dFIkvwp7bC4Cf1FOFmck88jruoRB16yw_mLP_YVzfWcapxndI4ErcxaOy77KO49NQx1Tv0S-ZBIE1NtCuczycDgT2sMKHoTMqSt9Q5X9kGjQhEKtQuGDn6j1G6Q4XaMamR6IDYEotObZqfQ';
+var WIX_TOKEN = 'IST.eyJraWQiOiJQb3pIX2FDMiIsImFsZyI6IlJTMjU2In0.eyJkYXRhIjoie1wiaWRcIjpcImEyZjE1NWVmLWI1NmQtNDJkMi1iYmU1LWQyOTRjN2E2NTMxMVwiLFwiaWRlbnRpdHlcIjp7XCJ0eXBlXCI6XCJhcHBsaWNhdGlvblwiLFwiaWRcIjpcIjljZWJmZjBkLTdjZmYtNDc1MS05ZjdjLTE4MDM4ZDY3ODEzNFwifSxcInRlbmFudFwiOntcInR5cGVcIjpcImFjY291bnRcIixcImlkXCI6XCI3ZjM4ODdlZS01ODU2LTRkZTUtOTk3NC03ZjQwZGExODQwYWNcIn19IiwiaWF0IjoxNzc3OTMyNDY1fQ.K7nZd4YdgQKS13JPNnFYBQ6KH7IZyK40Qhk_z9hHg_2V7U1wiefXMgwSmV4wBM66fPTLe4MJr6i0cD8bbmzefKj5hvfGQ-gNPddcYnCNjQtoDcmqU46eeYE-yDNNUILEqYiJ85MKp1Bf-9PoFLOyhMRYb_HQxMol_iM78X8kB-PxVVLlBGQoZ4fyCr4-YWYbdeaNZkRrQibB1uMAuTvxM9FDrCdna7n_m6DxRd-RC7Su6OiM_9G1zmWpWX4stuSKh0wsPHrVPItQyjjZ_1hLfsiU65UUTkEvUd9kjxNB3cjWl772lNXbVKGxKEMzFacxntCvznWLeLY-M5AfXgP-0Q';
 var WIX_SITE  = '675edd2f-6fca-4862-ba5b-af17f015fbb2';
 
 var FORM_NAMES = {
@@ -331,8 +331,10 @@ var KEY_LABELS = {
 
 // ── Wix Events ────────────────────────────────────────────────────────────────
 
-function fetchEventOrderStats() {
-  var stats = {};
+function fetchOrderStatsForEvent(eventId) {
+  var revenue = 0;
+  var order_count = 0;
+  var currency = 'USD';
   var offset = 0;
   var limit = 100;
 
@@ -346,7 +348,10 @@ function fetchEventOrderStats() {
       },
       payload: JSON.stringify({
         query: {
-          filter: { status: { '$eq': 'PAID' } },
+          filter: {
+            'eventId': { '$eq': eventId },
+            'status':  { '$eq': 'PAID' }
+          },
           paging: { limit: limit, offset: offset }
         }
       }),
@@ -354,7 +359,7 @@ function fetchEventOrderStats() {
     });
 
     if (resp.getResponseCode() !== 200) {
-      Logger.log('Orders error ' + resp.getResponseCode() + ': ' + resp.getContentText().substring(0, 200));
+      Logger.log('Orders error for event ' + eventId + ': ' + resp.getResponseCode() + ' ' + resp.getContentText().substring(0, 200));
       break;
     }
 
@@ -362,29 +367,24 @@ function fetchEventOrderStats() {
     var orders = json.orders || [];
 
     orders.forEach(function(order) {
-      var eid = order.eventId;
-      if (!eid) return;
-      if (!stats[eid]) stats[eid] = { revenue: 0, order_count: 0, currency: 'USD' };
       var price = order.totalPrice;
       if (price && price.amount) {
-        stats[eid].revenue += parseFloat(price.amount) || 0;
-        if (price.currency) stats[eid].currency = price.currency;
+        revenue += parseFloat(price.amount) || 0;
+        if (price.currency) currency = price.currency;
       }
-      stats[eid].order_count += 1;
+      order_count += 1;
     });
 
     if (orders.length < limit) break;
     offset += limit;
   }
 
-  return stats;
+  return { revenue: revenue, order_count: order_count, currency: currency };
 }
 
 function fetchWixEvents() {
-  var orderStats = {};
-  try { orderStats = fetchEventOrderStats(); } catch(e) { Logger.log('Order stats error: ' + e); }
-
-  var all = [];
+  // Phase 1: fetch all events
+  var rawEvents = [];
   var offset = 0;
   var limit = 100;
 
@@ -412,37 +412,38 @@ function fetchWixEvents() {
 
     var json = JSON.parse(resp.getContentText());
     var rows = json.events || [];
-
-    rows.forEach(function(e) {
-      var loc       = e.location || {};
-      var sched     = e.scheduling || {};
-      var config    = sched.config || {};
-      var reg       = e.registration || {};
-      var rsvp      = reg.rsvpCollection || null;
-      var ticketing = reg.ticketing || null;
-      var pageUrl   = e.eventPageUrl || {};
-      var stats     = orderStats[e.id] || {};
-
-      all.push({
-        id:           e.id,
-        title:        e.title || '',
-        status:       e.status || '',
-        start:        config.startDate || null,
-        end:          config.endDate   || null,
-        location:     loc.name || (loc.address && loc.address.formattedAddress) || '',
-        description:  e.description || '',
-        rsvp_total:   rsvp     ? (rsvp.total        || 0) : null,
-        tickets_sold: ticketing ? (ticketing.totalSold || 0) : null,
-        revenue:      stats.revenue     != null ? stats.revenue     : null,
-        order_count:  stats.order_count != null ? stats.order_count : null,
-        currency:     stats.currency || 'USD',
-        url:          pageUrl.base ? pageUrl.base + (pageUrl.path || '') : null
-      });
-    });
+    rawEvents = rawEvents.concat(rows);
 
     if (rows.length < limit) break;
     offset += limit;
   }
+
+  // Phase 2: shape events (order stats skipped to stay within GAS time limit)
+  var all = rawEvents.map(function(e) {
+    var loc       = e.location || {};
+    var sched     = e.scheduling || {};
+    var config    = sched.config || {};
+    var reg       = e.registration || {};
+    var rsvp      = reg.rsvpCollection || null;
+    var ticketing = reg.ticketing || null;
+    var pageUrl   = e.eventPageUrl || {};
+
+    return {
+      id:           e.id,
+      title:        e.title || '',
+      status:       e.status || '',
+      start:        config.startDate || null,
+      end:          config.endDate   || null,
+      location:     loc.name || (loc.address && loc.address.formattedAddress) || '',
+      description:  e.description || '',
+      rsvp_total:   rsvp     ? (rsvp.total        || 0) : null,
+      tickets_sold: ticketing ? (ticketing.totalSold || 0) : null,
+      revenue:      null,
+      order_count:  null,
+      currency:     'USD',
+      url:          pageUrl.base ? pageUrl.base + (pageUrl.path || '') : null
+    };
+  });
 
   return { events: all };
 }

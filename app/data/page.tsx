@@ -1299,50 +1299,40 @@ function EventsSection() {
     if (cachedEvents) setWixEvents(cachedEvents)
 
     async function loadWixEvents() {
+      if (!WIX_URL) { if (!cachedEvents) setWixEvents([]); return }
       try {
-        const tokenResp = await fetch('https://www.wixapis.com/oauth2/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ clientId: WIX_CLIENT_ID, grantType: 'anonymous' }),
+        const ctrl = new AbortController()
+        const timer = setTimeout(() => ctrl.abort(), 25000)
+        const resp = await fetch(WIX_URL, { signal: ctrl.signal })
+        clearTimeout(timer)
+        const json = await resp.json()
+        const rows: Record<string, unknown>[] = (json.events as { events?: Record<string, unknown>[] })?.events ?? []
+        if (!Array.isArray(rows)) { if (!cachedEvents) setWixEvents([]); return }
+        const all: WixEvent[] = rows.map((e: Record<string, unknown>) => {
+          const sched   = (e.scheduling as Record<string, unknown>) ?? {}
+          const config  = (sched.config  as Record<string, unknown>) ?? {}
+          const loc     = (e.location    as Record<string, unknown>) ?? {}
+          const locAddr = (loc.address   as Record<string, unknown>) ?? {}
+          const reg     = (e.registration as Record<string, unknown>) ?? {}
+          const rsvp    = (reg.rsvpCollection as Record<string, unknown>) ?? null
+          const tix     = (reg.ticketing      as Record<string, unknown>) ?? null
+          const pu      = (e.eventPageUrl     as Record<string, unknown>) ?? {}
+          return {
+            id:           String(e.id    ?? ''),
+            title:        String(e.title ?? ''),
+            status:       String(e.status ?? ''),
+            start:        (config.startDate as string) ?? null,
+            end:          (config.endDate   as string) ?? null,
+            location:     String(loc.name ?? locAddr.formattedAddress ?? ''),
+            description:  String(e.description ?? ''),
+            rsvp_total:   rsvp ? Number(rsvp.total    ?? 0) : null,
+            tickets_sold: tix  ? Number(tix.totalSold ?? 0) : null,
+            revenue: e.revenue != null ? Number(e.revenue) : null,
+            order_count: e.order_count != null ? Number(e.order_count) : null,
+            currency: String(e.currency ?? 'USD'),
+            url: pu.base ? String(pu.base) + String(pu.path ?? '') : null,
+          }
         })
-        const { access_token } = await tokenResp.json()
-        if (!access_token) { if (!cachedEvents) setWixEvents([]); return }
-        const all: WixEvent[] = []
-        let offset = 0
-        while (true) {
-          const resp = await fetch('https://www.wixapis.com/events/v3/events/query', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': access_token },
-            body: JSON.stringify({ query: { sort: [{ fieldName: 'scheduling.startDate', order: 'DESC' }], paging: { limit: 100, offset } } }),
-          })
-          const json = await resp.json()
-          const rows: Record<string, unknown>[] = json.events ?? []
-          rows.forEach((e: Record<string, unknown>) => {
-            const sched  = (e.scheduling as Record<string, unknown>) ?? {}
-            const config = (sched.config  as Record<string, unknown>) ?? {}
-            const loc    = (e.location    as Record<string, unknown>) ?? {}
-            const locAddr = (loc.address  as Record<string, unknown>) ?? {}
-            const reg    = (e.registration as Record<string, unknown>) ?? {}
-            const rsvp   = (reg.rsvpCollection as Record<string, unknown>) ?? null
-            const tix    = (reg.ticketing      as Record<string, unknown>) ?? null
-            const pu     = (e.eventPageUrl     as Record<string, unknown>) ?? {}
-            all.push({
-              id:           String(e.id    ?? ''),
-              title:        String(e.title ?? ''),
-              status:       String(e.status ?? ''),
-              start:        (config.startDate as string) ?? null,
-              end:          (config.endDate   as string) ?? null,
-              location:     String(loc.name ?? locAddr.formattedAddress ?? ''),
-              description:  String(e.description ?? ''),
-              rsvp_total:   rsvp ? Number(rsvp.total           ?? 0) : null,
-              tickets_sold: tix  ? Number(tix.totalSold        ?? 0) : null,
-              revenue: null, order_count: null, currency: 'USD',
-              url: pu.base ? String(pu.base) + String(pu.path ?? '') : null,
-            })
-          })
-          if (rows.length < 100) break
-          offset += 100
-        }
         setWixEvents(all)
         cacheWrite(CK.wixEvents, all, TTL_SCRIPT)
       } catch {
