@@ -10,7 +10,7 @@ type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'event
 // Paste your deployed Apps Script web app URL here after deploying honeybook-webapp.gs
 const HONEYBOOK_URL = 'https://script.google.com/macros/s/AKfycbw968UYNRchd6-Nm8V-tEeo48vuPEe3xqfPgKGibhQEP2td2B8mgUs5ThDrkDrmH4WGNA/exec'
 // Deploy wix-webapp.gs and paste the URL here
-const WIX_URL = 'https://script.google.com/macros/s/AKfycbzY3c6_xF2ucrZrQnZLa1bcU2TIcFadBH9UEeIbJYMKumvxygql8ulN-67q1Vu_WM4h/exec'
+const WIX_URL = 'https://script.google.com/macros/s/AKfycbxjmt9DNQf4Lf5KMO1MlABK6yBUxa1TEZOKuUSRFFyX7Z1ejwjMmXe2hlNtQR4e30JaHA/exec'
 // Deploy wix-forms-webapp.gs and paste the URL here.
 const FORMS_URL = 'https://script.google.com/macros/s/AKfycbyn9AOM9U8iF-jZ_sVr7QpHpxn7nPr1UvRh-5Jov6F2-ife84cltgVsvv5xATyx98Xu/exec'
 const WIX_CLIENT_ID = '46191fb3-0113-44a7-9bd2-031200714fea'
