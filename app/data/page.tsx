@@ -207,25 +207,18 @@ function usePrefetchAll() {
       }).catch(() => {})
     }
 
-    // Wix analytics + events — skip fetching if both already cached
-    const needsWix = WIX_URL && !cacheRead(CK.wix)
-    const needsWixEvents = WIX_URL && !cacheRead(CK.wixEvents)
-    if (needsWix || needsWixEvents) {
+    // Wix analytics — skip if already cached
+    if (WIX_URL && !cacheRead(CK.wix)) {
       fetch(WIX_URL).then(r => r.json()).then(json => {
-        if (needsWix) {
-          cacheWrite(CK.wix, {
-            pages:   json.pages   ?? { rows: [] },
-            cities:  json.cities  ?? { rows: [] },
-            sources: json.sources ?? { rows: [] },
-          }, TTL_SCRIPT)
-        }
-        const evts: WixEvent[] = json.events?.events ?? []
-        if (needsWixEvents && evts.length) {
-          cacheWrite(CK.wixEvents, evts, TTL_SCRIPT)
-        }
+        cacheWrite(CK.wix, {
+          pages:   json.pages   ?? { rows: [] },
+          cities:  json.cities  ?? { rows: [] },
+          sources: json.sources ?? { rows: [] },
+        }, TTL_SCRIPT)
       }).catch(() => {})
     }
   }, [])
+}
 }
 
 /* â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
