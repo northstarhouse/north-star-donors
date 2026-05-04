@@ -1309,8 +1309,15 @@ function EventsSection() {
         const text = await resp.text()
         console.log('[wix-events] status:', resp.status, 'body preview:', text.slice(0, 200))
         const json = JSON.parse(text)
-        const rows: Record<string, unknown>[] = (json.events as { events?: Record<string, unknown>[] })?.events ?? []
-        console.log('[wix-events] rows count:', rows.length)
+        const rawEvents = (json as any)?.events ?? json
+        const rows: Record<string, unknown>[] = Array.isArray(rawEvents)
+          ? rawEvents
+          : Array.isArray((rawEvents as any)?.events)
+            ? (rawEvents as any).events
+            : Array.isArray((json as any)?.events)
+              ? (json as any).events
+              : []
+        console.log('[wix-events] rows count:', rows.length, 'raw shape:', typeof rawEvents, 'hasNestedEvents:', Array.isArray((rawEvents as any)?.events))
         if (!Array.isArray(rows)) { if (!cachedEvents) setWixEvents([]); return }
         const all: WixEvent[] = rows.map((e: Record<string, unknown>) => {
           const sched   = (e.scheduling as Record<string, unknown>) ?? {}
