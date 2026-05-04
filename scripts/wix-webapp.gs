@@ -398,7 +398,6 @@ function fetchWixEvents() {
       },
       payload: JSON.stringify({
         query: {
-          sort: [{ fieldName: 'scheduling.startDate', order: 'DESC' }],
           paging: { limit: limit, offset: offset }
         }
       }),
