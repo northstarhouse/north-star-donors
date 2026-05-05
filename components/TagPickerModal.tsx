@@ -23,9 +23,13 @@ export default function TagPickerModal({ donorIds, onClose, onDone }: Props) {
   const [newName, setNewName] = useState('')
   const [newColor, setNewColor] = useState(COLORS[5])
   const [creating, setCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.from('tags').select('*').order('name').then(({ data }) => setTags(data ?? []))
+    supabase.from('tags').select('*').order('name').then(({ data, error }) => {
+      if (error) setError(`Could not load tags: ${error.message}`)
+      else setTags(data ?? [])
+    })
     if (donorIds.length === 1) {
       supabase.from('donor_tags').select('tag_id').eq('donor_id', donorIds[0])
         .then(({ data }) => setApplied(new Set((data ?? []).map((r: { tag_id: string }) => r.tag_id))))
@@ -52,14 +56,21 @@ export default function TagPickerModal({ donorIds, onClose, onDone }: Props) {
   async function createTag() {
     if (!newName.trim()) return
     setCreating(true)
-    const { data } = await supabase.from('tags').insert({ name: newName.trim(), color: newColor }).select().single()
+    setError(null)
+    const { data, error: insertErr } = await supabase.from('tags').insert({ name: newName.trim(), color: newColor }).select().single()
+    if (insertErr) {
+      setError(`Failed to create tag: ${insertErr.message}`)
+      setCreating(false)
+      return
+    }
     if (data) {
       setTags(prev => [...prev, data as Tag].sort((a, b) => a.name.localeCompare(b.name)))
-      await supabase.from('donor_tags').upsert(
+      const { error: upsertErr } = await supabase.from('donor_tags').upsert(
         donorIds.map(id => ({ donor_id: id, tag_id: data.id })),
         { onConflict: 'donor_id,tag_id' }
       )
-      setApplied(prev => new Set([...prev, data.id]))
+      if (upsertErr) setError(`Tag created but could not assign: ${upsertErr.message}`)
+      else setApplied(prev => new Set([...prev, data.id]))
     }
     setNewName(''); setShowCreate(false); setCreating(false)
   }
@@ -80,7 +91,8 @@ export default function TagPickerModal({ donorIds, onClose, onDone }: Props) {
         </div>
 
         <div className="px-5 py-4 space-y-2 max-h-72 overflow-y-auto">
-          {tags.length === 0 && !showCreate && (
+          {error && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+          {tags.length === 0 && !showCreate && !error && (
             <p className="text-sm text-stone-400 text-center py-4">No tags yet — create one below.</p>
           )}
           {tags.map(tag => (
