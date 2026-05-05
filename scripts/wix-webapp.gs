@@ -353,28 +353,42 @@ function fetchWixEvents() {
       }
     }
 
-    // Read ticket orders from "Wix Tickets" tab: [Event title, Order Amount, Fees, Net, Order Date, ...]
-    var sheet = spreadsheet.getSheetByName('Wix Tickets');
-    if (!sheet) {
-      Logger.log('Sheet "Wix Tickets" not found');
-      return { events: [] };
-    }
-
-    var rows = sheet.getDataRange().getValues();
+    // eventMap accumulates { revenue, tickets } across both tabs
     var eventMap = {};
 
-    if (rows.length > 1) {
-      for (var i = 1; i < rows.length; i++) {
-        var row = rows[i];
-        if (row.length >= 2 && row[0]) {
-          var eventTitle = String(row[0] || '').trim();
-          var orderAmount = row[1] ? parseFloat(row[1]) : 0;
-          if (isNaN(orderAmount)) orderAmount = 0;
+    // "Wix Tickets" tab: [Event title, Order Amount, Fees, Net, Order Date, ...]
+    // No direct ticket count — tickets calculated later from price
+    var wixSheet = spreadsheet.getSheetByName('Wix Tickets');
+    if (wixSheet) {
+      var wixRows = wixSheet.getDataRange().getValues();
+      for (var i = 1; i < wixRows.length; i++) {
+        var row = wixRows[i];
+        if (row[0]) {
+          var title = String(row[0]).trim();
+          var amount = parseFloat(row[1]) || 0;
+          if (!eventMap[title]) eventMap[title] = { revenue: 0, tickets: null };
+          eventMap[title].revenue += amount;
+        }
+      }
+    }
 
-          if (!eventMap[eventTitle]) {
-            eventMap[eventTitle] = { revenue: 0 };
-          }
-          eventMap[eventTitle].revenue += orderAmount;
+    // "Past Events" tab: [Event name, Order date, Number of tickets, Buyer's info, Email,
+    //                      Ticket total, Benefit applied, Coupon applied, Tax,
+    //                      Wix service fee, Buyer paid, Your revenue, Payment status, Payment method]
+    // Ticket count is col C (index 2); revenue is col L (index 11)
+    var pastSheet = spreadsheet.getSheetByName('Past Events');
+    if (pastSheet) {
+      var pastRows = pastSheet.getDataRange().getValues();
+      for (var j = 1; j < pastRows.length; j++) {
+        var prow = pastRows[j];
+        if (prow[0]) {
+          var ptitle = String(prow[0]).trim();
+          var ptickets = parseInt(prow[2]) || 0;
+          var prevenue = parseFloat(prow[11]) || 0;
+          if (!eventMap[ptitle]) eventMap[ptitle] = { revenue: 0, tickets: 0 };
+          eventMap[ptitle].revenue += prevenue;
+          if (eventMap[ptitle].tickets === null) eventMap[ptitle].tickets = 0;
+          eventMap[ptitle].tickets += ptickets;
         }
       }
     }
@@ -382,9 +396,9 @@ function fetchWixEvents() {
     for (var eventTitle in eventMap) {
       var data = eventMap[eventTitle];
       var ticketPrice = priceMap[eventTitle.toLowerCase()] || null;
-      var ticketsSold = (ticketPrice && data.revenue > 0)
-        ? Math.round(data.revenue / ticketPrice)
-        : null;
+      var ticketsSold = data.tickets !== null
+        ? data.tickets
+        : (ticketPrice && data.revenue > 0 ? Math.round(data.revenue / ticketPrice) : null);
 
       events.push({
         id:           eventTitle.toLowerCase().replace(/\s+/g, '-'),
