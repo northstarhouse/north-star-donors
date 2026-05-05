@@ -355,7 +355,7 @@ function fetchWixEvents() {
     var json = JSON.parse(resp.getContentText());
     var rows = json.values || [];
     
-    // Expect header row: [Event Name, Revenue, Order Count, Start Date, Location, Description, ...]
+    // Expect header row: [Event Name, Revenue, Order Count, Location, Description, ...]
     // Then data rows with event details
     if (rows.length > 1) {
       for (var i = 1; i < rows.length; i++) {
@@ -364,15 +364,14 @@ function fetchWixEvents() {
           var eventName = String(row[0] || '').trim();
           var revenue = row[1] ? parseFloat(row[1]) : null;
           var orderCount = row[2] ? parseInt(row[2]) : null;
-          var startDate = row[3] ? String(row[3]).trim() : null;
-          var location = row[4] ? String(row[4]).trim() : '';
-          var description = row[5] ? String(row[5]).trim() : '';
+          var location = row[3] ? String(row[3]).trim() : '';
+          var description = row[4] ? String(row[4]).trim() : '';
           
           events.push({
             id:           eventName.toLowerCase().replace(/\s+/g, '-'),
             title:        eventName,
             status:       'PUBLISHED',
-            start:        startDate,
+            start:        null,
             end:          null,
             location:     location,
             description:  description,
