@@ -49,6 +49,15 @@ const LABEL_COLORS: Record<TaskLabel, string> = {
   'Other':          'bg-stone-100 text-stone-500 border-stone-200',
 }
 
+const AREA_COLORS: Record<string, string> = {
+  Membership: 'bg-amber-50 text-amber-700 border-amber-200',
+  Donors: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  Sponsorships: 'bg-rose-50 text-rose-700 border-rose-200',
+  Grants: 'bg-sky-50 text-sky-700 border-sky-200',
+  'Earned Revenue': 'bg-violet-50 text-violet-700 border-violet-200',
+  'Infrastructure / Systems': 'bg-slate-100 text-slate-700 border-slate-200',
+}
+
 const STATUS_CYCLE: Record<TaskStatus, TaskStatus> = { todo: 'in_progress', in_progress: 'done', done: 'todo' }
 
 function nextFirstThursday(): Date {
@@ -182,9 +191,14 @@ function TaskRow({
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {task.label && <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium ${LABEL_COLORS[task.label as TaskLabel]}`}>{task.label}</span>}
             {task.initiative && (
-              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-medium bg-blue-50 text-blue-700 border-blue-100">
-                <FileText size={9} />{task.initiative.title}
-              </span>
+              <>
+                <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-semibold ${AREA_COLORS[task.initiative.area] ?? 'bg-stone-100 text-stone-600 border-stone-200'}`}>
+                  {task.initiative.area}
+                </span>
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-medium bg-blue-50 text-blue-700 border-blue-100">
+                  <FileText size={9} />{task.initiative.title}
+                </span>
+              </>
             )}
             {task.assigned_to && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium bg-stone-100 text-stone-500 border-stone-200">
@@ -356,6 +370,7 @@ export default function Dashboard() {
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({})
 
   const [filterLabel, setFilterLabel] = useState<TaskLabel | 'all'>('all')
+  const [filterArea, setFilterArea] = useState<string | 'all'>('all')
   const [filterInitiative, setFilterInitiative] = useState<string | 'all'>('all')
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null)
   const attachmentInputRef = useRef<HTMLInputElement>(null)
@@ -476,8 +491,15 @@ export default function Dashboard() {
     e.target.value = ''
   }
 
+  const areaNames = Array.from(new Set([
+    ...FUND_DEVELOPMENT_AREAS.map(area => area.name),
+    ...initiatives.map(initiative => initiative.area),
+  ]))
+  const initiativeOptions = initiatives.filter(i => filterArea === 'all' || i.area === filterArea)
+
   const filtered = tasks.filter(t => (
     (filterLabel === 'all' || t.label === filterLabel) &&
+    (filterArea === 'all' || t.initiative?.area === filterArea) &&
     (filterInitiative === 'all' || t.initiative_id === filterInitiative)
   ))
   const byTab = filtered.filter(t => t.status === taskTab)
@@ -497,6 +519,18 @@ export default function Dashboard() {
 
   function countText(counts: ReturnType<typeof getInitiativeCounts>) {
     return `${counts.todo} todo · ${counts.inProgress} in progress · ${counts.done} done`
+  }
+
+  function selectArea(area: string) {
+    setFilterArea(area)
+    setFilterInitiative('all')
+    setTaskTab('todo')
+  }
+
+  function selectInitiative(initiative: Initiative) {
+    setFilterArea(initiative.area)
+    setFilterInitiative(initiative.id)
+    setTaskTab('todo')
   }
 
   const rowProps = {
@@ -566,7 +600,15 @@ export default function Dashboard() {
                   <label className="text-xs text-stone-400 mb-1 block">Initiative</label>
                   <select className={inputCls} value={newInitiativeId} onChange={e => setNewInitiativeId(e.target.value)}>
                     <option value="">No initiative</option>
-                    {initiatives.map(i => <option key={i.id} value={i.id}>{i.title}</option>)}
+                    {areaNames.map(area => {
+                      const areaInitiatives = initiatives.filter(i => i.area === area)
+                      if (areaInitiatives.length === 0) return null
+                      return (
+                        <optgroup key={area} label={area}>
+                          {areaInitiatives.map(i => <option key={i.id} value={i.id}>{i.title}</option>)}
+                        </optgroup>
+                      )
+                    })}
                   </select>
                 </div>
                 <div>
@@ -617,11 +659,16 @@ export default function Dashboard() {
                 ))}
 
                 {/* Filters */}
-                <div className="ml-auto mb-1.5 pr-1 flex items-center gap-1.5">
+                <div className="ml-auto mb-1.5 pr-1 flex flex-wrap items-center justify-end gap-1.5">
+                  <select className="max-w-[160px] border border-stone-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none text-stone-500"
+                    value={filterArea} onChange={e => { setFilterArea(e.target.value as string | 'all'); setFilterInitiative('all') }}>
+                    <option value="all">All Areas</option>
+                    {areaNames.map(area => <option key={area} value={area}>{area}</option>)}
+                  </select>
                   <select className="max-w-[190px] border border-stone-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none text-stone-500"
                     value={filterInitiative} onChange={e => setFilterInitiative(e.target.value as string | 'all')}>
                     <option value="all">All Initiatives</option>
-                    {initiatives.map(i => <option key={i.id} value={i.id}>{i.title}</option>)}
+                    {initiativeOptions.map(i => <option key={i.id} value={i.id}>{i.title}</option>)}
                   </select>
                   <select className="border border-stone-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none text-stone-500"
                     value={filterLabel} onChange={e => setFilterLabel(e.target.value as TaskLabel | 'all')}>
@@ -712,25 +759,50 @@ export default function Dashboard() {
                                     {FUND_DEVELOPMENT_AREAS.map(area => {
                                       const areaInitiatives = initiatives.filter(i => i.area === area.name)
                                       const row = (
-                                        <div className={`flex items-start gap-2 rounded-md border bg-white px-2 py-2 transition-colors ${area.href ? 'border-amber-100 hover:border-amber-200 hover:bg-amber-50/40' : 'border-stone-100'}`}>
-                                          <FileText size={13} className={`mt-0.5 flex-shrink-0 ${area.href ? 'text-amber-600' : 'text-stone-300'}`} />
+                                        <div className={`flex items-start gap-2 rounded-md border bg-white px-2 py-2 transition-colors ${filterArea === area.name ? 'border-amber-200 bg-amber-50/40' : 'border-stone-100'}`}>
+                                          <button
+                                            type="button"
+                                            onClick={() => selectArea(area.name)}
+                                            className={`mt-0.5 h-3.5 w-3.5 flex-shrink-0 rounded-full border ${AREA_COLORS[area.name] ?? 'border-stone-200 bg-stone-100'}`}
+                                            aria-label={`Filter tasks by ${area.name}`}
+                                          />
                                           <div className="min-w-0 flex-1">
                                             <div className="flex items-center justify-between gap-2">
-                                              <p className="truncate text-[11px] font-semibold text-stone-800">{area.name}</p>
+                                              <button
+                                                type="button"
+                                                onClick={() => selectArea(area.name)}
+                                                className="truncate text-left text-[11px] font-semibold text-stone-800 hover:text-amber-700"
+                                              >
+                                                {area.name}
+                                              </button>
                                               <span className={`flex-shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${area.statusClass}`}>
                                                 {area.status}
                                               </span>
                                             </div>
                                             <p className="mt-0.5 text-[10px] leading-snug text-stone-400">{area.description}</p>
+                                            {area.href && (
+                                              <Link href={area.href} className="mt-1 inline-flex text-[10px] font-semibold text-amber-700 underline decoration-amber-200 underline-offset-2">
+                                                View overview
+                                              </Link>
+                                            )}
                                             {areaInitiatives.length > 0 && (
                                               <div className="mt-1.5 space-y-1">
                                                 {areaInitiatives.map(initiative => {
                                                   const counts = getInitiativeCounts(initiative.id)
                                                   return (
-                                                    <div key={initiative.id} className="rounded border border-blue-100 bg-blue-50 px-1.5 py-1">
+                                                    <button
+                                                      key={initiative.id}
+                                                      type="button"
+                                                      onClick={() => selectInitiative(initiative)}
+                                                      className={`w-full rounded border px-1.5 py-1 text-left transition-colors ${
+                                                        filterInitiative === initiative.id
+                                                          ? 'border-blue-200 bg-blue-100'
+                                                          : 'border-blue-100 bg-blue-50 hover:border-blue-200'
+                                                      }`}
+                                                    >
                                                       <p className="truncate text-[10px] font-semibold text-blue-800">{initiative.title}</p>
                                                       <p className="mt-0.5 text-[9px] font-medium text-blue-600">{countText(counts)}</p>
-                                                    </div>
+                                                    </button>
                                                   )
                                                 })}
                                               </div>
@@ -739,13 +811,7 @@ export default function Dashboard() {
                                         </div>
                                       )
 
-                                      return area.href ? (
-                                        <Link key={area.name} href={area.href} className="block">
-                                          {row}
-                                        </Link>
-                                      ) : (
-                                        <div key={area.name}>{row}</div>
-                                      )
+                                      return <div key={area.name}>{row}</div>
                                     })}
                                   </div>
                                 </div>
