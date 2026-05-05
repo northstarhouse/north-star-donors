@@ -1277,23 +1277,10 @@ interface WixEvent {
 const EVENT_EMPTY = { event_name: '', date: '', attendance: '', revenue: '', venue: '', notes: '' }
 
 function EventsSection() {
-  const [rows, setRows] = useState<EventEntry[] | null>(null)
-  const [selected, setSelected] = useState<EventEntry | null>(null)
-  const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState(EVENT_EMPTY)
-  const [saving, setSaving] = useState(false)
-  const [editing, setEditing] = useState(false)
-  type EditEventForm = Omit<Partial<EventEntry>, 'attendance' | 'revenue'> & { attendance?: string; revenue?: string }
-  const [editForm, setEditForm] = useState<EditEventForm>({})
-  const [editSaving, setEditSaving] = useState(false)
   const [wixEvents, setWixEvents] = useState<WixEvent[] | null>(null)
   const [wixSelected, setWixSelected] = useState<WixEvent | null>(null)
 
   useEffect(() => {
-    const cached = cacheRead<EventEntry[]>(CK.events)
-    if (cached) setRows(cached)
-    supabase.from('data_events').select('*').order('date', { ascending: false })
-      .then(({ data }) => { if (data) { setRows(data as EventEntry[]); cacheWrite(CK.events, data, TTL_DB) } })
 
     const cachedEvents = cacheRead<WixEvent[]>(CK.wixEvents)
     if (cachedEvents) setWixEvents(cachedEvents)
@@ -1344,41 +1331,6 @@ function EventsSection() {
     }
     loadWixEvents()
   }, [])
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault(); if (!form.event_name) return
-    setSaving(true)
-    const { data } = await supabase.from('data_events').insert({
-      event_name: form.event_name.trim(), date: form.date || null,
-      attendance: form.attendance ? parseInt(form.attendance) : null,
-      revenue: form.revenue ? parseFloat(form.revenue) : null,
-      venue: form.venue.trim() || null, notes: form.notes.trim() || null,
-    }).select().single()
-    if (data) { setRows(prev => [data as EventEntry, ...(prev ?? [])]); setSelected(data as EventEntry) }
-    setForm(EVENT_EMPTY); setShowAdd(false); setSaving(false)
-  }
-
-  async function saveEdit() {
-    if (!selected) return; setEditSaving(true)
-    const { data } = await supabase.from('data_events').update({
-      event_name: editForm.event_name, date: editForm.date || null,
-      attendance: editForm.attendance ? parseInt(editForm.attendance) : null,
-      revenue: editForm.revenue ? parseFloat(editForm.revenue) : null,
-      venue: editForm.venue || null, notes: editForm.notes || null,
-    }).eq('id', selected.id).select().single()
-    if (data) { const u = data as EventEntry; setSelected(u); setRows(prev => prev?.map(r => r.id === selected.id ? u : r) ?? null) }
-    setEditing(false); setEditSaving(false)
-  }
-
-  async function del(id: string) {
-    if (!confirm('Delete this entry?')) return
-    await supabase.from('data_events').delete().eq('id', id)
-    setRows(prev => prev?.filter(r => r.id !== id) ?? null)
-    if (selected?.id === id) setSelected(null)
-  }
-
-  const totalAttendance = (rows ?? []).reduce((s, r) => s + (r.attendance ?? 0), 0)
-  const totalRevenue = (rows ?? []).reduce((s, r) => s + (r.revenue ?? 0), 0)
 
   const fmtWixDate = (s: string | null) => {
     if (!s) return '-'
@@ -1482,126 +1434,6 @@ function EventsSection() {
         )}
       </div>
 
-      {/* â”€â”€ Manual Event Log â”€â”€ */}
-      <div>
-        <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Event Log</p>
-        <div className="flex items-center justify-between mb-4">
-          {rows && rows.length > 0 && (
-            <div className="bg-white rounded-xl border border-stone-200 px-4 py-2.5 shadow-sm flex items-center gap-3">
-              <span className="text-xs text-stone-400">Events</span>
-              <span className="text-sm font-semibold text-stone-800">{rows.length}</span>
-              <span className="w-px h-4 bg-stone-200" />
-              <span className="text-xs text-stone-400">Total Attendance</span>
-              <span className="text-sm font-semibold text-stone-800">{totalAttendance.toLocaleString()}</span>
-              {totalRevenue > 0 && <>
-                <span className="w-px h-4 bg-stone-200" />
-                <span className="text-xs text-stone-400">Revenue</span>
-                <span className="text-sm font-semibold text-stone-800">{fmt$(totalRevenue)}</span>
-              </>}
-            </div>
-          )}
-          <button onClick={() => { setForm(EVENT_EMPTY); setShowAdd(true) }}
-            className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm ml-auto" style={goldBtn}>
-            <Plus size={15} /> Add Event
-          </button>
-        </div>
-        {showAdd && (
-          <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 mb-5">
-            <h3 className="text-sm font-semibold text-stone-700 mb-3">New Event</h3>
-            <form onSubmit={submit} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2"><label className="text-xs text-stone-400 mb-1 block">Event Name *</label>
-                  <input required className={inputCls} value={form.event_name} onChange={e => setForm(f => ({ ...f, event_name: e.target.value }))} /></div>
-                <div><label className="text-xs text-stone-400 mb-1 block">Date</label>
-                  <input type="date" className={inputCls} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
-                <div><label className="text-xs text-stone-400 mb-1 block">Venue</label>
-                  <input className={inputCls} value={form.venue} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} /></div>
-                <div><label className="text-xs text-stone-400 mb-1 block">Attendance</label>
-                  <input type="number" className={inputCls} value={form.attendance} onChange={e => setForm(f => ({ ...f, attendance: e.target.value }))} /></div>
-                <div><label className="text-xs text-stone-400 mb-1 block">Revenue</label>
-                  <input type="number" className={inputCls} placeholder="0.00" value={form.revenue} onChange={e => setForm(f => ({ ...f, revenue: e.target.value }))} /></div>
-              </div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Notes</label>
-                <textarea className={inputCls + ' resize-none'} rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-              <div className="flex gap-2">
-                <button type="submit" disabled={saving || !form.event_name} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Saving...' : 'Add'}</button>
-                <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
-              </div>
-            </form>
-          </div>
-        )}
-        {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading...</div> : (
-          <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
-            <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-              {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No events logged yet.</div> : (
-                <table className="w-full text-sm">
-                  <thead><tr className="border-b border-stone-100">
-                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Event</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Attendance</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Revenue</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Date</th>
-                  </tr></thead>
-                  <tbody>{rows.map(r => (
-                    <tr key={r.id} onClick={() => { setSelected(prev => prev?.id === r.id ? null : r); setEditing(false) }}
-                      className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === r.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
-                      <td className="px-4 py-3 font-medium text-stone-800">{r.event_name}
-                        {r.venue && <span className="ml-2 text-xs text-stone-400">{r.venue}</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-700 font-medium">{r.attendance?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{r.revenue != null ? fmt$(r.revenue) : <span className="text-stone-300">-</span>}</td>
-                      <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : '-'}</td>
-                    </tr>
-                  ))}</tbody>
-                </table>
-              )}
-              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{rows.length} event{rows.length !== 1 ? 's' : ''}</div>
-            </div>
-            {selected ? (
-              <DetailPanel onClose={() => setSelected(null)}>
-                <div className="flex items-start justify-between mb-4">
-                  <h2 className="font-bold text-stone-800 text-base leading-snug pr-2">{selected.event_name}</h2>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button onClick={() => { setEditForm({ ...selected, attendance: selected.attendance != null ? String(selected.attendance) : '', revenue: selected.revenue != null ? String(selected.revenue) : '' }); setEditing(true) }}
-                      className="px-2.5 py-1 text-xs text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-50 flex items-center gap-1"><Pencil size={11} /> Edit</button>
-                    <button onClick={() => del(selected.id)} className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14} /></button>
-                  </div>
-                </div>
-                {editing ? (
-                  <div className="space-y-3">
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Event Name</label>
-                      <input className={inputCls} value={editForm.event_name ?? ''} onChange={e => setEditForm(f => ({ ...f, event_name: e.target.value }))} /></div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Date</label>
-                        <input type="date" className={inputCls} value={editForm.date ?? ''} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} /></div>
-                      <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Venue</label>
-                        <input className={inputCls} value={editForm.venue ?? ''} onChange={e => setEditForm(f => ({ ...f, venue: e.target.value }))} /></div>
-                      <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Attendance</label>
-                        <input type="number" className={inputCls} value={editForm.attendance ?? ''} onChange={e => setEditForm(f => ({ ...f, attendance: e.target.value }))} /></div>
-                      <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Revenue</label>
-                        <input type="number" className={inputCls} value={editForm.revenue ?? ''} onChange={e => setEditForm(f => ({ ...f, revenue: e.target.value }))} /></div>
-                    </div>
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Notes</label>
-                      <textarea className={inputCls + ' resize-none'} rows={3} value={editForm.notes ?? ''} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
-                    <div className="flex gap-2">
-                      <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg font-medium" style={goldBtn}>{editSaving ? 'Saving...' : 'Save'}</button>
-                      <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg">Cancel</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Field label="Date" value={selected.date ? fmtDate(selected.date) : null} />
-                    <Field label="Venue" value={selected.venue} />
-                    <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
-                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Attendance</p><p className="text-sm font-semibold text-stone-800">{selected.attendance?.toLocaleString() ?? '-'}</p></div>
-                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Revenue</p><p className="text-sm font-semibold text-stone-800">{selected.revenue != null ? fmt$(selected.revenue) : '-'}</p></div>
-                    </div>
-                    <Field label="Notes" value={selected.notes} />
-                  </div>
-                )}
-              </DetailPanel>
-            ) : null}
-          </div>
-        )}
-      </div>
     </div>
   )
 }
