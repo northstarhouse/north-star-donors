@@ -116,7 +116,7 @@ export default function DonorList({ donors, onSelect, selectedIds, onToggle, onT
             return (
               <tr
                 key={donor.id}
-                className={`border-b border-stone-100 cursor-pointer transition-colors group ${checked ? 'bg-amber-50/70' : 'hover:bg-amber-50/50'}`}
+                className={`border-b border-stone-100 cursor-pointer transition-colors group ${donor.deceased ? 'opacity-50' : ''} ${checked ? 'bg-amber-50/70' : 'hover:bg-amber-50/50'}`}
               >
                 <td className="pl-4 pr-2 py-3 w-8" onClick={e => { e.stopPropagation(); onToggle(donor.id) }}>
                   <input
@@ -134,6 +134,9 @@ export default function DonorList({ donors, onSelect, selectedIds, onToggle, onT
                       <div className="flex items-center gap-1.5">
                         <p className="font-medium text-stone-800 group-hover:text-amber-800">{donor.formal_name}</p>
                         {donor.starred && <Star size={11} fill="#b5a185" stroke="#b5a185" className="flex-shrink-0" />}
+                        {donor.tags?.map(tag => (
+                          <span key={tag.id} className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tag.color }} title={tag.name} />
+                        ))}
                       </div>
                       {donor.informal_first_name && (
                         <p className="text-xs text-stone-400">{donor.informal_first_name}</p>

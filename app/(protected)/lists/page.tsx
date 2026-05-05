@@ -3,11 +3,12 @@ import { useState, useEffect } from 'react'
 import { List, Trash2, X, Users, ChevronLeft, Download, Star, Tags, MapPinOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
-import { DonorList, DonorWithStats, Donor, Donation } from '@/lib/types'
+import { DonorList, DonorWithStats, Donor, Donation, Tag } from '@/lib/types'
 import { getTier, getStatus } from '@/lib/tiers'
 import Sidebar from '@/components/Sidebar'
 import DonorPanel from '@/components/DonorPanel'
 import AddToListModal from '@/components/AddToListModal'
+import TagPickerModal from '@/components/TagPickerModal'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
@@ -30,6 +31,7 @@ function buildDonorWithStats(donor: Donor, donations: Donation[]): DonorWithStat
     total_donation_count: Math.max(donations.length, donor.historical_donation_count),
     status: getStatus(lastGift?.date ?? null),
     tier: getTier(currentYearTotal),
+    tags: [],
   }
 }
 
@@ -54,6 +56,8 @@ export default function ListsPage() {
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [showAddToList, setShowAddToList] = useState(false)
+  const [showTagModal, setShowTagModal] = useState(false)
+  const [donorTagsMap, setDonorTagsMap] = useState<Record<string, Tag[]>>({})
 
   useEffect(() => {
     const cached = cacheRead<(DonorList & { donor_count: number })[]>('lists')
@@ -102,7 +106,9 @@ export default function ListsPage() {
         return acc
       }, {})
 
-      setListDonors((donorRows ?? []).map((d: Donor) => buildDonorWithStats(d, donationsByDonor[d.id] ?? [])))
+      const built = (donorRows ?? []).map((d: Donor) => buildDonorWithStats(d, donationsByDonor[d.id] ?? []))
+      setListDonors(built)
+      await fetchTagsForDonors(built.map(d => d.id))
       setListLoading(false)
       return
     }
@@ -137,8 +143,23 @@ export default function ListsPage() {
       return acc
     }, {})
 
-    setListDonors((donorRows ?? []).map((d: Donor) => buildDonorWithStats(d, donationsByDonor[d.id] ?? [])))
+    const built = (donorRows ?? []).map((d: Donor) => buildDonorWithStats(d, donationsByDonor[d.id] ?? []))
+    setListDonors(built)
+    await fetchTagsForDonors(built.map(d => d.id))
     setListLoading(false)
+  }
+
+  async function fetchTagsForDonors(donorIds: string[]) {
+    if (!donorIds.length) return
+    const { data } = await supabase.from('donor_tags').select('donor_id, tags(*)').in('donor_id', donorIds)
+    const map: Record<string, Tag[]> = {}
+    for (const row of data ?? []) {
+      const r = row as { donor_id: string; tags: Tag | null }
+      if (!r.tags) continue
+      if (!map[r.donor_id]) map[r.donor_id] = []
+      map[r.donor_id].push(r.tags)
+    }
+    setDonorTagsMap(map)
   }
 
   async function removeFromList(donorId: string) {
@@ -285,7 +306,13 @@ export default function ListsPage() {
                       className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs rounded-lg font-medium"
                       style={{ background: 'var(--gold)' }}
                     >
-                      <Tags size={12} /> Add to a new or existing list...
+                      <Tags size={12} /> Add to list...
+                    </button>
+                    <button
+                      onClick={() => setShowTagModal(true)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-stone-200 text-stone-600 text-xs rounded-lg font-medium hover:bg-stone-50"
+                    >
+                      <Tags size={12} /> Tag
                     </button>
                     <button onClick={() => setSelectedIds(new Set())} className="text-xs text-stone-400 hover:text-stone-600 ml-auto">
                       Clear
@@ -313,7 +340,7 @@ export default function ListsPage() {
                   <tbody>
                     {[...listDonors].sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0)).map(donor => (
                       <tr key={donor.id}
-                        className={`border-b border-stone-100 group ${donor.starred ? 'bg-amber-50/60 hover:bg-amber-50' : 'hover:bg-stone-50/60'}`}
+                        className={`border-b border-stone-100 group ${donor.deceased ? 'opacity-50' : ''} ${donor.starred ? 'bg-amber-50/60 hover:bg-amber-50' : 'hover:bg-stone-50/60'}`}
                         style={donor.starred ? { boxShadow: 'inset 3px 0 0 #b5a185' } : {}}>
                         <td className="px-4 py-3">
                           <input type="checkbox"
@@ -330,7 +357,12 @@ export default function ListsPage() {
                           <div className="flex items-center gap-2">
                             {donor.starred && <Star size={13} fill="#b5a185" stroke="#b5a185" className="flex-shrink-0" />}
                             <div>
-                              <p className={`font-medium ${donor.starred ? 'text-stone-900' : 'text-stone-800'}`}>{donor.formal_name}</p>
+                              <div className="flex items-center gap-1.5">
+                                <p className={`font-medium ${donor.starred ? 'text-stone-900' : 'text-stone-800'}`}>{donor.formal_name}</p>
+                                {(donorTagsMap[donor.id] ?? []).map(tag => (
+                                  <span key={tag.id} className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tag.color }} title={tag.name} />
+                                ))}
+                              </div>
                               {donor.star_note && <p className="text-xs mt-0.5" style={{ color: 'var(--gold)' }}>{donor.star_note}</p>}
                               {!donor.star_note && donor.informal_first_name && <p className="text-xs text-stone-400">{donor.informal_first_name}</p>}
                             </div>
@@ -385,6 +417,17 @@ export default function ListsPage() {
           donorIds={[...selectedIds]}
           onClose={() => setShowAddToList(false)}
           onDone={() => { setSelectedIds(new Set()); setShowAddToList(false) }}
+        />
+      )}
+
+      {showTagModal && (
+        <TagPickerModal
+          donorIds={[...selectedIds]}
+          onClose={() => setShowTagModal(false)}
+          onDone={() => {
+            setShowTagModal(false)
+            fetchTagsForDonors(listDonors.map(d => d.id))
+          }}
         />
       )}
     </div>

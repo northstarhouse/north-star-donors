@@ -1,5 +1,12 @@
 export type DonorStatus = 'current' | 'recently_lapsed' | 'long_lapsed' | 'non_donor'
 
+export interface Tag {
+  id: string
+  name: string
+  color: string
+  created_at: string
+}
+
 export type MemberTier =
   | 'shooting_star'
   | 'rising_star'
@@ -22,6 +29,7 @@ export interface Donor {
   historical_donation_count: number
   starred: boolean
   star_note: string | null
+  deceased: boolean
   created_at: string
   updated_at: string
 }
@@ -52,4 +60,5 @@ export interface DonorWithStats extends Donor {
   total_donation_count: number
   status: DonorStatus
   tier: MemberTier
+  tags: Tag[]
 }

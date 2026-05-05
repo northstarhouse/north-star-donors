@@ -1,11 +1,12 @@
 'use client'
-import { useState } from 'react'
-import { X, MapPin, Mail, Phone, Briefcase, Plus, DollarSign, Pencil, Trash2, Check, GitMerge, Star } from 'lucide-react'
-import { DonorWithStats, Donation } from '@/lib/types'
+import { useState, useEffect } from 'react'
+import { X, MapPin, Mail, Phone, Briefcase, Plus, DollarSign, Pencil, Trash2, Check, GitMerge, Star, Tag } from 'lucide-react'
+import { DonorWithStats, Donation, Tag as TagType } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import TierBadge from './TierBadge'
 import StatusBadge from './StatusBadge'
 import MergeDonorModal from './MergeDonorModal'
+import TagPickerModal from './TagPickerModal'
 
 const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -27,6 +28,27 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
   const [starNote, setStarNote] = useState(donor.star_note ?? '')
   const [showStarNote, setShowStarNote] = useState(false)
   const [starSaving, setStarSaving] = useState(false)
+  const [deceased, setDeceased] = useState(donor.deceased ?? false)
+  const [donorTags, setDonorTags] = useState<TagType[]>([])
+  const [showTagPicker, setShowTagPicker] = useState(false)
+
+  useEffect(() => {
+    supabase.from('donor_tags').select('tags(*)').eq('donor_id', donor.id)
+      .then(({ data }) => {
+        setDonorTags((data ?? []).flatMap((r: { tags: TagType | null }) => r.tags ? [r.tags] : []))
+      })
+  }, [donor.id])
+
+  async function toggleDeceased(val: boolean) {
+    setDeceased(val)
+    await supabase.from('donors').update({ deceased: val, updated_at: new Date().toISOString() }).eq('id', donor.id)
+    onUpdated()
+  }
+
+  async function removeTag(tagId: string) {
+    await supabase.from('donor_tags').delete().eq('donor_id', donor.id).eq('tag_id', tagId)
+    setDonorTags(prev => prev.filter(t => t.id !== tagId))
+  }
   const [showAddDonation, setShowAddDonation] = useState(false)
   const [newAmount, setNewAmount] = useState('')
   const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 10))
@@ -170,6 +192,13 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
             </div>
           </div>
 
+          {/* Deceased toggle */}
+          <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
+            <input type="checkbox" checked={deceased} onChange={e => toggleDeceased(e.target.checked)}
+              className="rounded border-stone-300 accent-stone-500 cursor-pointer" />
+            <span className="text-xs text-stone-400 select-none">Deceased</span>
+          </label>
+
           {/* Star controls */}
           {starred ? (
             <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
@@ -299,6 +328,25 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
               className="px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50" style={goldBtn}>
               {saving ? 'Saving...' : 'Save Notes'}
             </button>
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Tags</h3>
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {donorTags.map(tag => (
+                <span key={tag.id}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
+                  style={{ background: tag.color }}>
+                  {tag.name}
+                  <button onClick={() => removeTag(tag.id)} className="hover:opacity-70 leading-none ml-0.5">×</button>
+                </span>
+              ))}
+              <button onClick={() => setShowTagPicker(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border border-dashed border-stone-300 text-stone-400 hover:border-stone-400 hover:text-stone-600 transition-colors">
+                <Tag size={10} /> Add tag
+              </button>
+            </div>
           </div>
 
           {/* Donation history */}
@@ -450,6 +498,14 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
           donor={donor}
           onClose={() => setShowMerge(false)}
           onMerged={() => { onClose(); onUpdated() }}
+        />
+      )}
+
+      {showTagPicker && (
+        <TagPickerModal
+          donorIds={[donor.id]}
+          onClose={() => setShowTagPicker(false)}
+          onDone={newTags => { setDonorTags(newTags); setShowTagPicker(false) }}
         />
       )}
     </div>
