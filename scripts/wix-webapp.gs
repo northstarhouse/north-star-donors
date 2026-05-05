@@ -334,60 +334,69 @@ var KEY_LABELS = {
 // ── Wix Events ────────────────────────────────────────────────────────────────
 
 function fetchWixEvents() {
-  // Fetch orders from "Wix Tickets" sheet and aggregate by Event title
   var events = [];
   try {
-    // Use SpreadsheetApp (native, no API key needed)
     var spreadsheet = SpreadsheetApp.openById(EVENT_REVENUE_SHEET_ID);
+
+    // Read ticket prices from "Ticket Prices" tab: [Event Name, Ticket Price]
+    var priceMap = {};
+    var priceSheet = spreadsheet.getSheetByName('Ticket Prices');
+    if (priceSheet) {
+      var priceRows = priceSheet.getDataRange().getValues();
+      for (var p = 1; p < priceRows.length; p++) {
+        var pRow = priceRows[p];
+        if (pRow[0] && pRow[1]) {
+          var key = String(pRow[0]).trim().toLowerCase();
+          var price = parseFloat(pRow[1]);
+          if (!isNaN(price) && price > 0) priceMap[key] = price;
+        }
+      }
+    }
+
+    // Read ticket orders from "Wix Tickets" tab: [Event title, Order Amount, Fees, Net, Order Date, ...]
     var sheet = spreadsheet.getSheetByName('Wix Tickets');
-    
     if (!sheet) {
       Logger.log('Sheet "Wix Tickets" not found');
       return { events: [] };
     }
-    
+
     var rows = sheet.getDataRange().getValues();
-    
-    // Expect header: [Event title, Order Amount, Fees, Net, Order Date, Buyer First Name, Last Name, Address, Email, Phone]
-    // Aggregate orders by Event title to create event summaries
-    var eventMap = {};  // { "Event Name": { revenue: sum, orderCount: count, dates: [dates] } }
-    
+    var eventMap = {};
+
     if (rows.length > 1) {
       for (var i = 1; i < rows.length; i++) {
         var row = rows[i];
         if (row.length >= 2 && row[0]) {
           var eventTitle = String(row[0] || '').trim();
           var orderAmount = row[1] ? parseFloat(row[1]) : 0;
-          var orderDate = row[4] ? String(row[4]).trim() : '';
-          
           if (isNaN(orderAmount)) orderAmount = 0;
-          
+
           if (!eventMap[eventTitle]) {
-            eventMap[eventTitle] = { revenue: 0, orderCount: 0, dates: [] };
+            eventMap[eventTitle] = { revenue: 0 };
           }
-          
           eventMap[eventTitle].revenue += orderAmount;
-          eventMap[eventTitle].orderCount += 1;
-          if (orderDate) eventMap[eventTitle].dates.push(orderDate);
         }
       }
     }
-    
-    // Convert aggregated data to event objects
+
     for (var eventTitle in eventMap) {
       var data = eventMap[eventTitle];
+      var ticketPrice = priceMap[eventTitle.toLowerCase()] || null;
+      var ticketsSold = (ticketPrice && data.revenue > 0)
+        ? Math.round(data.revenue / ticketPrice)
+        : null;
+
       events.push({
         id:           eventTitle.toLowerCase().replace(/\s+/g, '-'),
         title:        eventTitle,
         status:       'PUBLISHED',
         start:        null,
         end:          null,
-        location:     '',
         description:  '',
         rsvp_total:   null,
-        tickets_sold: data.orderCount,
+        tickets_sold: ticketsSold,
+        ticket_price: ticketPrice,
         revenue:      data.revenue > 0 ? data.revenue : null,
-        order_count:  data.orderCount > 0 ? data.orderCount : null,
         currency:     'USD',
         url:          null
       });
@@ -395,7 +404,7 @@ function fetchWixEvents() {
   } catch (e) {
     Logger.log('Sheet fetch error: ' + e);
   }
-  
+
   return { events: events };
 }
 

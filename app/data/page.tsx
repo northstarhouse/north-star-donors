@@ -19,7 +19,7 @@ const HONEYBOOK_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7
 
 /* â”€â”€ Cache helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const TTL_SCRIPT = 1000 * 60 * 30   // 30 min â€” Apps Script (slow external calls)
-const TTL_DB     = 1000 * 60 * 10   // 10 min â€” Supabase (fast but still a round-trip)
+const TTL_DB = 1000 * 60 * 10   // 10 min â€” Supabase (fast but still a round-trip)
 
 function cacheRead<T>(key: string): T | null {
   try {
@@ -44,14 +44,14 @@ function cacheClearAll() {
 }
 
 const CK = {
-  wix:       'north-star-donors:wix:v1',
-  forms:     'north-star-donors:forms:v1',
-  email:     'north-star-donors:email:v1',
-  social:    'north-star-donors:social:v1',
-  events:    'north-star-donors:events:v1',
+  wix: 'north-star-donors:wix:v1',
+  forms: 'north-star-donors:forms:v1',
+  email: 'north-star-donors:email:v1',
+  social: 'north-star-donors:social:v1',
+  events: 'north-star-donors:events:v1',
   wixEvents: 'north-star-donors:wix-events:v2',
   analytics: 'north-star-donors:analytics:v1',
-  feedback:  'north-star-donors:feedback:v1',
+  feedback: 'north-star-donors:feedback:v1',
 }
 
 
@@ -120,7 +120,7 @@ const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm fo
 const goldBtn = { background: 'var(--gold)' }
 const fmt$ = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.round((a / b) * 100)}%` : '-'
+const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.round((a / b) * 100)}%` : '-'
 
 function readHoneyBookCache() {
   if (typeof window === 'undefined') return null
@@ -166,11 +166,11 @@ function applyHoneyBookPayload(
 const TABS: { id: DataTab; label: string }[] = [
   { id: 'analytics', label: 'Website' },
   { id: 'honeybook', label: 'Venue' },
-  { id: 'forms',     label: 'Forms' },
-  { id: 'email',     label: 'Email Results' },
-  { id: 'social',    label: 'Socials' },
-  { id: 'events',    label: 'Event Data' },
-  { id: 'feedback',  label: 'Feedback' },
+  { id: 'forms', label: 'Forms' },
+  { id: 'email', label: 'Email Results' },
+  { id: 'social', label: 'Socials' },
+  { id: 'events', label: 'Event Data' },
+  { id: 'feedback', label: 'Feedback' },
 ]
 
 /* â”€â”€ Background prefetch â€” warms all caches on page load â”€â”€â”€ */
@@ -185,10 +185,10 @@ function usePrefetchAll() {
       supabase.from('data_analytics').select('*').order('period', { ascending: false }),
       supabase.from('data_feedback').select('*').order('created_at', { ascending: false }),
     ]).then(([email, social, fb, events, analytics, feedback]) => {
-      if (email.data?.length)     cacheWrite(CK.email,    email.data,    TTL_DB)
-      if (events.data?.length)    cacheWrite(CK.events,   events.data,   TTL_DB)
-      if (analytics.data?.length) cacheWrite(CK.analytics,analytics.data,TTL_DB)
-      if (feedback.data?.length)  cacheWrite(CK.feedback, feedback.data, TTL_DB)
+      if (email.data?.length) cacheWrite(CK.email, email.data, TTL_DB)
+      if (events.data?.length) cacheWrite(CK.events, events.data, TTL_DB)
+      if (analytics.data?.length) cacheWrite(CK.analytics, analytics.data, TTL_DB)
+      if (feedback.data?.length) cacheWrite(CK.feedback, feedback.data, TTL_DB)
       if (social.data && fb.data) cacheWrite(CK.social, { social: social.data, fb: fb.data }, TTL_DB)
     })
 
@@ -204,18 +204,18 @@ function usePrefetchAll() {
         }
         const merged = submissions.map(s => ({ ...s, internal_notes: overrides[s.id]?.notes ?? null, status: overrides[s.id]?.status ?? s.status }))
         cacheWrite(CK.forms, merged, TTL_SCRIPT)
-      }).catch(() => {})
+      }).catch(() => { })
     }
 
     // Wix analytics — skip if already cached
     if (WIX_URL && !cacheRead(CK.wix)) {
       fetch(WIX_URL).then(r => r.json()).then(json => {
         cacheWrite(CK.wix, {
-          pages:   json.pages   ?? { rows: [] },
-          cities:  json.cities  ?? { rows: [] },
+          pages: json.pages ?? { rows: [] },
+          cities: json.cities ?? { rows: [] },
           sources: json.sources ?? { rows: [] },
         }, TTL_SCRIPT)
-      }).catch(() => {})
+      }).catch(() => { })
     }
   }, [])
 }
@@ -258,11 +258,11 @@ export default function DataPage() {
         <div className="px-8 pb-8 flex-1">
           {tab === 'analytics' && <AnalyticsSection />}
           {tab === 'honeybook' && <HoneyBookSection />}
-          {tab === 'forms'     && <FormsSection />}
-          {tab === 'email'     && <EmailSection />}
-          {tab === 'social'    && <SocialSection />}
-          {tab === 'events'    && <EventsSection />}
-          {tab === 'feedback'  && <FeedbackSection />}
+          {tab === 'forms' && <FormsSection />}
+          {tab === 'email' && <EmailSection />}
+          {tab === 'social' && <SocialSection />}
+          {tab === 'events' && <EventsSection />}
+          {tab === 'feedback' && <FeedbackSection />}
         </div>
       </div>
     </div>
@@ -295,9 +295,9 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
    HONEYBOOK SECTION
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function HoneyBookSection() {
-  const [rows,   setRows]   = useState<HoneyBookLead[] | null>(null)
+  const [rows, setRows] = useState<HoneyBookLead[] | null>(null)
   const [booked, setBooked] = useState<BookedClient[]>([])
-  const [tours,  setTours]  = useState<TourEntry[]>([])
+  const [tours, setTours] = useState<TourEntry[]>([])
 
   useEffect(() => {
     const cached = readHoneyBookCache()
@@ -325,11 +325,11 @@ function HoneyBookSection() {
   if (rows === null) return <div className="text-center py-16 text-stone-400 text-sm">Loading...</div>
   if (rows.length === 0) return <div className="text-center py-16 text-stone-400 text-sm">No leads yet.</div>
 
-  const tourPct     = rows.length > 0 ? Math.round((tours.length  / rows.length) * 100) : 0
-  const bookPct     = rows.length > 0 ? Math.round((booked.length / rows.length) * 100) : 0
-  const tourToBook  = tours.length > 0 ? Math.round((booked.length / tours.length) * 100) : 0
-  const totalValue  = booked.reduce((s, r) => s + (r.total_value ?? 0), 0)
-  const totalPaid   = booked.reduce((s, r) => s + (r.total_paid  ?? 0), 0)
+  const tourPct = rows.length > 0 ? Math.round((tours.length / rows.length) * 100) : 0
+  const bookPct = rows.length > 0 ? Math.round((booked.length / rows.length) * 100) : 0
+  const tourToBook = tours.length > 0 ? Math.round((booked.length / tours.length) * 100) : 0
+  const totalValue = booked.reduce((s, r) => s + (r.total_value ?? 0), 0)
+  const totalPaid = booked.reduce((s, r) => s + (r.total_paid ?? 0), 0)
 
   // Source tally
   const sourceCounts = rows.reduce((acc, r) => {
@@ -382,10 +382,10 @@ function HoneyBookSection() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {([
-          { label: 'Inquiries',      value: rows.length.toString(),    sub: 'leads received' },
-          { label: 'Toured',         value: tours.length.toString(),   sub: `${tourPct}% of inquiries` },
-          { label: 'Booked',         value: booked.length.toString(),  sub: `${bookPct}% of inquiries - ${tourToBook}% of tours` },
-          { label: 'Revenue Booked', value: fmt$(totalValue),          sub: `${fmt$(totalPaid)} collected` },
+          { label: 'Inquiries', value: rows.length.toString(), sub: 'leads received' },
+          { label: 'Toured', value: tours.length.toString(), sub: `${tourPct}% of inquiries` },
+          { label: 'Booked', value: booked.length.toString(), sub: `${bookPct}% of inquiries - ${tourToBook}% of tours` },
+          { label: 'Revenue Booked', value: fmt$(totalValue), sub: `${fmt$(totalPaid)} collected` },
         ]).map(({ label, value, sub }) => (
           <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
             <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
@@ -425,8 +425,8 @@ function HoneyBookSection() {
                   const { leads, toured: t, booked: b } = monthlyMap[mo]
                   const BAR_H = 140
                   const leadH = Math.round((leads / maxLeads) * BAR_H)
-                  const tourH = Math.round((t     / maxLeads) * BAR_H)
-                  const bookH = Math.round((b     / maxLeads) * BAR_H)
+                  const tourH = Math.round((t / maxLeads) * BAR_H)
+                  const bookH = Math.round((b / maxLeads) * BAR_H)
                   return (
                     <div key={mo} className="flex-1 flex flex-col items-center gap-1">
                       <div className="w-full flex items-end justify-center gap-0.5 pt-4" style={{ height: `${BAR_H}px` }}>
@@ -457,7 +457,7 @@ function HoneyBookSection() {
             <div className="space-y-3">
               {sourceList.map(([src]) => {
                 const srcBooked = booked.filter(r => (r.lead_source || 'Unknown') === src)
-                const srcVal    = srcBooked.reduce((s, r) => s + (r.total_value ?? 0), 0)
+                const srcVal = srcBooked.reduce((s, r) => s + (r.total_value ?? 0), 0)
                 if (srcVal === 0) return null
                 return (
                   <div key={src} className="flex items-center gap-4">
@@ -502,12 +502,12 @@ function HoneyBookSection() {
             <div className="space-y-1">
               {sourceList.map(([src]) => {
                 const srcBooked = booked.filter(r => (r.lead_source || 'Unknown') === src).length
-                const srcTotal  = sourceCounts[src] ?? 0
+                const srcTotal = sourceCounts[src] ?? 0
                 if (srcBooked === 0) return null
                 return (
                   <div key={src} className="flex justify-between text-xs">
                     <span className="text-stone-600">{src}</span>
-                    <span className="text-stone-400">{srcBooked}/{srcTotal} <span className="text-stone-300">({Math.round((srcBooked/srcTotal)*100)}%)</span></span>
+                    <span className="text-stone-400">{srcBooked}/{srcTotal} <span className="text-stone-300">({Math.round((srcBooked / srcTotal) * 100)}%)</span></span>
                   </div>
                 )
               })}
@@ -703,106 +703,106 @@ function FormsSection() {
             </div>
           )}
           <div className={`grid gap-5 items-start ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
-          <div className="space-y-4 min-w-0">
-            {activeGroup && (
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-stone-100">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>Selected Form</p>
-                      <p className="text-sm font-semibold text-stone-800">{activeGroup.name}</p>
-                    </div>
-                    <div className="text-right">
-                      {activeGroup.items.filter(s => s.status === 'handled').length > 0 && (
-                        <p className="text-xs font-medium text-emerald-700">{activeGroup.items.filter(s => s.status === 'handled').length} handled</p>
-                      )}
-                      <p className="text-xs text-stone-400">{activeGroup.items.length} message{activeGroup.items.length !== 1 ? 's' : ''}</p>
+            <div className="space-y-4 min-w-0">
+              {activeGroup && (
+                <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-stone-100">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>Selected Form</p>
+                        <p className="text-sm font-semibold text-stone-800">{activeGroup.name}</p>
+                      </div>
+                      <div className="text-right">
+                        {activeGroup.items.filter(s => s.status === 'handled').length > 0 && (
+                          <p className="text-xs font-medium text-emerald-700">{activeGroup.items.filter(s => s.status === 'handled').length} handled</p>
+                        )}
+                        <p className="text-xs text-stone-400">{activeGroup.items.length} message{activeGroup.items.length !== 1 ? 's' : ''}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div>
-                  {activeGroup.items.map(sub => {
-                    const first = sub.fields['First Name'] || ''
-                    const last  = sub.fields['Last Name']  || ''
-                    const email = sub.fields['Email'] || sub.fields['Email Address'] || ''
-                    const preview = [first, last].filter(Boolean).join(' ') || email || Object.values(sub.fields).find(Boolean) || ''
-                    const isHandled = sub.status === 'handled'
-                    return (
-                      <div key={sub.id}
-                        className={`flex items-start gap-3 px-5 py-3 border-b border-stone-50 last:border-0 transition-colors ${selected?.id === sub.id ? 'bg-amber-50/80' : isHandled ? 'bg-stone-50/60' : 'hover:bg-stone-50'}`}>
-                        <input
-                          type="checkbox"
-                          title="Mark as handled"
-                          className="mt-1 w-4 h-4 accent-emerald-600 cursor-pointer flex-shrink-0 disabled:opacity-50"
-                          checked={isHandled}
-                          disabled={handlingId === sub.id}
-                          onChange={() => toggleHandled(sub)}
-                        />
-                        <button
-                          className="flex-1 text-left min-w-0"
-                          onClick={() => { scrollYRef.current = window.scrollY; setSelected(prev => prev?.id === sub.id ? null : sub) }}>
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="min-w-0">
-                              {sub.internal_notes && <p className="text-xs text-amber-800 bg-amber-100/80 rounded-md px-2 py-1 mb-2 truncate">{sub.internal_notes}</p>}
-                              {preview && <p className={`text-sm truncate ${isHandled ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{preview}</p>}
-                              {email && email !== preview && <p className="text-xs text-stone-400 mt-0.5 truncate">{email}</p>}
+                  <div>
+                    {activeGroup.items.map(sub => {
+                      const first = sub.fields['First Name'] || ''
+                      const last = sub.fields['Last Name'] || ''
+                      const email = sub.fields['Email'] || sub.fields['Email Address'] || ''
+                      const preview = [first, last].filter(Boolean).join(' ') || email || Object.values(sub.fields).find(Boolean) || ''
+                      const isHandled = sub.status === 'handled'
+                      return (
+                        <div key={sub.id}
+                          className={`flex items-start gap-3 px-5 py-3 border-b border-stone-50 last:border-0 transition-colors ${selected?.id === sub.id ? 'bg-amber-50/80' : isHandled ? 'bg-stone-50/60' : 'hover:bg-stone-50'}`}>
+                          <input
+                            type="checkbox"
+                            title="Mark as handled"
+                            className="mt-1 w-4 h-4 accent-emerald-600 cursor-pointer flex-shrink-0 disabled:opacity-50"
+                            checked={isHandled}
+                            disabled={handlingId === sub.id}
+                            onChange={() => toggleHandled(sub)}
+                          />
+                          <button
+                            className="flex-1 text-left min-w-0"
+                            onClick={() => { scrollYRef.current = window.scrollY; setSelected(prev => prev?.id === sub.id ? null : sub) }}>
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="min-w-0">
+                                {sub.internal_notes && <p className="text-xs text-amber-800 bg-amber-100/80 rounded-md px-2 py-1 mb-2 truncate">{sub.internal_notes}</p>}
+                                {preview && <p className={`text-sm truncate ${isHandled ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{preview}</p>}
+                                {email && email !== preview && <p className="text-xs text-stone-400 mt-0.5 truncate">{email}</p>}
+                              </div>
+                              <p className="text-xs text-stone-500 flex-shrink-0">{fmtTs(sub.created_at)}</p>
                             </div>
-                            <p className="text-xs text-stone-500 flex-shrink-0">{fmtTs(sub.created_at)}</p>
-                          </div>
-                        </button>
-                      </div>
-                    )
-                  })}
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
-            {rows.length > 0 && <div className="text-xs text-stone-400 px-1">{rows.length} submission{rows.length !== 1 ? 's' : ''} across {formNames.length} form{formNames.length !== 1 ? 's' : ''} - {source === 'supabase' ? 'loaded from Supabase' : 'live from Wix'}</div>}
-          </div>
-
-          {selected ? (
-            <DetailPanel onClose={() => setSelected(null)}>
-              <div className="mb-4">
-                <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>{selected.form_name}</p>
-                <p className="text-xs text-stone-400">{fmtTs(selected.created_at)}</p>
-              </div>
-              <div className="mb-4">
-                <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1 block">Internal Notes</label>
-                <textarea
-                  className={inputCls + ' resize-none'}
-                  rows={4}
-                  value={notesDraft}
-                  onChange={e => setNotesDraft(e.target.value)}
-                  placeholder="Add internal notes for this submission"
-                  disabled={notesSaving}
-                />
-                <div className="flex items-center justify-between mt-2 gap-2">
-                  <p className="text-[10px] text-stone-400">
-                    Saved to Supabase for this submission.
-                  </p>
-                  <button
-                    onClick={saveNotes}
-                    disabled={notesSaving}
-                    className="px-3 py-1.5 text-xs text-white rounded-lg disabled:opacity-50"
-                    style={goldBtn}
-                  >
-                    {notesSaving ? 'Saving...' : 'Save Notes'}
-                  </button>
-                </div>
-              </div>
-              {Object.keys(selected.fields).length > 0 ? (
-                <div className="space-y-3">
-                  {Object.entries(selected.fields).map(([label, value]) => (
-                    <div key={label}>
-                      <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">{label}</p>
-                      <p className="text-sm text-stone-700 whitespace-pre-wrap">{value}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-stone-300 italic">No field data captured.</p>
               )}
-            </DetailPanel>
-          ) : null}
+              {rows.length > 0 && <div className="text-xs text-stone-400 px-1">{rows.length} submission{rows.length !== 1 ? 's' : ''} across {formNames.length} form{formNames.length !== 1 ? 's' : ''} - {source === 'supabase' ? 'loaded from Supabase' : 'live from Wix'}</div>}
+            </div>
+
+            {selected ? (
+              <DetailPanel onClose={() => setSelected(null)}>
+                <div className="mb-4">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>{selected.form_name}</p>
+                  <p className="text-xs text-stone-400">{fmtTs(selected.created_at)}</p>
+                </div>
+                <div className="mb-4">
+                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1 block">Internal Notes</label>
+                  <textarea
+                    className={inputCls + ' resize-none'}
+                    rows={4}
+                    value={notesDraft}
+                    onChange={e => setNotesDraft(e.target.value)}
+                    placeholder="Add internal notes for this submission"
+                    disabled={notesSaving}
+                  />
+                  <div className="flex items-center justify-between mt-2 gap-2">
+                    <p className="text-[10px] text-stone-400">
+                      Saved to Supabase for this submission.
+                    </p>
+                    <button
+                      onClick={saveNotes}
+                      disabled={notesSaving}
+                      className="px-3 py-1.5 text-xs text-white rounded-lg disabled:opacity-50"
+                      style={goldBtn}
+                    >
+                      {notesSaving ? 'Saving...' : 'Save Notes'}
+                    </button>
+                  </div>
+                </div>
+                {Object.keys(selected.fields).length > 0 ? (
+                  <div className="space-y-3">
+                    {Object.entries(selected.fields).map(([label, value]) => (
+                      <div key={label}>
+                        <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">{label}</p>
+                        <p className="text-sm text-stone-700 whitespace-pre-wrap">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-stone-300 italic">No field data captured.</p>
+                )}
+              </DetailPanel>
+            ) : null}
           </div>
         </>
       )}
@@ -822,7 +822,7 @@ function EmailSection() {
   const [form, setForm] = useState(EMAIL_EMPTY)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
-  type EditEmailForm = Omit<Partial<EmailEntry>, 'sent'|'opened'|'clicked'|'unsubscribed'> & { sent?: string; opened?: string; clicked?: string; unsubscribed?: string }
+  type EditEmailForm = Omit<Partial<EmailEntry>, 'sent' | 'opened' | 'clicked' | 'unsubscribed'> & { sent?: string; opened?: string; clicked?: string; unsubscribed?: string }
   const [editForm, setEditForm] = useState<EditEmailForm>({})
   const [editSaving, setEditSaving] = useState(false)
 
@@ -999,7 +999,7 @@ function SocialSection() {
   const [form, setForm] = useState(SOCIAL_EMPTY)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
-  type EditSocialForm = Omit<Partial<SocialEntry>, 'likes'|'comments'|'shares'|'reach'> & { likes?: string; comments?: string; shares?: string; reach?: string }
+  type EditSocialForm = Omit<Partial<SocialEntry>, 'likes' | 'comments' | 'shares' | 'reach'> & { likes?: string; comments?: string; shares?: string; reach?: string }
   const [editForm, setEditForm] = useState<EditSocialForm>({})
   const [editSaving, setEditSaving] = useState(false)
   const [fbRows, setFbRows] = useState<FacebookEntry[] | null>(null)
@@ -1013,15 +1013,15 @@ function SocialSection() {
       supabase.from('data_facebook').select('*').order('period', { ascending: false }),
     ]).then(([s, f]) => {
       const social = (s.data as SocialEntry[]) ?? []
-      const fb     = (f.data as FacebookEntry[]) ?? []
+      const fb = (f.data as FacebookEntry[]) ?? []
       setRows(social); setFbRows(fb)
       cacheWrite(CK.social, { social, fb }, TTL_DB)
     })
   }, [])
 
   const latestFB = fbRows?.[0] ?? null
-  const prevFB   = fbRows?.[1] ?? null
-  const fmtPeriod = (p: string) => { const [y,m] = p.split('-'); return new Date(parseInt(y), parseInt(m)-1).toLocaleDateString('en-US',{month:'long',year:'numeric'}) }
+  const prevFB = fbRows?.[1] ?? null
+  const fmtPeriod = (p: string) => { const [y, m] = p.split('-'); return new Date(parseInt(y), parseInt(m) - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) }
   const delta = (curr: number | null, p: number | null) => {
     if (curr == null || p == null || p === 0) return null
     const pct = Math.round(((curr - p) / p) * 100)
@@ -1200,7 +1200,7 @@ function SocialSection() {
       <div className="mt-6">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center flex-shrink-0">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="white"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="white"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>
           </div>
           <p className="text-sm font-semibold text-stone-700">Facebook Page</p>
           {latestFB && <span className="text-xs text-stone-400">{fmtPeriod(latestFB.period)}</span>}
@@ -1217,9 +1217,9 @@ function SocialSection() {
             {latestFB && (
               <div className="grid grid-cols-5 gap-3 mb-4">
                 {([
-                  { label: 'Followers',     value: latestFB.page_followers?.toLocaleString(),      d: delta(latestFB.page_followers, prevFB?.page_followers ?? null),        sub: 'page followers' },
+                  { label: 'Followers', value: latestFB.page_followers?.toLocaleString(), d: delta(latestFB.page_followers, prevFB?.page_followers ?? null), sub: 'page followers' },
                   { label: 'Talking About', value: latestFB.page_engaged_users?.toLocaleString(), d: delta(latestFB.page_engaged_users, prevFB?.page_engaged_users ?? null), sub: 'people talking about page' },
-                  { label: 'Posts',         value: latestFB.post_count?.toLocaleString(),         d: null,                                                                   sub: 'posts published' },
+                  { label: 'Posts', value: latestFB.post_count?.toLocaleString(), d: null, sub: 'posts published' },
                 ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null; sub: string }[]).map(({ label, value, d, sub }) => (
                   <div key={label} className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
                     <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
@@ -1267,9 +1267,10 @@ function SocialSection() {
 interface WixEvent {
   id: string; title: string; status: string
   start: string | null; end: string | null
-  location: string; description: string
+  description: string
   rsvp_total: number | null; tickets_sold: number | null
-  revenue: number | null; order_count: number | null; currency: string
+  ticket_price: number | null
+  revenue: number | null; currency: string
   url: string | null
 }
 
@@ -1282,7 +1283,7 @@ function EventsSection() {
   const [form, setForm] = useState(EVENT_EMPTY)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
-  type EditEventForm = Omit<Partial<EventEntry>, 'attendance'|'revenue'> & { attendance?: string; revenue?: string }
+  type EditEventForm = Omit<Partial<EventEntry>, 'attendance' | 'revenue'> & { attendance?: string; revenue?: string }
   const [editForm, setEditForm] = useState<EditEventForm>({})
   const [editSaving, setEditSaving] = useState(false)
   const [wixEvents, setWixEvents] = useState<WixEvent[] | null>(null)
@@ -1319,28 +1320,19 @@ function EventsSection() {
         console.log('[wix-events] rows count:', rows.length, 'json keys:', Object.keys(json || {}))
         if (!rows.length) { if (!cachedEvents) setWixEvents([]); return }
         const all: WixEvent[] = rows.map((e: Record<string, unknown>) => {
-          const sched   = (e.scheduling as Record<string, unknown>) ?? {}
-          const config  = (sched.config  as Record<string, unknown>) ?? {}
-          const loc     = (e.location    as Record<string, unknown>) ?? {}
-          const locAddr = (loc.address   as Record<string, unknown>) ?? {}
-          const reg     = (e.registration as Record<string, unknown>) ?? {}
-          const rsvp    = (reg.rsvpCollection as Record<string, unknown>) ?? null
-          const tix     = (reg.ticketing      as Record<string, unknown>) ?? null
-          const pu      = (e.eventPageUrl     as Record<string, unknown>) ?? {}
           return {
-            id:           String(e.id    ?? ''),
-            title:        String(e.title ?? ''),
-            status:       String(e.status ?? ''),
-            start:        (config.startDate as string) ?? null,
-            end:          (config.endDate   as string) ?? null,
-            location:     String(loc.name ?? locAddr.formattedAddress ?? ''),
-            description:  String(e.description ?? ''),
-            rsvp_total:   rsvp ? Number(rsvp.total    ?? 0) : null,
-            tickets_sold: tix  ? Number(tix.totalSold ?? 0) : null,
+            id: String(e.id ?? ''),
+            title: String(e.title ?? ''),
+            status: String(e.status ?? ''),
+            start: (e.start as string | null) ?? null,
+            end: (e.end as string | null) ?? null,
+            description: String(e.description ?? ''),
+            rsvp_total: e.rsvp_total != null ? Number(e.rsvp_total) : null,
+            tickets_sold: e.tickets_sold != null ? Number(e.tickets_sold) : null,
+            ticket_price: e.ticket_price != null ? Number(e.ticket_price) : null,
             revenue: e.revenue != null ? Number(e.revenue) : null,
-            order_count: e.order_count != null ? Number(e.order_count) : null,
             currency: String(e.currency ?? 'USD'),
-            url: pu.base ? String(pu.base) + String(pu.path ?? '') : null,
+            url: (e.url as string | null) ?? null,
           }
         })
         setWixEvents(all)
@@ -1395,16 +1387,16 @@ function EventsSection() {
 
   const WIX_STATUS_COLORS: Record<string, string> = {
     PUBLISHED: 'bg-emerald-100 text-emerald-700',
-    DRAFT:     'bg-stone-100 text-stone-500',
+    DRAFT: 'bg-stone-100 text-stone-500',
     CANCELLED: 'bg-red-100 text-red-600',
-    ENDED:     'bg-stone-100 text-stone-400',
+    ENDED: 'bg-stone-100 text-stone-400',
   }
 
   // Summary stats across all Wix events
-  const wixTotalRevenue    = (wixEvents ?? []).reduce((s, e) => s + (e.revenue ?? 0), 0)
-  const wixTotalTickets    = (wixEvents ?? []).reduce((s, e) => s + (e.tickets_sold ?? 0), 0)
-  const wixTotalRsvps      = (wixEvents ?? []).reduce((s, e) => s + (e.rsvp_total ?? 0), 0)
-  const wixHasRevenue      = (wixEvents ?? []).some(e => e.revenue != null)
+  const wixTotalRevenue = (wixEvents ?? []).reduce((s, e) => s + (e.revenue ?? 0), 0)
+  const wixTotalTickets = (wixEvents ?? []).reduce((s, e) => s + (e.tickets_sold ?? 0), 0)
+  const wixTotalRsvps = (wixEvents ?? []).reduce((s, e) => s + (e.rsvp_total ?? 0), 0)
+  const wixHasRevenue = (wixEvents ?? []).some(e => e.revenue != null)
 
   return (
     <div className="space-y-6">
@@ -1438,24 +1430,21 @@ function EventsSection() {
                 <table className="w-full text-sm">
                   <thead><tr className="border-b border-stone-100">
                     <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Event</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Location</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Tickets / RSVPs</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Ticket Price</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Tickets Sold</th>
                     <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Revenue</th>
-                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Date</th>
                   </tr></thead>
                   <tbody>{wixEvents.map(e => (
                     <tr key={e.id} onClick={() => setWixSelected(prev => prev?.id === e.id ? null : e)}
                       className={`border-b border-stone-100 last:border-0 cursor-pointer transition-colors ${wixSelected?.id === e.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
                       <td className="px-4 py-3">
                         <span className="font-medium text-stone-800">{e.title}</span>
-                        {e.status && <span className={`ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${WIX_STATUS_COLORS[e.status] ?? 'bg-stone-100 text-stone-400'}`}>{e.status}</span>}
                       </td>
-                      <td className="px-4 py-3 text-stone-500 text-xs">{e.location || '-'}</td>
+                      <td className="px-4 py-3 text-right text-stone-500 text-sm">{e.ticket_price != null ? fmt$(e.ticket_price) : <span className="text-stone-300">-</span>}</td>
                       <td className="px-4 py-3 text-right text-stone-700">{e.tickets_sold ?? e.rsvp_total ?? <span className="text-stone-300">-</span>}</td>
                       <td className="px-4 py-3 text-right font-medium" style={{ color: e.revenue != null ? 'var(--gold)' : undefined }}>
                         {e.revenue != null ? fmt$(e.revenue) : <span className="text-stone-300">-</span>}
                       </td>
-                      <td className="px-4 py-3 text-right text-stone-400 text-xs">{fmtWixDate(e.start)}</td>
                     </tr>
                   ))}</tbody>
                 </table>
@@ -1468,33 +1457,23 @@ function EventsSection() {
                     <h2 className="font-bold text-stone-800 text-base leading-snug mt-2">{wixSelected.title}</h2>
                   </div>
                   <div className="space-y-3">
-                    <Field label="Start"    value={fmtWixDate(wixSelected.start)} />
-                    <Field label="End"      value={fmtWixDate(wixSelected.end)} />
-                    <Field label="Location" value={wixSelected.location || null} />
-                    {wixSelected.tickets_sold != null ? (
-                      <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
-                        <div>
-                          <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Tickets Sold</p>
-                          <p className="text-lg font-semibold text-stone-800">{wixSelected.tickets_sold.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Revenue</p>
-                          <p className="text-lg font-semibold" style={{ color: 'var(--gold)' }}>
-                            {wixSelected.revenue != null ? fmt$(wixSelected.revenue) : '-'}
-                          </p>
-                        </div>
+                    <div className="grid grid-cols-3 gap-3 bg-stone-50 rounded-xl p-3">
+                      <div>
+                        <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Ticket Price</p>
+                        <p className="text-lg font-semibold text-stone-800">{wixSelected.ticket_price != null ? fmt$(wixSelected.ticket_price) : '-'}</p>
                       </div>
-                    ) : wixSelected.rsvp_total != null ? (
-                      <div className="bg-stone-50 rounded-xl p-3">
-                        <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">RSVPs</p>
-                        <p className="text-lg font-semibold text-stone-800">{wixSelected.rsvp_total.toLocaleString()}</p>
+                      <div>
+                        <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Tickets Sold</p>
+                        <p className="text-lg font-semibold text-stone-800">{wixSelected.tickets_sold ?? wixSelected.rsvp_total ?? '-'}</p>
                       </div>
-                    ) : null}
-                    {wixSelected.order_count != null && wixSelected.order_count > 0 && (
-                      <Field label="Orders" value={String(wixSelected.order_count)} />
-                    )}
+                      <div>
+                        <p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Revenue</p>
+                        <p className="text-lg font-semibold" style={{ color: 'var(--gold)' }}>
+                          {wixSelected.revenue != null ? fmt$(wixSelected.revenue) : '-'}
+                        </p>
+                      </div>
+                    </div>
                     {wixSelected.description && <Field label="Description" value={wixSelected.description} />}
-                    {wixSelected.url && <a href={wixSelected.url} target="_blank" rel="noreferrer" className="text-xs text-amber-700 hover:underline">View on Wix →</a>}
                   </div>
                 </DetailPanel>
               )}
@@ -1506,122 +1485,122 @@ function EventsSection() {
       {/* â”€â”€ Manual Event Log â”€â”€ */}
       <div>
         <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-3">Event Log</p>
-      <div className="flex items-center justify-between mb-4">
-        {rows && rows.length > 0 && (
-          <div className="bg-white rounded-xl border border-stone-200 px-4 py-2.5 shadow-sm flex items-center gap-3">
-            <span className="text-xs text-stone-400">Events</span>
-            <span className="text-sm font-semibold text-stone-800">{rows.length}</span>
-            <span className="w-px h-4 bg-stone-200" />
-            <span className="text-xs text-stone-400">Total Attendance</span>
-            <span className="text-sm font-semibold text-stone-800">{totalAttendance.toLocaleString()}</span>
-            {totalRevenue > 0 && <>
+        <div className="flex items-center justify-between mb-4">
+          {rows && rows.length > 0 && (
+            <div className="bg-white rounded-xl border border-stone-200 px-4 py-2.5 shadow-sm flex items-center gap-3">
+              <span className="text-xs text-stone-400">Events</span>
+              <span className="text-sm font-semibold text-stone-800">{rows.length}</span>
               <span className="w-px h-4 bg-stone-200" />
-              <span className="text-xs text-stone-400">Revenue</span>
-              <span className="text-sm font-semibold text-stone-800">{fmt$(totalRevenue)}</span>
-            </>}
+              <span className="text-xs text-stone-400">Total Attendance</span>
+              <span className="text-sm font-semibold text-stone-800">{totalAttendance.toLocaleString()}</span>
+              {totalRevenue > 0 && <>
+                <span className="w-px h-4 bg-stone-200" />
+                <span className="text-xs text-stone-400">Revenue</span>
+                <span className="text-sm font-semibold text-stone-800">{fmt$(totalRevenue)}</span>
+              </>}
+            </div>
+          )}
+          <button onClick={() => { setForm(EVENT_EMPTY); setShowAdd(true) }}
+            className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm ml-auto" style={goldBtn}>
+            <Plus size={15} /> Add Event
+          </button>
+        </div>
+        {showAdd && (
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 mb-5">
+            <h3 className="text-sm font-semibold text-stone-700 mb-3">New Event</h3>
+            <form onSubmit={submit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2"><label className="text-xs text-stone-400 mb-1 block">Event Name *</label>
+                  <input required className={inputCls} value={form.event_name} onChange={e => setForm(f => ({ ...f, event_name: e.target.value }))} /></div>
+                <div><label className="text-xs text-stone-400 mb-1 block">Date</label>
+                  <input type="date" className={inputCls} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
+                <div><label className="text-xs text-stone-400 mb-1 block">Venue</label>
+                  <input className={inputCls} value={form.venue} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} /></div>
+                <div><label className="text-xs text-stone-400 mb-1 block">Attendance</label>
+                  <input type="number" className={inputCls} value={form.attendance} onChange={e => setForm(f => ({ ...f, attendance: e.target.value }))} /></div>
+                <div><label className="text-xs text-stone-400 mb-1 block">Revenue</label>
+                  <input type="number" className={inputCls} placeholder="0.00" value={form.revenue} onChange={e => setForm(f => ({ ...f, revenue: e.target.value }))} /></div>
+              </div>
+              <div><label className="text-xs text-stone-400 mb-1 block">Notes</label>
+                <textarea className={inputCls + ' resize-none'} rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
+              <div className="flex gap-2">
+                <button type="submit" disabled={saving || !form.event_name} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Saving...' : 'Add'}</button>
+                <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
+              </div>
+            </form>
           </div>
         )}
-        <button onClick={() => { setForm(EVENT_EMPTY); setShowAdd(true) }}
-          className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm ml-auto" style={goldBtn}>
-          <Plus size={15} /> Add Event
-        </button>
-      </div>
-      {showAdd && (
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 mb-5">
-          <h3 className="text-sm font-semibold text-stone-700 mb-3">New Event</h3>
-          <form onSubmit={submit} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2"><label className="text-xs text-stone-400 mb-1 block">Event Name *</label>
-                <input required className={inputCls} value={form.event_name} onChange={e => setForm(f => ({ ...f, event_name: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Date</label>
-                <input type="date" className={inputCls} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Venue</label>
-                <input className={inputCls} value={form.venue} onChange={e => setForm(f => ({ ...f, venue: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Attendance</label>
-                <input type="number" className={inputCls} value={form.attendance} onChange={e => setForm(f => ({ ...f, attendance: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Revenue</label>
-                <input type="number" className={inputCls} placeholder="0.00" value={form.revenue} onChange={e => setForm(f => ({ ...f, revenue: e.target.value }))} /></div>
-            </div>
-            <div><label className="text-xs text-stone-400 mb-1 block">Notes</label>
-              <textarea className={inputCls + ' resize-none'} rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={saving || !form.event_name} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Saving...' : 'Add'}</button>
-              <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
-      {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading...</div> : (
-        <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
-          <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-            {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No events logged yet.</div> : (
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-stone-100">
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Event</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Attendance</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Revenue</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Date</th>
-                </tr></thead>
-                <tbody>{rows.map(r => (
-                  <tr key={r.id} onClick={() => { setSelected(prev => prev?.id === r.id ? null : r); setEditing(false) }}
-                    className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === r.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
-                    <td className="px-4 py-3 font-medium text-stone-800">{r.event_name}
-                      {r.venue && <span className="ml-2 text-xs text-stone-400">{r.venue}</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-700 font-medium">{r.attendance?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-600">{r.revenue != null ? fmt$(r.revenue) : <span className="text-stone-300">-</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : '-'}</td>
-                  </tr>
-                ))}</tbody>
-              </table>
-            )}
-            <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{rows.length} event{rows.length !== 1 ? 's' : ''}</div>
-          </div>
-          {selected ? (
-            <DetailPanel onClose={() => setSelected(null)}>
-              <div className="flex items-start justify-between mb-4">
-                <h2 className="font-bold text-stone-800 text-base leading-snug pr-2">{selected.event_name}</h2>
-                <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => { setEditForm({ ...selected, attendance: selected.attendance != null ? String(selected.attendance) : '', revenue: selected.revenue != null ? String(selected.revenue) : '' }); setEditing(true) }}
-                    className="px-2.5 py-1 text-xs text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-50 flex items-center gap-1"><Pencil size={11} /> Edit</button>
-                  <button onClick={() => del(selected.id)} className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14} /></button>
-                </div>
-              </div>
-              {editing ? (
-                <div className="space-y-3">
-                  <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Event Name</label>
-                    <input className={inputCls} value={editForm.event_name ?? ''} onChange={e => setEditForm(f => ({ ...f, event_name: e.target.value }))} /></div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Date</label>
-                      <input type="date" className={inputCls} value={editForm.date ?? ''} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} /></div>
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Venue</label>
-                      <input className={inputCls} value={editForm.venue ?? ''} onChange={e => setEditForm(f => ({ ...f, venue: e.target.value }))} /></div>
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Attendance</label>
-                      <input type="number" className={inputCls} value={editForm.attendance ?? ''} onChange={e => setEditForm(f => ({ ...f, attendance: e.target.value }))} /></div>
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Revenue</label>
-                      <input type="number" className={inputCls} value={editForm.revenue ?? ''} onChange={e => setEditForm(f => ({ ...f, revenue: e.target.value }))} /></div>
-                  </div>
-                  <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Notes</label>
-                    <textarea className={inputCls + ' resize-none'} rows={3} value={editForm.notes ?? ''} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
-                  <div className="flex gap-2">
-                    <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg font-medium" style={goldBtn}>{editSaving ? 'Saving...' : 'Save'}</button>
-                    <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg">Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <Field label="Date" value={selected.date ? fmtDate(selected.date) : null} />
-                  <Field label="Venue" value={selected.venue} />
-                  <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Attendance</p><p className="text-sm font-semibold text-stone-800">{selected.attendance?.toLocaleString() ?? '-'}</p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Revenue</p><p className="text-sm font-semibold text-stone-800">{selected.revenue != null ? fmt$(selected.revenue) : '-'}</p></div>
-                  </div>
-                  <Field label="Notes" value={selected.notes} />
-                </div>
+        {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading...</div> : (
+          <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+              {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No events logged yet.</div> : (
+                <table className="w-full text-sm">
+                  <thead><tr className="border-b border-stone-100">
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Event</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Attendance</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Revenue</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Date</th>
+                  </tr></thead>
+                  <tbody>{rows.map(r => (
+                    <tr key={r.id} onClick={() => { setSelected(prev => prev?.id === r.id ? null : r); setEditing(false) }}
+                      className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === r.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
+                      <td className="px-4 py-3 font-medium text-stone-800">{r.event_name}
+                        {r.venue && <span className="ml-2 text-xs text-stone-400">{r.venue}</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-700 font-medium">{r.attendance?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-600">{r.revenue != null ? fmt$(r.revenue) : <span className="text-stone-300">-</span>}</td>
+                      <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : '-'}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
               )}
-            </DetailPanel>
-          ) : null}
-        </div>
-      )}
+              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{rows.length} event{rows.length !== 1 ? 's' : ''}</div>
+            </div>
+            {selected ? (
+              <DetailPanel onClose={() => setSelected(null)}>
+                <div className="flex items-start justify-between mb-4">
+                  <h2 className="font-bold text-stone-800 text-base leading-snug pr-2">{selected.event_name}</h2>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <button onClick={() => { setEditForm({ ...selected, attendance: selected.attendance != null ? String(selected.attendance) : '', revenue: selected.revenue != null ? String(selected.revenue) : '' }); setEditing(true) }}
+                      className="px-2.5 py-1 text-xs text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-50 flex items-center gap-1"><Pencil size={11} /> Edit</button>
+                    <button onClick={() => del(selected.id)} className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14} /></button>
+                  </div>
+                </div>
+                {editing ? (
+                  <div className="space-y-3">
+                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Event Name</label>
+                      <input className={inputCls} value={editForm.event_name ?? ''} onChange={e => setEditForm(f => ({ ...f, event_name: e.target.value }))} /></div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Date</label>
+                        <input type="date" className={inputCls} value={editForm.date ?? ''} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} /></div>
+                      <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Venue</label>
+                        <input className={inputCls} value={editForm.venue ?? ''} onChange={e => setEditForm(f => ({ ...f, venue: e.target.value }))} /></div>
+                      <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Attendance</label>
+                        <input type="number" className={inputCls} value={editForm.attendance ?? ''} onChange={e => setEditForm(f => ({ ...f, attendance: e.target.value }))} /></div>
+                      <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Revenue</label>
+                        <input type="number" className={inputCls} value={editForm.revenue ?? ''} onChange={e => setEditForm(f => ({ ...f, revenue: e.target.value }))} /></div>
+                    </div>
+                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Notes</label>
+                      <textarea className={inputCls + ' resize-none'} rows={3} value={editForm.notes ?? ''} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
+                    <div className="flex gap-2">
+                      <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg font-medium" style={goldBtn}>{editSaving ? 'Saving...' : 'Save'}</button>
+                      <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <Field label="Date" value={selected.date ? fmtDate(selected.date) : null} />
+                    <Field label="Venue" value={selected.venue} />
+                    <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
+                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Attendance</p><p className="text-sm font-semibold text-stone-800">{selected.attendance?.toLocaleString() ?? '-'}</p></div>
+                      <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Revenue</p><p className="text-sm font-semibold text-stone-800">{selected.revenue != null ? fmt$(selected.revenue) : '-'}</p></div>
+                    </div>
+                    <Field label="Notes" value={selected.notes} />
+                  </div>
+                )}
+              </DetailPanel>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1631,12 +1610,12 @@ function EventsSection() {
    ANALYTICS SECTION
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 function AnalyticsSection() {
-  type PageRow   = { path: string; title: string; views: number; users: number; sessions: number; engRate: number; avgDuration: number }
-  type CityRow   = { city: string; region: string; users: number; sessions: number }
+  type PageRow = { path: string; title: string; views: number; users: number; sessions: number; engRate: number; avgDuration: number }
+  type CityRow = { city: string; region: string; users: number; sessions: number }
   type SourceRow = { channel: string; sessions: number; users: number; engRate: number }
-  const [topPages,  setTopPages]  = useState<{ rows: PageRow[];   period?: string; error?: string } | null>(null)
-  const [topCities, setTopCities] = useState<{ rows: CityRow[];   period?: string } | null>(null)
-  const [topSources,setTopSources]= useState<{ rows: SourceRow[]; period?: string } | null>(null)
+  const [topPages, setTopPages] = useState<{ rows: PageRow[]; period?: string; error?: string } | null>(null)
+  const [topCities, setTopCities] = useState<{ rows: CityRow[]; period?: string } | null>(null)
+  const [topSources, setTopSources] = useState<{ rows: SourceRow[]; period?: string } | null>(null)
   const [rows, setRows] = useState<AnalyticsEntry[] | null>(null)
   const [chartMetric, setChartMetric] = useState<'sessions' | 'users' | 'page_views'>('sessions')
 
@@ -1654,15 +1633,15 @@ function AnalyticsSection() {
       setTopCities((cachedWix.cities as typeof topCities) ?? { rows: [] })
       setTopSources((cachedWix.sources as typeof topSources) ?? { rows: [] })
     }
-    if (!WIX_URL) { if (!cachedWix) { setTopPages({ rows: [] }); setTopCities({ rows: [] }); setTopSources({ rows: [] }) } ; return }
+    if (!WIX_URL) { if (!cachedWix) { setTopPages({ rows: [] }); setTopCities({ rows: [] }); setTopSources({ rows: [] }) }; return }
     const ctrl = new AbortController()
     const timer = setTimeout(() => ctrl.abort(), 20000)
     fetch(WIX_URL, { signal: ctrl.signal })
       .then(r => r.json())
       .then(json => {
         clearTimeout(timer)
-        const pages   = json.pages   ?? { rows: [], error: 'Pages not returned by script - redeploy wix-webapp.gs' }
-        const cities  = json.cities  ?? { rows: [] }
+        const pages = json.pages ?? { rows: [], error: 'Pages not returned by script - redeploy wix-webapp.gs' }
+        const cities = json.cities ?? { rows: [] }
         const sources = json.sources ?? { rows: [] }
         setTopPages(pages); setTopCities(cities); setTopSources(sources)
         cacheWrite(CK.wix, { pages, cities, sources }, TTL_SCRIPT)
@@ -1696,25 +1675,25 @@ function AnalyticsSection() {
 
   // â”€â”€ Google Analytics historical data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const latest = rows?.[0] ?? null
-  const prev   = rows?.[1] ?? null
+  const prev = rows?.[1] ?? null
   const chartRows = [...(rows ?? [])].reverse().slice(-12)
   const chartVals = chartRows.map(r => r[chartMetric] ?? 0)
-  const chartMax  = Math.max(...chartVals, 1)
+  const chartMax = Math.max(...chartVals, 1)
   const metricCards = latest ? [
-    { label: 'Users',        value: latest.users?.toLocaleString(),                                               d: delta(latest.users, prev?.users ?? null),           sub: 'unique visitors' },
-    { label: 'Sessions',     value: latest.sessions?.toLocaleString(),                                            d: delta(latest.sessions, prev?.sessions ?? null),     sub: 'total visits' },
-    { label: 'Page Views',   value: latest.page_views?.toLocaleString(),                                          d: delta(latest.page_views, prev?.page_views ?? null), sub: 'screens viewed' },
-    { label: 'Avg Duration', value: fmtDur(latest.avg_session_duration),                                          d: null,                                               sub: 'per session' },
-    { label: 'Bounce Rate',  value: latest.bounce_rate != null ? `${(latest.bounce_rate*100).toFixed(1)}%` : '-', d: null,                                               sub: 'left after 1 page' },
+    { label: 'Users', value: latest.users?.toLocaleString(), d: delta(latest.users, prev?.users ?? null), sub: 'unique visitors' },
+    { label: 'Sessions', value: latest.sessions?.toLocaleString(), d: delta(latest.sessions, prev?.sessions ?? null), sub: 'total visits' },
+    { label: 'Page Views', value: latest.page_views?.toLocaleString(), d: delta(latest.page_views, prev?.page_views ?? null), sub: 'screens viewed' },
+    { label: 'Avg Duration', value: fmtDur(latest.avg_session_duration), d: null, sub: 'per session' },
+    { label: 'Bounce Rate', value: latest.bounce_rate != null ? `${(latest.bounce_rate * 100).toFixed(1)}%` : '-', d: null, sub: 'left after 1 page' },
   ] as { label: string; value: string | undefined; d: { pct: number; up: boolean } | null; sub: string }[] : []
   const CHANNELS: { key: keyof AnalyticsEntry; label: string; color: string }[] = [
-    { key: 'sessions_organic',  label: 'Organic Search', color: '#4ade80' },
-    { key: 'sessions_direct',   label: 'Direct',         color: '#60a5fa' },
-    { key: 'sessions_referral', label: 'Referral',       color: '#f59e0b' },
-    { key: 'sessions_social',   label: 'Social',         color: '#c084fc' },
-    { key: 'sessions_paid',     label: 'Paid Search',    color: '#fb7185' },
-    { key: 'sessions_email',    label: 'Email',          color: '#34d399' },
-    { key: 'sessions_other',    label: 'Other',          color: '#94a3b8' },
+    { key: 'sessions_organic', label: 'Organic Search', color: '#4ade80' },
+    { key: 'sessions_direct', label: 'Direct', color: '#60a5fa' },
+    { key: 'sessions_referral', label: 'Referral', color: '#f59e0b' },
+    { key: 'sessions_social', label: 'Social', color: '#c084fc' },
+    { key: 'sessions_paid', label: 'Paid Search', color: '#fb7185' },
+    { key: 'sessions_email', label: 'Email', color: '#34d399' },
+    { key: 'sessions_other', label: 'Other', color: '#94a3b8' },
   ]
   const channelTotal = latest ? CHANNELS.reduce((s, c) => s + ((latest[c.key] as number | null) ?? 0), 0) : 0
 
@@ -1722,134 +1701,134 @@ function AnalyticsSection() {
     <div className="flex flex-col gap-5">
 
       <div className="order-2">
-      {/* â”€â”€ GA4 Top Pages â”€â”€ */}
-      {topPages === null ? (
-        <div className="text-center py-10 text-stone-400 text-sm">Loading pages...</div>
-      ) : topPages.rows.length > 0 ? (() => {
-        const filtered = topPages.rows.filter(r => !r.path.startsWith('/dashboard'))
-        const maxViews = Math.max(...filtered.map(r => r.views), 1)
-        const totalViews = filtered.reduce((s, r) => s + r.views, 0)
-        const fmtDurS = (s: number) => { const m = Math.floor(s / 60); const sec = Math.round(s % 60); return m > 0 ? `${m}m ${sec}s` : `${sec}s` }
-        const pageLabel = (path: string) => {
-          if (path === '/') return 'Home'
-          const clean = path.replace(/^\//, '').split('?')[0]
-          return clean.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || path
-        }
-        return (
-          <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-            <div className="px-5 pt-5 pb-3">
-              <p className="text-sm font-semibold text-stone-700">Pages &amp; Screens</p>
-              <p className="text-xs text-stone-400 mt-0.5">{totalViews.toLocaleString()} total views - {topPages.period ?? 'last 90 days'}</p>
+        {/* â”€â”€ GA4 Top Pages â”€â”€ */}
+        {topPages === null ? (
+          <div className="text-center py-10 text-stone-400 text-sm">Loading pages...</div>
+        ) : topPages.rows.length > 0 ? (() => {
+          const filtered = topPages.rows.filter(r => !r.path.startsWith('/dashboard'))
+          const maxViews = Math.max(...filtered.map(r => r.views), 1)
+          const totalViews = filtered.reduce((s, r) => s + r.views, 0)
+          const fmtDurS = (s: number) => { const m = Math.floor(s / 60); const sec = Math.round(s % 60); return m > 0 ? `${m}m ${sec}s` : `${sec}s` }
+          const pageLabel = (path: string) => {
+            if (path === '/') return 'Home'
+            const clean = path.replace(/^\//, '').split('?')[0]
+            return clean.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || path
+          }
+          return (
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+              <div className="px-5 pt-5 pb-3">
+                <p className="text-sm font-semibold text-stone-700">Pages &amp; Screens</p>
+                <p className="text-xs text-stone-400 mt-0.5">{totalViews.toLocaleString()} total views - {topPages.period ?? 'last 90 days'}</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-y border-stone-100 bg-stone-50/60">
+                    <th className="px-5 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Page</th>
+                    <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Views</th>
+                    <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Users</th>
+                    <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Sessions</th>
+                    <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Eng. Rate</th>
+                    <th className="px-5 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Avg. Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((page, i) => {
+                    const pct = (page.views / maxViews) * 100
+                    return (
+                      <tr key={i} className="border-b border-stone-50 hover:bg-stone-50/50 transition-colors">
+                        <td className="px-5 py-3 max-w-xs">
+                          <p className="font-medium text-stone-800 truncate" title={page.path}>{pageLabel(page.path)}</p>
+                          <p className="text-[10px] text-stone-400 truncate">{page.path}</p>
+                          <div className="mt-1.5 h-1 rounded-full bg-stone-100 overflow-hidden w-full">
+                            <div className="h-full rounded-full" style={{ width: `${pct}%`, background: i === 0 ? 'var(--gold)' : `color-mix(in srgb, var(--gold) ${Math.max(25, 100 - i * 7)}%, #d6d3d1)` }} />
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-right font-bold text-stone-800">{page.views.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right text-stone-600">{(page.users ?? 0).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right text-stone-600">{page.sessions.toLocaleString()}</td>
+                        <td className="px-4 py-3 text-right text-stone-600">{page.engRate != null ? `${Math.round(page.engRate * 100)}%` : '-'}</td>
+                        <td className="px-5 py-3 text-right text-stone-600">{page.avgDuration != null ? fmtDurS(page.avgDuration) : '-'}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-y border-stone-100 bg-stone-50/60">
-                  <th className="px-5 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Page</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Views</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Users</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Sessions</th>
-                  <th className="px-4 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Eng. Rate</th>
-                  <th className="px-5 py-2.5 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Avg. Duration</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((page, i) => {
-                  const pct = (page.views / maxViews) * 100
-                  return (
-                    <tr key={i} className="border-b border-stone-50 hover:bg-stone-50/50 transition-colors">
-                      <td className="px-5 py-3 max-w-xs">
-                        <p className="font-medium text-stone-800 truncate" title={page.path}>{pageLabel(page.path)}</p>
-                        <p className="text-[10px] text-stone-400 truncate">{page.path}</p>
-                        <div className="mt-1.5 h-1 rounded-full bg-stone-100 overflow-hidden w-full">
-                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: i === 0 ? 'var(--gold)' : `color-mix(in srgb, var(--gold) ${Math.max(25, 100 - i * 7)}%, #d6d3d1)` }} />
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right font-bold text-stone-800">{page.views.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{(page.users ?? 0).toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{page.sessions.toLocaleString()}</td>
-                      <td className="px-4 py-3 text-right text-stone-600">{page.engRate != null ? `${Math.round(page.engRate * 100)}%` : '-'}</td>
-                      <td className="px-5 py-3 text-right text-stone-600">{page.avgDuration != null ? fmtDurS(page.avgDuration) : '-'}</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          )
+        })() : (
+          <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center py-10">
+            <p className="font-medium text-stone-500 mb-1 text-sm">No page data available</p>
+            <p className="text-xs text-stone-400">{topPages.error ?? 'GA4 returned 0 rows - confirm the property ID and that the deploying Google account has Viewer access.'}</p>
           </div>
-        )
-      })() : (
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 text-center py-10">
-          <p className="font-medium text-stone-500 mb-1 text-sm">No page data available</p>
-          <p className="text-xs text-stone-400">{topPages.error ?? 'GA4 returned 0 rows - confirm the property ID and that the deploying Google account has Viewer access.'}</p>
-        </div>
-      )}
+        )}
 
-      {/* â”€â”€ Cities + Sources row â”€â”€ */}
-      {((topCities?.rows?.length ?? 0) > 0 || (topSources?.rows?.length ?? 0) > 0) && (
-        <div className="grid grid-cols-2 gap-4">
+        {/* â”€â”€ Cities + Sources row â”€â”€ */}
+        {((topCities?.rows?.length ?? 0) > 0 || (topSources?.rows?.length ?? 0) > 0) && (
+          <div className="grid grid-cols-2 gap-4">
 
-          {/* Cities */}
-          {topCities && topCities.rows.length > 0 && (() => {
-            const maxUsers = Math.max(...topCities.rows.map(r => r.users), 1)
-            return (
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                <div className="px-5 pt-4 pb-3">
-                  <p className="text-sm font-semibold text-stone-700">Users by City</p>
-                  <p className="text-xs text-stone-400 mt-0.5">{topCities.period ?? 'last 90 days'}</p>
-                </div>
-                <div className="px-5 pb-4 space-y-2.5">
-                  {topCities.rows.map((r, i) => (
-                    <div key={i}>
-                      <div className="flex justify-between items-baseline mb-1">
-                        <span className="text-sm text-stone-700 truncate">{r.city}<span className="text-stone-400 text-xs ml-1">{r.region}</span></span>
-                        <span className="text-sm font-bold text-stone-800 ml-2 flex-shrink-0">{r.users.toLocaleString()}</span>
+            {/* Cities */}
+            {topCities && topCities.rows.length > 0 && (() => {
+              const maxUsers = Math.max(...topCities.rows.map(r => r.users), 1)
+              return (
+                <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                  <div className="px-5 pt-4 pb-3">
+                    <p className="text-sm font-semibold text-stone-700">Users by City</p>
+                    <p className="text-xs text-stone-400 mt-0.5">{topCities.period ?? 'last 90 days'}</p>
+                  </div>
+                  <div className="px-5 pb-4 space-y-2.5">
+                    {topCities.rows.map((r, i) => (
+                      <div key={i}>
+                        <div className="flex justify-between items-baseline mb-1">
+                          <span className="text-sm text-stone-700 truncate">{r.city}<span className="text-stone-400 text-xs ml-1">{r.region}</span></span>
+                          <span className="text-sm font-bold text-stone-800 ml-2 flex-shrink-0">{r.users.toLocaleString()}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${(r.users / maxUsers) * 100}%`, background: i === 0 ? 'var(--gold)' : `color-mix(in srgb, var(--gold) ${Math.max(25, 100 - i * 8)}%, #d6d3d1)` }} />
+                        </div>
                       </div>
-                      <div className="h-1.5 rounded-full bg-stone-100 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${(r.users / maxUsers) * 100}%`, background: i === 0 ? 'var(--gold)' : `color-mix(in srgb, var(--gold) ${Math.max(25, 100 - i * 8)}%, #d6d3d1)` }} />
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
+            {/* Sources */}
+            {topSources && topSources.rows.length > 0 && (() => {
+              const totalSessions = topSources.rows.reduce((s, r) => s + r.sessions, 0)
+              const CHANNEL_COLORS: Record<string, string> = {
+                'Organic Search': '#4ade80', 'Direct': '#60a5fa', 'Referral': '#f59e0b',
+                'Organic Social': '#c084fc', 'Paid Search': '#fb7185', 'Email': '#34d399',
+                'Display': '#38bdf8', 'Affiliates': '#a78bfa', 'Unassigned': '#94a3b8'
+              }
+              const color = (ch: string) => CHANNEL_COLORS[ch] ?? '#94a3b8'
+              return (
+                <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                  <div className="px-5 pt-4 pb-3">
+                    <p className="text-sm font-semibold text-stone-700">Traffic Sources</p>
+                    <p className="text-xs text-stone-400 mt-0.5">{topSources.period ?? 'last 90 days'}</p>
+                  </div>
+                  {/* stacked bar */}
+                  <div className="mx-5 mb-3 flex h-2.5 rounded-full overflow-hidden gap-px">
+                    {topSources.rows.map((r, i) => (
+                      <div key={i} style={{ width: `${(r.sessions / totalSessions) * 100}%`, background: color(r.channel) }} title={`${r.channel}: ${r.sessions.toLocaleString()}`} />
+                    ))}
+                  </div>
+                  <div className="px-5 pb-4 space-y-2.5">
+                    {topSources.rows.map((r, i) => (
+                      <div key={i} className="flex items-center gap-2.5">
+                        <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color(r.channel) }} />
+                        <span className="text-sm text-stone-700 flex-1 truncate">{r.channel}</span>
+                        <span className="text-sm font-bold text-stone-800">{r.sessions.toLocaleString()}</span>
+                        <span className="text-xs text-stone-400 w-8 text-right">{Math.round(r.engRate * 100)}%</span>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )
-          })()}
+              )
+            })()}
 
-          {/* Sources */}
-          {topSources && topSources.rows.length > 0 && (() => {
-            const totalSessions = topSources.rows.reduce((s, r) => s + r.sessions, 0)
-            const CHANNEL_COLORS: Record<string, string> = {
-              'Organic Search': '#4ade80', 'Direct': '#60a5fa', 'Referral': '#f59e0b',
-              'Organic Social': '#c084fc', 'Paid Search': '#fb7185', 'Email': '#34d399',
-              'Display': '#38bdf8', 'Affiliates': '#a78bfa', 'Unassigned': '#94a3b8'
-            }
-            const color = (ch: string) => CHANNEL_COLORS[ch] ?? '#94a3b8'
-            return (
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                <div className="px-5 pt-4 pb-3">
-                  <p className="text-sm font-semibold text-stone-700">Traffic Sources</p>
-                  <p className="text-xs text-stone-400 mt-0.5">{topSources.period ?? 'last 90 days'}</p>
-                </div>
-                {/* stacked bar */}
-                <div className="mx-5 mb-3 flex h-2.5 rounded-full overflow-hidden gap-px">
-                  {topSources.rows.map((r, i) => (
-                    <div key={i} style={{ width: `${(r.sessions / totalSessions) * 100}%`, background: color(r.channel) }} title={`${r.channel}: ${r.sessions.toLocaleString()}`} />
-                  ))}
-                </div>
-                <div className="px-5 pb-4 space-y-2.5">
-                  {topSources.rows.map((r, i) => (
-                    <div key={i} className="flex items-center gap-2.5">
-                      <div className="w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: color(r.channel) }} />
-                      <span className="text-sm text-stone-700 flex-1 truncate">{r.channel}</span>
-                      <span className="text-sm font-bold text-stone-800">{r.sessions.toLocaleString()}</span>
-                      <span className="text-xs text-stone-400 w-8 text-right">{Math.round(r.engRate * 100)}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })()}
-
-        </div>
-      )}
+          </div>
+        )}
 
       </div>
 
@@ -1966,7 +1945,7 @@ function AnalyticsSection() {
               </tr></thead>
               <tbody>
                 {rows.map((r, i) => {
-                  const p  = rows[i + 1] ?? null
+                  const p = rows[i + 1] ?? null
                   const sd = delta(r.sessions, p?.sessions ?? null)
                   return (
                     <tr key={r.id} className={`border-b border-stone-100 ${i === 0 ? 'bg-amber-50/30' : 'hover:bg-stone-50'}`}>
@@ -2009,28 +1988,28 @@ interface FeedbackEntry {
 const FEEDBACK_TAGS: FeedbackTag[] = ['Venue', 'Tour', 'Volunteer', 'Story', 'Idea', 'Other']
 
 const TAG_COLORS: Record<FeedbackTag, string> = {
-  Venue:     'bg-blue-100 text-blue-700',
-  Tour:      'bg-emerald-100 text-emerald-700',
+  Venue: 'bg-blue-100 text-blue-700',
+  Tour: 'bg-emerald-100 text-emerald-700',
   Volunteer: 'bg-purple-100 text-purple-700',
-  Story:     'bg-rose-100 text-rose-700',
-  Idea:      'bg-amber-100 text-amber-700',
-  Other:     'bg-stone-100 text-stone-500',
+  Story: 'bg-rose-100 text-rose-700',
+  Idea: 'bg-amber-100 text-amber-700',
+  Other: 'bg-stone-100 text-stone-500',
 }
 
 const FEEDBACK_SOURCES = ['Website Form', 'Google Review', 'Word of Mouth', 'Social Media', 'Other'] as const
 const FEEDBACK_EMPTY = { content: '', tag: 'Other' as FeedbackTag, source: '', date: '' }
 
 function FeedbackSection() {
-  const [rows, setRows]         = useState<FeedbackEntry[] | null>(null)
-  const [filterTag, setFilter]  = useState<FeedbackTag | 'All'>('All')
-  const [showAdd, setShowAdd]   = useState(false)
-  const [form, setForm]         = useState(FEEDBACK_EMPTY)
-  const [saving, setSaving]     = useState(false)
-  const [editing, setEditing]   = useState<FeedbackEntry | null>(null)
-  const [editContent, setEC]    = useState('')
-  const [editSource, setES]     = useState('')
-  const [editDate, setED]       = useState('')
-  const [editTag, setET]        = useState<FeedbackTag>('Other')
+  const [rows, setRows] = useState<FeedbackEntry[] | null>(null)
+  const [filterTag, setFilter] = useState<FeedbackTag | 'All'>('All')
+  const [showAdd, setShowAdd] = useState(false)
+  const [form, setForm] = useState(FEEDBACK_EMPTY)
+  const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState<FeedbackEntry | null>(null)
+  const [editContent, setEC] = useState('')
+  const [editSource, setES] = useState('')
+  const [editDate, setED] = useState('')
+  const [editTag, setET] = useState<FeedbackTag>('Other')
   const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
