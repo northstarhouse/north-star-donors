@@ -75,5 +75,5 @@ export interface DonorWithStats extends Donor {
   total_donation_count: number
   status: DonorStatus
   tier: MemberTier
-  tags: Tag[]
+  tags?: Tag[]
 }

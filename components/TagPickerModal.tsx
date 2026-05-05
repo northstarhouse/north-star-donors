@@ -113,7 +113,7 @@ export default function TagPickerModal({ donorIds, onClose, onDone }: Props) {
                   key={c}
                   onClick={() => setNewColor(c)}
                   className="w-6 h-6 rounded-full flex-shrink-0 ring-offset-1 transition-all"
-                  style={{ background: c, ring: newColor === c ? `2px solid ${c}` : 'none', outline: newColor === c ? `2px solid ${c}` : 'none' }}
+                  style={{ background: c, outline: newColor === c ? `2px solid ${c}` : 'none', outlineOffset: '2px' }}
                 />
               ))}
             </div>
