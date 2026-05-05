@@ -9,6 +9,16 @@ import Sidebar from '@/components/Sidebar'
 /* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Research' | 'Technical' | 'Editing' | 'Decision' | 'Other'
 type TaskStatus = 'todo' | 'in_progress' | 'done'
+type InitiativeStatus = 'active' | 'complete' | 'paused'
+
+interface Initiative {
+  id: string
+  title: string
+  area: string
+  status: InitiativeStatus
+  created_at: string
+  updated_at: string
+}
 
 interface Task {
   id: string
@@ -19,6 +29,8 @@ interface Task {
   notes: string | null
   attachment_url: string | null
   assigned_to: string | null
+  initiative_id: string | null
+  initiative: Initiative | null
   created_at: string
 }
 
@@ -169,6 +181,11 @@ function TaskRow({
 
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {task.label && <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium ${LABEL_COLORS[task.label as TaskLabel]}`}>{task.label}</span>}
+            {task.initiative && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-medium bg-blue-50 text-blue-700 border-blue-100">
+                <FileText size={9} />{task.initiative.title}
+              </span>
+            )}
             {task.assigned_to && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium bg-stone-100 text-stone-500 border-stone-200">
                 <User size={9} />{task.assigned_to}
@@ -316,6 +333,7 @@ const GOAL_TYPE_LABELS: Record<GoalType, string> = {
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([])
+  const [initiatives, setInitiatives] = useState<Initiative[]>([])
   const [loading, setLoading] = useState(true)
   const [taskTab, setTaskTab] = useState<TaskStatus>('todo')
 
@@ -327,6 +345,7 @@ export default function Dashboard() {
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newLabel, setNewLabel] = useState<TaskLabel | ''>('')
+  const [newInitiativeId, setNewInitiativeId] = useState('')
   const [newDue, setNewDue] = useState('')
   const [newNotes, setNewNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -337,6 +356,7 @@ export default function Dashboard() {
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({})
 
   const [filterLabel, setFilterLabel] = useState<TaskLabel | 'all'>('all')
+  const [filterInitiative, setFilterInitiative] = useState<string | 'all'>('all')
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null)
   const attachmentInputRef = useRef<HTMLInputElement>(null)
   const pendingUploadTaskId = useRef<string | null>(null)
@@ -345,12 +365,27 @@ export default function Dashboard() {
     const cached = cacheRead<Task[]>('tasks')
     if (cached) { setTasks(cached); setLoading(false) }
     loadTasks()
+    loadInitiatives()
   }, [])
 
   async function loadTasks() {
-    const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: false })
-    if (data) { setTasks(data); cacheWrite('tasks', data, TTL_SHORT) }
+    const { data } = await supabase
+      .from('tasks')
+      .select('*, initiative:initiatives(id,title,area,status,created_at,updated_at)')
+      .order('created_at', { ascending: false })
+    if (data) { setTasks(data as Task[]); cacheWrite('tasks', data as Task[], TTL_SHORT) }
     setLoading(false)
+  }
+
+  async function loadInitiatives() {
+    const cached = cacheRead<Initiative[]>('initiatives')
+    if (cached) setInitiatives(cached)
+    const { data } = await supabase
+      .from('initiatives')
+      .select('*')
+      .order('area', { ascending: true })
+      .order('title', { ascending: true })
+    if (data) { setInitiatives(data as Initiative[]); cacheWrite('initiatives', data as Initiative[], TTL_SHORT) }
   }
 
   useEffect(() => {
@@ -368,9 +403,10 @@ export default function Dashboard() {
     setSaving(true)
     await supabase.from('tasks').insert({
       title: newTitle.trim(), label: newLabel || null,
+      initiative_id: newInitiativeId || null,
       due_date: newDue || null, notes: newNotes.trim() || null, status: 'todo',
     })
-    setNewTitle(''); setNewLabel(''); setNewDue(''); setNewNotes('')
+    setNewTitle(''); setNewLabel(''); setNewInitiativeId(''); setNewDue(''); setNewNotes('')
     setShowAdd(false); setSaving(false)
     await loadTasks()
   }
@@ -440,12 +476,28 @@ export default function Dashboard() {
     e.target.value = ''
   }
 
-  const filtered = filterLabel === 'all' ? tasks : tasks.filter(t => t.label === filterLabel)
+  const filtered = tasks.filter(t => (
+    (filterLabel === 'all' || t.label === filterLabel) &&
+    (filterInitiative === 'all' || t.initiative_id === filterInitiative)
+  ))
   const byTab = filtered.filter(t => t.status === taskTab)
 
   const todoCnt      = filtered.filter(t => t.status === 'todo').length
   const inProgCnt    = filtered.filter(t => t.status === 'in_progress').length
   const doneCnt      = filtered.filter(t => t.status === 'done').length
+
+  function getInitiativeCounts(initiativeId: string) {
+    const initiativeTasks = tasks.filter(t => t.initiative_id === initiativeId)
+    return {
+      todo: initiativeTasks.filter(t => t.status === 'todo').length,
+      inProgress: initiativeTasks.filter(t => t.status === 'in_progress').length,
+      done: initiativeTasks.filter(t => t.status === 'done').length,
+    }
+  }
+
+  function countText(counts: ReturnType<typeof getInitiativeCounts>) {
+    return `${counts.todo} todo · ${counts.inProgress} in progress · ${counts.done} done`
+  }
 
   const rowProps = {
     expandedId, editingId, editTitle, notesDraft, uploadingTaskId,
@@ -502,12 +554,19 @@ export default function Dashboard() {
               <h3 className="text-sm font-semibold text-stone-700">New Task</h3>
               <input autoFocus className={inputCls} placeholder="Task title..." value={newTitle} onChange={e => setNewTitle(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) addTask() }} />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div>
                   <label className="text-xs text-stone-400 mb-1 block">Label</label>
                   <select className={inputCls} value={newLabel} onChange={e => setNewLabel(e.target.value as TaskLabel | '')}>
                     <option value="">No label</option>
                     {LABELS.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-stone-400 mb-1 block">Initiative</label>
+                  <select className={inputCls} value={newInitiativeId} onChange={e => setNewInitiativeId(e.target.value)}>
+                    <option value="">No initiative</option>
+                    {initiatives.map(i => <option key={i.id} value={i.id}>{i.title}</option>)}
                   </select>
                 </div>
                 <div>
@@ -538,7 +597,7 @@ export default function Dashboard() {
           ) : (
             <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
               {/* Tab bar */}
-              <div className="flex items-center border-b border-stone-100 px-2 pt-2">
+              <div className="flex flex-wrap items-center gap-y-1 border-b border-stone-100 px-2 pt-2">
                 {([
                   ['todo',        'To Do',       todoCnt],
                   ['in_progress', 'In Progress', inProgCnt],
@@ -557,8 +616,13 @@ export default function Dashboard() {
                   </button>
                 ))}
 
-                {/* Label filter */}
-                <div className="ml-auto mb-1.5 pr-1">
+                {/* Filters */}
+                <div className="ml-auto mb-1.5 pr-1 flex items-center gap-1.5">
+                  <select className="max-w-[190px] border border-stone-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none text-stone-500"
+                    value={filterInitiative} onChange={e => setFilterInitiative(e.target.value as string | 'all')}>
+                    <option value="all">All Initiatives</option>
+                    {initiatives.map(i => <option key={i.id} value={i.id}>{i.title}</option>)}
+                  </select>
                   <select className="border border-stone-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none text-stone-500"
                     value={filterLabel} onChange={e => setFilterLabel(e.target.value as TaskLabel | 'all')}>
                     <option value="all">All Labels</option>
@@ -646,6 +710,7 @@ export default function Dashboard() {
                                   </div>
                                   <div className="space-y-1.5">
                                     {FUND_DEVELOPMENT_AREAS.map(area => {
+                                      const areaInitiatives = initiatives.filter(i => i.area === area.name)
                                       const row = (
                                         <div className={`flex items-start gap-2 rounded-md border bg-white px-2 py-2 transition-colors ${area.href ? 'border-amber-100 hover:border-amber-200 hover:bg-amber-50/40' : 'border-stone-100'}`}>
                                           <FileText size={13} className={`mt-0.5 flex-shrink-0 ${area.href ? 'text-amber-600' : 'text-stone-300'}`} />
@@ -657,6 +722,19 @@ export default function Dashboard() {
                                               </span>
                                             </div>
                                             <p className="mt-0.5 text-[10px] leading-snug text-stone-400">{area.description}</p>
+                                            {areaInitiatives.length > 0 && (
+                                              <div className="mt-1.5 space-y-1">
+                                                {areaInitiatives.map(initiative => {
+                                                  const counts = getInitiativeCounts(initiative.id)
+                                                  return (
+                                                    <div key={initiative.id} className="rounded border border-blue-100 bg-blue-50 px-1.5 py-1">
+                                                      <p className="truncate text-[10px] font-semibold text-blue-800">{initiative.title}</p>
+                                                      <p className="mt-0.5 text-[9px] font-medium text-blue-600">{countText(counts)}</p>
+                                                    </div>
+                                                  )
+                                                })}
+                                              </div>
+                                            )}
                                           </div>
                                         </div>
                                       )

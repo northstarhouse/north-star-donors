@@ -56,6 +56,23 @@ alter table list_donors enable row level security;
 create policy "Allow all" on lists for all using (true) with check (true);
 create policy "Allow all" on list_donors for all using (true) with check (true);
 
+-- Development dashboard initiatives
+create table if not exists initiatives (
+  id uuid default gen_random_uuid() primary key,
+  title text not null,
+  area text not null,
+  status text not null default 'active' check (status in ('active', 'complete', 'paused')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create unique index if not exists initiatives_area_title_key on initiatives(area, title);
+create index if not exists initiatives_area_idx on initiatives(area);
+create index if not exists initiatives_status_idx on initiatives(status);
+
+alter table initiatives enable row level security;
+create policy "token_can_read" on initiatives for select to anon, authenticated using (has_valid_app_session());
+
 -- Development dashboard tasks
 create table if not exists tasks (
   id uuid default gen_random_uuid() primary key,
@@ -64,9 +81,12 @@ create table if not exists tasks (
   status text not null default 'todo',
   due_date date,
   notes text,
+  initiative_id uuid references initiatives(id) on delete set null,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+create index if not exists tasks_initiative_id_idx on tasks(initiative_id);
 
 alter table tasks enable row level security;
 create policy "Allow all" on tasks for all using (true) with check (true);
