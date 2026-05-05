@@ -1,4 +1,5 @@
 ﻿'use client'
+import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Paperclip, FileText, User } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -6,8 +7,18 @@ import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
 
 /* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Research' | 'Technical' | 'Editing' | 'Other'
+type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Research' | 'Technical' | 'Editing' | 'Decision' | 'Other'
 type TaskStatus = 'todo' | 'in_progress' | 'done'
+type InitiativeStatus = 'active' | 'complete' | 'paused'
+
+interface Initiative {
+  id: string
+  title: string
+  area: string
+  status: InitiativeStatus
+  created_at: string
+  updated_at: string
+}
 
 interface Task {
   id: string
@@ -18,10 +29,12 @@ interface Task {
   notes: string | null
   attachment_url: string | null
   assigned_to: string | null
+  initiative_id: string | null
+  initiative: Initiative | null
   created_at: string
 }
 
-const LABELS: TaskLabel[] = ['Proof Reading', 'Graphic Design', 'Grant Writing', 'Blog Post', 'Brainstorming', 'Research', 'Technical', 'Editing', 'Other']
+const LABELS: TaskLabel[] = ['Proof Reading', 'Graphic Design', 'Grant Writing', 'Blog Post', 'Brainstorming', 'Research', 'Technical', 'Editing', 'Decision', 'Other']
 
 const LABEL_COLORS: Record<TaskLabel, string> = {
   'Proof Reading':  'bg-purple-100 text-purple-700 border-purple-200',
@@ -32,7 +45,17 @@ const LABEL_COLORS: Record<TaskLabel, string> = {
   'Research':       'bg-cyan-100 text-cyan-700 border-cyan-200',
   'Technical':      'bg-slate-100 text-slate-700 border-slate-200',
   'Editing':        'bg-orange-100 text-orange-700 border-orange-200',
+  'Decision':       'bg-indigo-100 text-indigo-700 border-indigo-200',
   'Other':          'bg-stone-100 text-stone-500 border-stone-200',
+}
+
+const AREA_COLORS: Record<string, string> = {
+  Membership: 'bg-amber-50 text-amber-700 border-amber-200',
+  Donors: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  Sponsorships: 'bg-rose-50 text-rose-700 border-rose-200',
+  Grants: 'bg-sky-50 text-sky-700 border-sky-200',
+  'Earned Revenue': 'bg-violet-50 text-violet-700 border-violet-200',
+  'Infrastructure / Systems': 'bg-slate-100 text-slate-700 border-slate-200',
 }
 
 const STATUS_CYCLE: Record<TaskStatus, TaskStatus> = { todo: 'in_progress', in_progress: 'done', done: 'todo' }
@@ -65,6 +88,46 @@ function fmtMeeting(d: Date): string {
 
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
+
+const FUND_DEVELOPMENT_AREAS = [
+  {
+    name: 'Membership',
+    status: 'In review',
+    description: '2026 membership email campaign overview',
+    href: '/campaigns/2026-membership-email/',
+    statusClass: 'bg-amber-50 text-amber-700 border-amber-100',
+  },
+  {
+    name: 'Donors',
+    status: 'Planning',
+    description: 'Individual giving and donor follow-up',
+    statusClass: 'bg-stone-50 text-stone-500 border-stone-100',
+  },
+  {
+    name: 'Sponsorships',
+    status: 'Planning',
+    description: 'Business and in-kind sponsorship development',
+    statusClass: 'bg-stone-50 text-stone-500 border-stone-100',
+  },
+  {
+    name: 'Grants',
+    status: 'Active / planning',
+    description: 'Grant opportunities and application timing',
+    statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  },
+  {
+    name: 'Earned Revenue',
+    status: 'Not started',
+    description: 'Tours, events, rentals, and program revenue',
+    statusClass: 'bg-stone-50 text-stone-400 border-stone-100',
+  },
+  {
+    name: 'Infrastructure / Systems',
+    status: 'In progress',
+    description: 'Lists, reporting, workflows, and review tools',
+    statusClass: 'bg-blue-50 text-blue-700 border-blue-100',
+  },
+]
 
 /* â”€â”€ TaskRow (outside Dashboard to prevent remount on re-render) â”€â”€ */
 interface TaskRowProps {
@@ -127,6 +190,16 @@ function TaskRow({
 
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {task.label && <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium ${LABEL_COLORS[task.label as TaskLabel]}`}>{task.label}</span>}
+            {task.initiative && (
+              <>
+                <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-semibold ${AREA_COLORS[task.initiative.area] ?? 'bg-stone-100 text-stone-600 border-stone-200'}`}>
+                  {task.initiative.area}
+                </span>
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-medium bg-blue-50 text-blue-700 border-blue-100">
+                  <FileText size={9} />{task.initiative.title}
+                </span>
+              </>
+            )}
             {task.assigned_to && (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border text-[10px] font-medium bg-stone-100 text-stone-500 border-stone-200">
                 <User size={9} />{task.assigned_to}
@@ -274,6 +347,7 @@ const GOAL_TYPE_LABELS: Record<GoalType, string> = {
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([])
+  const [initiatives, setInitiatives] = useState<Initiative[]>([])
   const [loading, setLoading] = useState(true)
   const [taskTab, setTaskTab] = useState<TaskStatus>('todo')
 
@@ -285,6 +359,7 @@ export default function Dashboard() {
   const [showAdd, setShowAdd] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [newLabel, setNewLabel] = useState<TaskLabel | ''>('')
+  const [newInitiativeId, setNewInitiativeId] = useState('')
   const [newDue, setNewDue] = useState('')
   const [newNotes, setNewNotes] = useState('')
   const [saving, setSaving] = useState(false)
@@ -295,6 +370,8 @@ export default function Dashboard() {
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({})
 
   const [filterLabel, setFilterLabel] = useState<TaskLabel | 'all'>('all')
+  const [filterArea, setFilterArea] = useState<string | 'all'>('all')
+  const [filterInitiative, setFilterInitiative] = useState<string | 'all'>('all')
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null)
   const attachmentInputRef = useRef<HTMLInputElement>(null)
   const pendingUploadTaskId = useRef<string | null>(null)
@@ -303,12 +380,27 @@ export default function Dashboard() {
     const cached = cacheRead<Task[]>('tasks')
     if (cached) { setTasks(cached); setLoading(false) }
     loadTasks()
+    loadInitiatives()
   }, [])
 
   async function loadTasks() {
-    const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: false })
-    if (data) { setTasks(data); cacheWrite('tasks', data, TTL_SHORT) }
+    const { data } = await supabase
+      .from('tasks')
+      .select('*, initiative:initiatives(id,title,area,status,created_at,updated_at)')
+      .order('created_at', { ascending: false })
+    if (data) { setTasks(data as Task[]); cacheWrite('tasks', data as Task[], TTL_SHORT) }
     setLoading(false)
+  }
+
+  async function loadInitiatives() {
+    const cached = cacheRead<Initiative[]>('initiatives')
+    if (cached) setInitiatives(cached)
+    const { data } = await supabase
+      .from('initiatives')
+      .select('*')
+      .order('area', { ascending: true })
+      .order('title', { ascending: true })
+    if (data) { setInitiatives(data as Initiative[]); cacheWrite('initiatives', data as Initiative[], TTL_SHORT) }
   }
 
   useEffect(() => {
@@ -326,9 +418,10 @@ export default function Dashboard() {
     setSaving(true)
     await supabase.from('tasks').insert({
       title: newTitle.trim(), label: newLabel || null,
+      initiative_id: newInitiativeId || null,
       due_date: newDue || null, notes: newNotes.trim() || null, status: 'todo',
     })
-    setNewTitle(''); setNewLabel(''); setNewDue(''); setNewNotes('')
+    setNewTitle(''); setNewLabel(''); setNewInitiativeId(''); setNewDue(''); setNewNotes('')
     setShowAdd(false); setSaving(false)
     await loadTasks()
   }
@@ -398,12 +491,47 @@ export default function Dashboard() {
     e.target.value = ''
   }
 
-  const filtered = filterLabel === 'all' ? tasks : tasks.filter(t => t.label === filterLabel)
+  const areaNames = Array.from(new Set([
+    ...FUND_DEVELOPMENT_AREAS.map(area => area.name),
+    ...initiatives.map(initiative => initiative.area),
+  ]))
+  const initiativeOptions = initiatives.filter(i => filterArea === 'all' || i.area === filterArea)
+
+  const filtered = tasks.filter(t => (
+    (filterLabel === 'all' || t.label === filterLabel) &&
+    (filterArea === 'all' || t.initiative?.area === filterArea) &&
+    (filterInitiative === 'all' || t.initiative_id === filterInitiative)
+  ))
   const byTab = filtered.filter(t => t.status === taskTab)
 
   const todoCnt      = filtered.filter(t => t.status === 'todo').length
   const inProgCnt    = filtered.filter(t => t.status === 'in_progress').length
   const doneCnt      = filtered.filter(t => t.status === 'done').length
+
+  function getInitiativeCounts(initiativeId: string) {
+    const initiativeTasks = tasks.filter(t => t.initiative_id === initiativeId)
+    return {
+      todo: initiativeTasks.filter(t => t.status === 'todo').length,
+      inProgress: initiativeTasks.filter(t => t.status === 'in_progress').length,
+      done: initiativeTasks.filter(t => t.status === 'done').length,
+    }
+  }
+
+  function countText(counts: ReturnType<typeof getInitiativeCounts>) {
+    return `${counts.todo} todo · ${counts.inProgress} in progress · ${counts.done} done`
+  }
+
+  function selectArea(area: string) {
+    setFilterArea(area)
+    setFilterInitiative('all')
+    setTaskTab('todo')
+  }
+
+  function selectInitiative(initiative: Initiative) {
+    setFilterArea(initiative.area)
+    setFilterInitiative(initiative.id)
+    setTaskTab('todo')
+  }
 
   const rowProps = {
     expandedId, editingId, editTitle, notesDraft, uploadingTaskId,
@@ -460,12 +588,27 @@ export default function Dashboard() {
               <h3 className="text-sm font-semibold text-stone-700">New Task</h3>
               <input autoFocus className={inputCls} placeholder="Task title..." value={newTitle} onChange={e => setNewTitle(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) addTask() }} />
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div>
                   <label className="text-xs text-stone-400 mb-1 block">Label</label>
                   <select className={inputCls} value={newLabel} onChange={e => setNewLabel(e.target.value as TaskLabel | '')}>
                     <option value="">No label</option>
                     {LABELS.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-stone-400 mb-1 block">Initiative</label>
+                  <select className={inputCls} value={newInitiativeId} onChange={e => setNewInitiativeId(e.target.value)}>
+                    <option value="">No initiative</option>
+                    {areaNames.map(area => {
+                      const areaInitiatives = initiatives.filter(i => i.area === area)
+                      if (areaInitiatives.length === 0) return null
+                      return (
+                        <optgroup key={area} label={area}>
+                          {areaInitiatives.map(i => <option key={i.id} value={i.id}>{i.title}</option>)}
+                        </optgroup>
+                      )
+                    })}
                   </select>
                 </div>
                 <div>
@@ -496,7 +639,7 @@ export default function Dashboard() {
           ) : (
             <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
               {/* Tab bar */}
-              <div className="flex items-center border-b border-stone-100 px-2 pt-2">
+              <div className="flex flex-wrap items-center gap-y-1 border-b border-stone-100 px-2 pt-2">
                 {([
                   ['todo',        'To Do',       todoCnt],
                   ['in_progress', 'In Progress', inProgCnt],
@@ -515,8 +658,18 @@ export default function Dashboard() {
                   </button>
                 ))}
 
-                {/* Label filter */}
-                <div className="ml-auto mb-1.5 pr-1">
+                {/* Filters */}
+                <div className="ml-auto mb-1.5 pr-1 flex flex-wrap items-center justify-end gap-1.5">
+                  <select className="max-w-[160px] border border-stone-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none text-stone-500"
+                    value={filterArea} onChange={e => { setFilterArea(e.target.value as string | 'all'); setFilterInitiative('all') }}>
+                    <option value="all">All Areas</option>
+                    {areaNames.map(area => <option key={area} value={area}>{area}</option>)}
+                  </select>
+                  <select className="max-w-[190px] border border-stone-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none text-stone-500"
+                    value={filterInitiative} onChange={e => setFilterInitiative(e.target.value as string | 'all')}>
+                    <option value="all">All Initiatives</option>
+                    {initiativeOptions.map(i => <option key={i.id} value={i.id}>{i.title}</option>)}
+                  </select>
                   <select className="border border-stone-200 rounded-lg px-2 py-1 text-xs bg-white focus:outline-none text-stone-500"
                     value={filterLabel} onChange={e => setFilterLabel(e.target.value as TaskLabel | 'all')}>
                     <option value="all">All Labels</option>
@@ -595,6 +748,73 @@ export default function Dashboard() {
                               <p className="text-xs font-semibold text-stone-800 leading-snug">{g.title}</p>
                               {g.description && (
                                 <p className="text-[11px] text-stone-400 mt-0.5 leading-snug">{g.description}</p>
+                              )}
+                              {g.title === 'Fund Development Plan' && goalTab !== 'three_year_vision' && (
+                                <div className="mt-3 rounded-lg border border-stone-100 bg-stone-50 p-2">
+                                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                                    <p className="text-[10px] font-bold uppercase tracking-wide text-stone-400">Plan areas</p>
+                                    <span className="text-[10px] text-stone-400">1 live overview</span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {FUND_DEVELOPMENT_AREAS.map(area => {
+                                      const areaInitiatives = initiatives.filter(i => i.area === area.name)
+                                      const row = (
+                                        <div className={`flex items-start gap-2 rounded-md border bg-white px-2 py-2 transition-colors ${filterArea === area.name ? 'border-amber-200 bg-amber-50/40' : 'border-stone-100'}`}>
+                                          <button
+                                            type="button"
+                                            onClick={() => selectArea(area.name)}
+                                            className={`mt-0.5 h-3.5 w-3.5 flex-shrink-0 rounded-full border ${AREA_COLORS[area.name] ?? 'border-stone-200 bg-stone-100'}`}
+                                            aria-label={`Filter tasks by ${area.name}`}
+                                          />
+                                          <div className="min-w-0 flex-1">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => selectArea(area.name)}
+                                                className="truncate text-left text-[11px] font-semibold text-stone-800 hover:text-amber-700"
+                                              >
+                                                {area.name}
+                                              </button>
+                                              <span className={`flex-shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${area.statusClass}`}>
+                                                {area.status}
+                                              </span>
+                                            </div>
+                                            <p className="mt-0.5 text-[10px] leading-snug text-stone-400">{area.description}</p>
+                                            {area.href && (
+                                              <Link href={area.href} className="mt-1 inline-flex text-[10px] font-semibold text-amber-700 underline decoration-amber-200 underline-offset-2">
+                                                View overview
+                                              </Link>
+                                            )}
+                                            {areaInitiatives.length > 0 && (
+                                              <div className="mt-1.5 space-y-1">
+                                                {areaInitiatives.map(initiative => {
+                                                  const counts = getInitiativeCounts(initiative.id)
+                                                  return (
+                                                    <button
+                                                      key={initiative.id}
+                                                      type="button"
+                                                      onClick={() => selectInitiative(initiative)}
+                                                      className={`w-full rounded border px-1.5 py-1 text-left transition-colors ${
+                                                        filterInitiative === initiative.id
+                                                          ? 'border-blue-200 bg-blue-100'
+                                                          : 'border-blue-100 bg-blue-50 hover:border-blue-200'
+                                                      }`}
+                                                    >
+                                                      <p className="truncate text-[10px] font-semibold text-blue-800">{initiative.title}</p>
+                                                      <p className="mt-0.5 text-[9px] font-medium text-blue-600">{countText(counts)}</p>
+                                                    </button>
+                                                  )
+                                                })}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )
+
+                                      return <div key={area.name}>{row}</div>
+                                    })}
+                                  </div>
+                                </div>
                               )}
                             </div>
                             {goalTab !== 'three_year_vision' && (

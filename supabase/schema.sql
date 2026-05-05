@@ -56,6 +56,23 @@ alter table list_donors enable row level security;
 create policy "Allow all" on lists for all using (true) with check (true);
 create policy "Allow all" on list_donors for all using (true) with check (true);
 
+-- Development dashboard initiatives
+create table if not exists initiatives (
+  id uuid default gen_random_uuid() primary key,
+  title text not null,
+  area text not null,
+  status text not null default 'active' check (status in ('active', 'complete', 'paused')),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create unique index if not exists initiatives_area_title_key on initiatives(area, title);
+create index if not exists initiatives_area_idx on initiatives(area);
+create index if not exists initiatives_status_idx on initiatives(status);
+
+alter table initiatives enable row level security;
+create policy "token_can_read" on initiatives for select to anon, authenticated using (has_valid_app_session());
+
 -- Development dashboard tasks
 create table if not exists tasks (
   id uuid default gen_random_uuid() primary key,
@@ -64,9 +81,12 @@ create table if not exists tasks (
   status text not null default 'todo',
   due_date date,
   notes text,
+  initiative_id uuid references initiatives(id) on delete set null,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+create index if not exists tasks_initiative_id_idx on tasks(initiative_id);
 
 alter table tasks enable row level security;
 create policy "Allow all" on tasks for all using (true) with check (true);
@@ -184,6 +204,29 @@ create index if not exists calendar_comments_month_idx on calendar_comments(mont
 alter table calendar_comments enable row level security;
 drop policy if exists "Allow all" on calendar_comments;
 create policy "Allow all" on calendar_comments for all using (true) with check (true);
+
+-- Protected review documents
+create table if not exists protected_documents (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  title text not null,
+  category text not null default 'fund-development',
+  status text not null default 'draft',
+  content_html text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists protected_documents_category_idx on protected_documents(category);
+
+alter table protected_documents enable row level security;
+revoke all on protected_documents from anon, authenticated;
+grant select on protected_documents to anon;
+drop policy if exists "Protected documents require app session" on protected_documents;
+create policy "Protected documents require app session"
+on protected_documents for select
+to anon
+using ((select public.has_valid_app_session()));
 
 -- Task attachment storage bucket
 insert into storage.buckets (id, name, public)
