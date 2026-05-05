@@ -1,6 +1,6 @@
 ﻿'use client'
 import { useState, useEffect } from 'react'
-import { List, Trash2, X, Users, ChevronLeft, Download, Star, Tags } from 'lucide-react'
+import { List, Trash2, X, Users, ChevronLeft, Download, Star, Tags, MapPinOff } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import { DonorList, DonorWithStats, Donor, Donation } from '@/lib/types'
@@ -45,6 +45,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function ListsPage() {
   const [lists, setLists] = useState<(DonorList & { donor_count: number })[]>([])
+  const [noAddressCount, setNoAddressCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeList, setActiveList] = useState<DonorList | null>(null)
   const [listDonors, setListDonors] = useState<DonorWithStats[]>([])
@@ -61,10 +62,10 @@ export default function ListsPage() {
   }, [])
 
   async function loadLists() {
-    const { data } = await supabase
-      .from('lists')
-      .select('id, name, created_at, list_donors(count)')
-      .order('created_at', { ascending: false })
+    const [{ data }, { count }] = await Promise.all([
+      supabase.from('lists').select('id, name, created_at, list_donors(count)').order('created_at', { ascending: false }),
+      supabase.from('donors').select('*', { count: 'exact', head: true }).or('address.is.null,address.eq.'),
+    ])
 
     const mapped = (data ?? []).map((l: { id: string; name: string; created_at: string; list_donors: { count: number }[] }) => ({
       id: l.id,
@@ -73,6 +74,7 @@ export default function ListsPage() {
       donor_count: l.list_donors?.[0]?.count ?? 0,
     }))
     setLists(mapped)
+    setNoAddressCount(count ?? 0)
     cacheWrite('lists', mapped, TTL_SHORT)
     setLoading(false)
   }
@@ -81,6 +83,29 @@ export default function ListsPage() {
     setActiveList(list)
     setListLoading(true)
     setSelectedIds(new Set())
+
+    if (list.id === '__no_address__') {
+      const { data: donorRows } = await supabase
+        .from('donors')
+        .select('*')
+        .or('address.is.null,address.eq.')
+        .order('formal_name')
+
+      const donorIds = (donorRows ?? []).map((d: Donor) => d.id)
+      const { data: donationRows } = donorIds.length
+        ? await supabase.from('donations').select('*').in('donor_id', donorIds)
+        : { data: [] }
+
+      const donationsByDonor = (donationRows ?? []).reduce<Record<string, Donation[]>>((acc, d) => {
+        if (!acc[d.donor_id]) acc[d.donor_id] = []
+        acc[d.donor_id].push(d)
+        return acc
+      }, {})
+
+      setListDonors((donorRows ?? []).map((d: Donor) => buildDonorWithStats(d, donationsByDonor[d.id] ?? [])))
+      setListLoading(false)
+      return
+    }
 
     const { data: linkRows } = await supabase
       .from('list_donors')
@@ -204,6 +229,21 @@ export default function ListsPage() {
               </div>
             ) : (
               <div className="divide-y divide-stone-100">
+                {/* Smart list: No Address */}
+                <div className="flex items-center gap-4 px-6 py-4 hover:bg-stone-50">
+                  <button className="flex-1 flex items-center gap-4 text-left" onClick={() => openList({ id: '__no_address__', name: 'No Address', created_at: '' })}>
+                    <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
+                      <MapPinOff size={15} className="text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-stone-800">No Address</p>
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        {noAddressCount === null ? '...' : `${noAddressCount} donor${noAddressCount !== 1 ? 's' : ''}`}
+                        <span className="ml-2 text-[10px] text-amber-500 font-medium uppercase tracking-wider">Auto</span>
+                      </p>
+                    </div>
+                  </button>
+                </div>
                 {lists.map(list => (
                   <div key={list.id} className="flex items-center gap-4 px-6 py-4 hover:bg-stone-50 group">
                     <button className="flex-1 flex items-center gap-4 text-left" onClick={() => openList(list)}>
@@ -307,16 +347,18 @@ export default function ListsPage() {
                         <td className="px-4 py-3 text-right text-stone-600" onClick={() => setSelected(donor)}>
                           {fmt(Math.max(donor.lifetime_total, donor.historical_lifetime_giving))}
                         </td>
-                        <td className="px-4 py-3">
-                          <button
-                            onClick={() => removeFromList(donor.id)}
-                            disabled={removingId === donor.id}
-                            className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-30"
-                            title="Remove from list"
-                          >
-                            <X size={13} />
-                          </button>
-                        </td>
+                        {activeList?.id !== '__no_address__' && (
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => removeFromList(donor.id)}
+                              disabled={removingId === donor.id}
+                              className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-30"
+                              title="Remove from list"
+                            >
+                              <X size={13} />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
