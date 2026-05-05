@@ -197,10 +197,10 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
           </div>
 
           {/* Deceased toggle */}
-          <label className="flex items-center gap-2 mt-2 cursor-pointer w-fit">
+          <label className={`flex items-center gap-2 mt-3 cursor-pointer w-fit px-3 py-1.5 rounded-lg border transition-colors ${deceased ? 'bg-stone-100 border-stone-300' : 'border-stone-200 hover:border-stone-300'}`}>
             <input type="checkbox" checked={deceased} onChange={e => toggleDeceased(e.target.checked)}
-              className="rounded border-stone-300 accent-stone-500 cursor-pointer" />
-            <span className="text-xs text-stone-400 select-none">Deceased</span>
+              className="rounded border-stone-300 accent-stone-600 cursor-pointer" />
+            <span className={`text-xs font-medium select-none ${deceased ? 'text-stone-600' : 'text-stone-400'}`}>Deceased</span>
           </label>
 
           {/* Star controls */}

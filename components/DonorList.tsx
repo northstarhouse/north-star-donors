@@ -134,6 +134,7 @@ export default function DonorList({ donors, onSelect, selectedIds, onToggle, onT
                       <div className="flex items-center gap-1.5">
                         <p className="font-medium text-stone-800 group-hover:text-amber-800">{donor.formal_name}</p>
                         {donor.starred && <Star size={11} fill="#b5a185" stroke="#b5a185" className="flex-shrink-0" />}
+                        {donor.deceased && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-stone-200 text-stone-500 flex-shrink-0">Deceased</span>}
                         {donor.tags?.map(tag => (
                           <span key={tag.id} className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tag.color }} title={tag.name} />
                         ))}
