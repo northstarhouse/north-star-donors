@@ -333,9 +333,9 @@ var KEY_LABELS = {
 
 // ── Wix Events ────────────────────────────────────────────────────────────────
 
-function fetchEventRevenueFromSheet() {
-  // Fetch event revenue/order data from Google Sheet
-  var revenueMap = {};
+function fetchWixEvents() {
+  // Fetch events from Google Sheet only
+  var events = [];
   try {
     var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + EVENT_REVENUE_SHEET_ID 
       + '/values/Sheet1?key=' + ScriptApp.getOAuthToken();
@@ -349,28 +349,40 @@ function fetchEventRevenueFromSheet() {
 
     if (resp.getResponseCode() !== 200) {
       Logger.log('Sheet error ' + resp.getResponseCode());
-      return revenueMap;
+      return { events: [] };
     }
 
     var json = JSON.parse(resp.getContentText());
     var rows = json.values || [];
     
-    // Expect header row: [Event Name, Revenue, Order Count, ...]
-    // Then data rows with event names and corresponding revenue/order values
+    // Expect header row: [Event Name, Revenue, Order Count, Start Date, Location, Description, ...]
+    // Then data rows with event details
     if (rows.length > 1) {
       for (var i = 1; i < rows.length; i++) {
         var row = rows[i];
-        if (row.length >= 3) {
+        if (row.length >= 1 && row[0]) {
           var eventName = String(row[0] || '').trim();
           var revenue = row[1] ? parseFloat(row[1]) : null;
           var orderCount = row[2] ? parseInt(row[2]) : null;
+          var startDate = row[3] ? String(row[3]).trim() : null;
+          var location = row[4] ? String(row[4]).trim() : '';
+          var description = row[5] ? String(row[5]).trim() : '';
           
-          if (eventName) {
-            revenueMap[eventName.toLowerCase()] = {
-              revenue: isNaN(revenue) ? null : revenue,
-              order_count: isNaN(orderCount) ? null : orderCount
-            };
-          }
+          events.push({
+            id:           eventName.toLowerCase().replace(/\s+/g, '-'),
+            title:        eventName,
+            status:       'PUBLISHED',
+            start:        startDate,
+            end:          null,
+            location:     location,
+            description:  description,
+            rsvp_total:   null,
+            tickets_sold: null,
+            revenue:      isNaN(revenue) ? null : revenue,
+            order_count:  isNaN(orderCount) ? null : orderCount,
+            currency:     'USD',
+            url:          null
+          });
         }
       }
     }
@@ -378,97 +390,7 @@ function fetchEventRevenueFromSheet() {
     Logger.log('Sheet fetch error: ' + e);
   }
   
-  return revenueMap;
-}
-
-function fetchWixEvents() {
-  // Phase 1: fetch all events
-  var rawEvents = [];
-  var offset = 0;
-  var limit = 100;
-
-  while (true) {
-    var resp = UrlFetchApp.fetch('https://www.wixapis.com/events/v3/events/query', {
-      method: 'POST',
-      contentType: 'application/json',
-      headers: {
-        'Authorization': WIX_TOKEN,
-        'wix-site-id':   WIX_SITE
-      },
-      payload: JSON.stringify({
-        query: {
-          paging: { limit: limit, offset: offset }
-        }
-      }),
-      muteHttpExceptions: true
-    });
-
-    if (resp.getResponseCode() !== 200) {
-      Logger.log('Events error ' + resp.getResponseCode() + ': ' + resp.getContentText());
-      return { events: [], error: 'HTTP ' + resp.getResponseCode() + ': ' + resp.getContentText().substring(0, 200) };
-    }
-
-    var json = JSON.parse(resp.getContentText());
-    var rows = json.events || [];
-    rawEvents = rawEvents.concat(rows);
-
-    if (rows.length < limit) break;
-    offset += limit;
-  }
-
-  // Phase 2: fetch event revenue/order data from Sheet
-  var revenueMap = fetchEventRevenueFromSheet();
-
-  // Phase 3: shape events and merge sheet data
-  var all = rawEvents.map(function(e) {
-    var loc       = e.location || {};
-    var sched     = e.scheduling || {};
-    var config    = sched.config || {};
-    var reg       = e.registration || {};
-    var rsvp      = reg.rsvpCollection || null;
-    var ticketing = reg.ticketing || null;
-    var pageUrl   = e.eventPageUrl || {};
-
-    // Start/end: v3 API stores dates at scheduling.startDate or scheduling.config.startDate
-    var startDate = sched.startDate || config.startDate || null;
-    var endDate   = sched.endDate   || config.endDate   || null;
-
-    // Description may be a Wix rich-text object — extract plain text
-    var rawDesc = e.description || '';
-    var descText = '';
-    if (typeof rawDesc === 'string') {
-      descText = rawDesc;
-    } else if (rawDesc && rawDesc.nodes) {
-      rawDesc.nodes.forEach(function(block) {
-        (block.nodes || []).forEach(function(node) {
-          if (node.textData && node.textData.text) descText += node.textData.text + ' ';
-        });
-      });
-      descText = descText.trim();
-    }
-
-    // Look up revenue/order from sheet using event title as key
-    var eventTitle = e.title || '';
-    var sheetData = revenueMap[eventTitle.toLowerCase()] || { revenue: null, order_count: null };
-
-    return {
-      id:           e.id,
-      title:        eventTitle,
-      status:       e.status || '',
-      start:        startDate,
-      end:          endDate,
-      location:     loc.name || (loc.address && loc.address.formattedAddress) || '',
-      description:  descText,
-      rsvp_total:   rsvp     ? (rsvp.total        || 0) : null,
-      tickets_sold: ticketing ? (ticketing.totalSold || 0) : null,
-      revenue:      sheetData.revenue,
-      order_count:  sheetData.order_count,
-      currency:     'USD',
-      url:          pageUrl.base ? pageUrl.base + (pageUrl.path || '') : null
-    };
-  });
-
-  return { events: all };
+  return { events: events };
 }
 
 function normalizeFields(raw) {
