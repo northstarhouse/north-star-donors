@@ -240,7 +240,7 @@ export default function DataPage() {
             <button
               onClick={() => { cacheClearAll(); window.location.reload() }}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-stone-500 bg-white border border-stone-200 rounded-lg shadow-sm hover:text-stone-700 hover:border-stone-300 transition-colors">
-              â†º Refresh
+              Refresh
             </button>
           </div>
           {/* Sub-tabs */}
