@@ -72,9 +72,9 @@ export default function ListsPage() {
   }, [])
 
   async function loadLists() {
-    const [{ data }, { data: addressRows }, { data: tagRows }] = await Promise.all([
+    const [{ data }, { count }, { data: tagRows }] = await Promise.all([
       supabase.from('lists').select('id, name, created_at, list_donors(count)').order('created_at', { ascending: false }),
-      supabase.from('donors').select('id, address'),
+      supabase.from('donors').select('*', { count: 'exact', head: true }).or('address.is.null,address.eq.'),
       supabase.from('tags').select('*, donor_tags(count)').order('name'),
     ])
 
@@ -85,7 +85,7 @@ export default function ListsPage() {
       donor_count: l.list_donors?.[0]?.count ?? 0,
     }))
     setLists(mapped)
-    setNoAddressCount((addressRows ?? []).filter(d => isAddressIncomplete(d.address)).length)
+    setNoAddressCount(count ?? 0)
     setAllTags((tagRows ?? []).map((t: { id: string; name: string; color: string; created_at: string; donor_tags: { count: number }[] }) => ({
       id: t.id, name: t.name, color: t.color, created_at: t.created_at,
       donor_count: t.donor_tags?.[0]?.count ?? 0,
@@ -100,13 +100,13 @@ export default function ListsPage() {
     setSelectedIds(new Set())
 
     if (list.id === '__no_address__') {
-      const { data: allDonorRows } = await supabase
+      const { data: donorRows } = await supabase
         .from('donors')
         .select('*')
+        .or('address.is.null,address.eq.')
         .order('formal_name')
-      const donorRows = (allDonorRows ?? []).filter(d => isAddressIncomplete(d.address))
 
-      const donorIds = donorRows.map((d: Donor) => d.id)
+      const donorIds = (donorRows ?? []).map((d: Donor) => d.id)
       const { data: donationRows } = donorIds.length
         ? await supabase.from('donations').select('*').in('donor_id', donorIds)
         : { data: [] }
@@ -117,7 +117,7 @@ export default function ListsPage() {
         return acc
       }, {})
 
-      const built = donorRows.map((d: Donor) => buildDonorWithStats(d, donationsByDonor[d.id] ?? []))
+      const built = (donorRows ?? []).map((d: Donor) => buildDonorWithStats(d, donationsByDonor[d.id] ?? []))
       setListDonors(built)
       await fetchTagsForDonors(built.map(d => d.id))
       setListLoading(false)
