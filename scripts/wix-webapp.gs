@@ -384,7 +384,7 @@ function fetchWixEvents() {
         if (prow[0]) {
           var ptitle = String(prow[0]).trim();
           var ptickets = parseInt(prow[2]) || 0;
-          var prevenue = parseFloat(prow[11]) || 0;
+          var prevenue = parseFloat(String(prow[11]).replace(/[$,]/g, '')) || 0;
           if (!eventMap[ptitle]) eventMap[ptitle] = { revenue: 0, tickets: 0 };
           eventMap[ptitle].revenue += prevenue;
           if (eventMap[ptitle].tickets === null) eventMap[ptitle].tickets = 0;
