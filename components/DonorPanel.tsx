@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { X, MapPin, Mail, Phone, Briefcase, Plus, DollarSign, Pencil, Trash2, Check, GitMerge, Star, Tag } from 'lucide-react'
-import { DonorWithStats, Donation, Tag as TagType } from '@/lib/types'
+import { DonorWithStats, Donation, Tag as TagType, OutreachEntry, OutreachStatus } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import TierBadge from './TierBadge'
 import StatusBadge from './StatusBadge'
@@ -31,12 +31,16 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
   const [deceased, setDeceased] = useState(donor.deceased ?? false)
   const [donorTags, setDonorTags] = useState<TagType[]>([])
   const [showTagPicker, setShowTagPicker] = useState(false)
+  const [linkedOutreach, setLinkedOutreach] = useState<OutreachEntry[]>([])
 
   useEffect(() => {
     supabase.from('donor_tags').select('tags(*)').eq('donor_id', donor.id)
       .then(({ data }) => {
         setDonorTags((data ?? []).flatMap((r: { tags: TagType | null }) => r.tags ? [r.tags] : []))
       })
+    supabase.from('outreach_entries').select('*').eq('linked_donor_id', donor.id)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setLinkedOutreach((data ?? []) as OutreachEntry[]))
   }, [donor.id])
 
   async function toggleDeceased(val: boolean) {
@@ -348,6 +352,36 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
               </button>
             </div>
           </div>
+
+          {/* Linked Outreach */}
+          {linkedOutreach.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Linked Outreach</h3>
+              <div className="space-y-2">
+                {linkedOutreach.map(entry => (
+                  <div key={entry.id} className="border border-stone-100 rounded-xl px-3 py-2.5 bg-stone-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-stone-700 truncate">{entry.title}</p>
+                        {entry.area && <p className="text-xs text-stone-400">{entry.area}</p>}
+                      </div>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                        entry.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        entry.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                        entry.status === 'follow_up' ? 'bg-amber-100 text-amber-700' :
+                        entry.status === 'no_response' ? 'bg-red-100 text-red-600' :
+                        'bg-stone-100 text-stone-500'
+                      }`}>
+                        {entry.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    {entry.notes && <p className="text-xs text-stone-500 mt-1.5 leading-relaxed line-clamp-2">{entry.notes}</p>}
+                    {entry.date && <p className="text-[10px] text-stone-300 mt-1">{fmtDate(entry.date)}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Donation history */}
           <div className="space-y-2">
