@@ -337,23 +337,16 @@ function fetchWixEvents() {
   // Fetch orders from "Wix Tickets" sheet and aggregate by Event title
   var events = [];
   try {
-    var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + EVENT_REVENUE_SHEET_ID 
-      + '/values/%27Wix%20Tickets%27';  // URL-encoded sheet name
+    // Use SpreadsheetApp (native, no API key needed)
+    var spreadsheet = SpreadsheetApp.openById(EVENT_REVENUE_SHEET_ID);
+    var sheet = spreadsheet.getSheetByName('Wix Tickets');
     
-    var resp = UrlFetchApp.fetch(url, {
-      headers: {
-        'Authorization': 'Bearer ' + ScriptApp.getOAuthToken()
-      },
-      muteHttpExceptions: true
-    });
-
-    if (resp.getResponseCode() !== 200) {
-      Logger.log('Sheet error ' + resp.getResponseCode());
+    if (!sheet) {
+      Logger.log('Sheet "Wix Tickets" not found');
       return { events: [] };
     }
-
-    var json = JSON.parse(resp.getContentText());
-    var rows = json.values || [];
+    
+    var rows = sheet.getDataRange().getValues();
     
     // Expect header: [Event title, Order Amount, Fees, Net, Order Date, Buyer First Name, Last Name, Address, Email, Phone]
     // Aggregate orders by Event title to create event summaries
