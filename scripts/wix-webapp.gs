@@ -14,6 +14,8 @@ var GA4_PROPERTY_ID = '492911563';
 var WIX_TOKEN = 'IST.eyJraWQiOiJQb3pIX2FDMiIsImFsZyI6IlJTMjU2In0.eyJkYXRhIjoie1wiaWRcIjpcImEyZjE1NWVmLWI1NmQtNDJkMi1iYmU1LWQyOTRjN2E2NTMxMVwiLFwiaWRlbnRpdHlcIjp7XCJ0eXBlXCI6XCJhcHBsaWNhdGlvblwiLFwiaWRcIjpcIjljZWJmZjBkLTdjZmYtNDc1MS05ZjdjLTE4MDM4ZDY3ODEzNFwifSxcInRlbmFudFwiOntcInR5cGVcIjpcImFjY291bnRcIixcImlkXCI6XCI3ZjM4ODdlZS01ODU2LTRkZTUtOTk3NC03ZjQwZGExODQwYWNcIn19IiwiaWF0IjoxNzc3OTMyNDY1fQ.K7nZd4YdgQKS13JPNnFYBQ6KH7IZyK40Qhk_z9hHg_2V7U1wiefXMgwSmV4wBM66fPTLe4MJr6i0cD8bbmzefKj5hvfGQ-gNPddcYnCNjQtoDcmqU46eeYE-yDNNUILEqYiJ85MKp1Bf-9PoFLOyhMRYb_HQxMol_iM78X8kB-PxVVLlBGQoZ4fyCr4-YWYbdeaNZkRrQibB1uMAuTvxM9FDrCdna7n_m6DxRd-RC7Su6OiM_9G1zmWpWX4stuSKh0wsPHrVPItQyjjZ_1hLfsiU65UUTkEvUd9kjxNB3cjWl772lNXbVKGxKEMzFacxntCvznWLeLY-M5AfXgP-0Q';
 var WIX_SITE  = '675edd2f-6fca-4862-ba5b-af17f015fbb2';
 
+var EVENT_REVENUE_SHEET_ID = '1VcV4DksZpcZX6SxTteYJDvbaOB2qSBDDzDALiynWdgM';
+
 var FORM_NAMES = {
   // Optional overrides when you want a custom display title for a known form ID.
 };
@@ -331,6 +333,54 @@ var KEY_LABELS = {
 
 // ── Wix Events ────────────────────────────────────────────────────────────────
 
+function fetchEventRevenueFromSheet() {
+  // Fetch event revenue/order data from Google Sheet
+  var revenueMap = {};
+  try {
+    var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + EVENT_REVENUE_SHEET_ID 
+      + '/values/Sheet1?key=' + ScriptApp.getOAuthToken();
+    
+    var resp = UrlFetchApp.fetch(url, {
+      headers: {
+        'Authorization': 'Bearer ' + ScriptApp.getOAuthToken()
+      },
+      muteHttpExceptions: true
+    });
+
+    if (resp.getResponseCode() !== 200) {
+      Logger.log('Sheet error ' + resp.getResponseCode());
+      return revenueMap;
+    }
+
+    var json = JSON.parse(resp.getContentText());
+    var rows = json.values || [];
+    
+    // Expect header row: [Event Name, Revenue, Order Count, ...]
+    // Then data rows with event names and corresponding revenue/order values
+    if (rows.length > 1) {
+      for (var i = 1; i < rows.length; i++) {
+        var row = rows[i];
+        if (row.length >= 3) {
+          var eventName = String(row[0] || '').trim();
+          var revenue = row[1] ? parseFloat(row[1]) : null;
+          var orderCount = row[2] ? parseInt(row[2]) : null;
+          
+          if (eventName) {
+            revenueMap[eventName.toLowerCase()] = {
+              revenue: isNaN(revenue) ? null : revenue,
+              order_count: isNaN(orderCount) ? null : orderCount
+            };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    Logger.log('Sheet fetch error: ' + e);
+  }
+  
+  return revenueMap;
+}
+
 function fetchWixEvents() {
   // Phase 1: fetch all events
   var rawEvents = [];
@@ -366,7 +416,10 @@ function fetchWixEvents() {
     offset += limit;
   }
 
-  // Phase 2: shape events (order stats skipped to stay within GAS time limit)
+  // Phase 2: fetch event revenue/order data from Sheet
+  var revenueMap = fetchEventRevenueFromSheet();
+
+  // Phase 3: shape events and merge sheet data
   var all = rawEvents.map(function(e) {
     var loc       = e.location || {};
     var sched     = e.scheduling || {};
@@ -394,9 +447,13 @@ function fetchWixEvents() {
       descText = descText.trim();
     }
 
+    // Look up revenue/order from sheet using event title as key
+    var eventTitle = e.title || '';
+    var sheetData = revenueMap[eventTitle.toLowerCase()] || { revenue: null, order_count: null };
+
     return {
       id:           e.id,
-      title:        e.title || '',
+      title:        eventTitle,
       status:       e.status || '',
       start:        startDate,
       end:          endDate,
@@ -404,8 +461,8 @@ function fetchWixEvents() {
       description:  descText,
       rsvp_total:   rsvp     ? (rsvp.total        || 0) : null,
       tickets_sold: ticketing ? (ticketing.totalSold || 0) : null,
-      revenue:      null,
-      order_count:  null,
+      revenue:      sheetData.revenue,
+      order_count:  sheetData.order_count,
       currency:     'USD',
       url:          pageUrl.base ? pageUrl.base + (pageUrl.path || '') : null
     };
