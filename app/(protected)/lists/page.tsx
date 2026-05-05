@@ -14,9 +14,7 @@ const CURRENT_YEAR = new Date().getFullYear()
 const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 
 function isAddressIncomplete(address: string | null): boolean {
-  if (!address || address.trim() === '') return true
-  const lines = address.split('\n').map(l => l.trim()).filter(Boolean)
-  return lines.length < 2
+  return !address || address.trim() === ''
 }
 
 function buildDonorWithStats(donor: Donor, donations: Donation[]): DonorWithStats {
