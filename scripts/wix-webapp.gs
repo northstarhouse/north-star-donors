@@ -334,11 +334,11 @@ var KEY_LABELS = {
 // ── Wix Events ────────────────────────────────────────────────────────────────
 
 function fetchWixEvents() {
-  // Fetch events from Google Sheet only
+  // Fetch orders from "Wix Tickets" sheet and aggregate by Event title
   var events = [];
   try {
     var url = 'https://sheets.googleapis.com/v4/spreadsheets/' + EVENT_REVENUE_SHEET_ID 
-      + '/values/Sheet1?key=' + ScriptApp.getOAuthToken();
+      + '/values/%27Wix%20Tickets%27';  // URL-encoded sheet name
     
     var resp = UrlFetchApp.fetch(url, {
       headers: {
@@ -355,35 +355,49 @@ function fetchWixEvents() {
     var json = JSON.parse(resp.getContentText());
     var rows = json.values || [];
     
-    // Expect header row: [Event Name, Revenue, Order Count, Location, Description, ...]
-    // Then data rows with event details
+    // Expect header: [Event title, Order Amount, Fees, Net, Order Date, Buyer First Name, Last Name, Address, Email, Phone]
+    // Aggregate orders by Event title to create event summaries
+    var eventMap = {};  // { "Event Name": { revenue: sum, orderCount: count, dates: [dates] } }
+    
     if (rows.length > 1) {
       for (var i = 1; i < rows.length; i++) {
         var row = rows[i];
-        if (row.length >= 1 && row[0]) {
-          var eventName = String(row[0] || '').trim();
-          var revenue = row[1] ? parseFloat(row[1]) : null;
-          var orderCount = row[2] ? parseInt(row[2]) : null;
-          var location = row[3] ? String(row[3]).trim() : '';
-          var description = row[4] ? String(row[4]).trim() : '';
+        if (row.length >= 2 && row[0]) {
+          var eventTitle = String(row[0] || '').trim();
+          var orderAmount = row[1] ? parseFloat(row[1]) : 0;
+          var orderDate = row[4] ? String(row[4]).trim() : '';
           
-          events.push({
-            id:           eventName.toLowerCase().replace(/\s+/g, '-'),
-            title:        eventName,
-            status:       'PUBLISHED',
-            start:        null,
-            end:          null,
-            location:     location,
-            description:  description,
-            rsvp_total:   null,
-            tickets_sold: null,
-            revenue:      isNaN(revenue) ? null : revenue,
-            order_count:  isNaN(orderCount) ? null : orderCount,
-            currency:     'USD',
-            url:          null
-          });
+          if (isNaN(orderAmount)) orderAmount = 0;
+          
+          if (!eventMap[eventTitle]) {
+            eventMap[eventTitle] = { revenue: 0, orderCount: 0, dates: [] };
+          }
+          
+          eventMap[eventTitle].revenue += orderAmount;
+          eventMap[eventTitle].orderCount += 1;
+          if (orderDate) eventMap[eventTitle].dates.push(orderDate);
         }
       }
+    }
+    
+    // Convert aggregated data to event objects
+    for (var eventTitle in eventMap) {
+      var data = eventMap[eventTitle];
+      events.push({
+        id:           eventTitle.toLowerCase().replace(/\s+/g, '-'),
+        title:        eventTitle,
+        status:       'PUBLISHED',
+        start:        null,
+        end:          null,
+        location:     '',
+        description:  '',
+        rsvp_total:   null,
+        tickets_sold: data.orderCount,
+        revenue:      data.revenue > 0 ? data.revenue : null,
+        order_count:  data.orderCount > 0 ? data.orderCount : null,
+        currency:     'USD',
+        url:          null
+      });
     }
   } catch (e) {
     Logger.log('Sheet fetch error: ' + e);
