@@ -51,6 +51,21 @@ export interface DonorList {
   donor_count?: number
 }
 
+export type OutreachStatus = 'planned' | 'in_progress' | 'completed' | 'no_response' | 'follow_up'
+
+export interface OutreachEntry {
+  id: string
+  area: string
+  title: string
+  contact: string | null
+  linked_donor_id: string | null
+  date: string | null
+  status: OutreachStatus
+  notes: string | null
+  submitted_by: string | null
+  created_at: string
+}
+
 export interface DonorWithStats extends Donor {
   donations: Donation[]
   current_year_total: number

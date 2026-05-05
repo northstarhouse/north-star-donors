@@ -4,21 +4,9 @@ import { Megaphone, Plus, X, Pencil, Trash2, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
+import MentionTextarea, { MentionItem } from '@/components/MentionTextarea'
 
-/* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-type OutreachStatus = 'planned' | 'in_progress' | 'completed' | 'no_response' | 'follow_up'
-
-interface OutreachEntry {
-  id: string
-  area: string
-  title: string
-  contact: string | null
-  date: string | null
-  status: OutreachStatus
-  notes: string | null
-  submitted_by: string | null
-  created_at: string
-}
+import { OutreachEntry, OutreachStatus } from '@/lib/types'
 
 const STATUS_STYLES: Record<OutreachStatus, string> = {
   planned:     'bg-stone-100 text-stone-500 border-stone-200',
@@ -39,10 +27,11 @@ const STATUS_LABELS: Record<OutreachStatus, string> = {
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
 
-const EMPTY_FORM = { area: '', title: '', contact: '', date: '', status: 'planned' as OutreachStatus, notes: '', submitted_by: '' }
+const EMPTY_FORM = { area: '', title: '', contact: '', linked_donor_id: null as string | null, date: '', status: 'planned' as OutreachStatus, notes: '', submitted_by: '' }
 
 /* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function OutreachPage() {
+  const [contacts, setContacts] = useState<MentionItem[]>([])
   const [entries, setEntries] = useState<OutreachEntry[] | null>(null)
   const [selected, setSelected] = useState<OutreachEntry | null>(null)
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set())
@@ -64,6 +53,22 @@ export default function OutreachPage() {
     if (cached) setEntries(cached)
     supabase.from('outreach_entries').select('*').order('area').order('created_at', { ascending: false })
       .then(({ data }) => { if (data) { setEntries(data as OutreachEntry[]); cacheWrite('outreach', data, TTL_SHORT) } })
+
+    Promise.all([
+      supabase.from('donors').select('id, formal_name').order('formal_name'),
+      supabase.from('data_honeybook_leads').select('id, full_name').not('full_name', 'is', null),
+    ]).then(([donors, sponsors]) => {
+      const donorItems = (donors.data ?? []).map((d: { id: string; formal_name: string }) => ({
+        id: d.id, name: d.formal_name, type: 'donor' as const,
+      }))
+      const seen = new Set<string>()
+      const sponsorItems = (sponsors.data ?? [])
+        .filter((s: { id: string | number; full_name: string }) => s.full_name && !seen.has(s.full_name) && seen.add(s.full_name))
+        .map((s: { id: string | number; full_name: string }) => ({
+          id: String(s.id), name: s.full_name, type: 'sponsor' as const,
+        }))
+      setContacts([...donorItems, ...sponsorItems])
+    })
   }, [])
 
   /* â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -73,7 +78,9 @@ export default function OutreachPage() {
     setAddSaving(true)
     const { data } = await supabase.from('outreach_entries').insert({
       area: addForm.area.trim(), title: addForm.title.trim(),
-      contact: addForm.contact.trim() || null, date: addForm.date || null,
+      contact: addForm.contact.trim() || null,
+      linked_donor_id: addForm.linked_donor_id || null,
+      date: addForm.date || null,
       status: addForm.status, notes: addForm.notes.trim() || null,
       submitted_by: addForm.submitted_by.trim() || null,
     }).select().single()
@@ -222,9 +229,16 @@ export default function OutreachPage() {
                       value={addForm.title} onChange={e => setAddForm(f => ({ ...f, title: e.target.value }))} />
                   </div>
                   <div>
-                    <label className="text-xs text-stone-400 mb-1 block">Contact</label>
-                    <input className={inputCls} placeholder="Person or organization"
-                      value={addForm.contact} onChange={e => setAddForm(f => ({ ...f, contact: e.target.value }))} />
+                    <label className="text-xs text-stone-400 mb-1 block">Contact <span className="text-stone-300">— type @ to search donors & sponsors</span></label>
+                    <MentionTextarea
+                      singleLine
+                      items={contacts}
+                      className={inputCls}
+                      placeholder="Person or organization"
+                      value={addForm.contact}
+                      onChange={val => setAddForm(f => ({ ...f, contact: val, linked_donor_id: null }))}
+                      onMentionSelect={item => setAddForm(f => ({ ...f, linked_donor_id: item?.id ?? null }))}
+                    />
                   </div>
                   <div>
                     <label className="text-xs text-stone-400 mb-1 block">Date</label>
@@ -244,8 +258,13 @@ export default function OutreachPage() {
                 </div>
                 <div>
                   <label className="text-xs text-stone-400 mb-1 block">Notes</label>
-                  <textarea className={inputCls + ' resize-none'} rows={2}
-                    value={addForm.notes} onChange={e => setAddForm(f => ({ ...f, notes: e.target.value }))} />
+                  <MentionTextarea
+                    items={contacts}
+                    className={inputCls + ' resize-none'}
+                    rows={2}
+                    value={addForm.notes}
+                    onChange={val => setAddForm(f => ({ ...f, notes: val }))}
+                  />
                 </div>
                 <div className="flex gap-2">
                   <button type="submit" disabled={addSaving || !addForm.area || !addForm.title}
@@ -370,8 +389,14 @@ export default function OutreachPage() {
                         </div>
                         <div>
                           <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Contact</label>
-                          <input className={inputCls} value={editForm.contact ?? ''}
-                            onChange={e => setEditForm(f => ({ ...f, contact: e.target.value }))} />
+                          <MentionTextarea
+                            singleLine
+                            items={contacts}
+                            className={inputCls}
+                            value={editForm.contact ?? ''}
+                            onChange={val => setEditForm(f => ({ ...f, contact: val, linked_donor_id: null }))}
+                            onMentionSelect={item => setEditForm(f => ({ ...f, linked_donor_id: item?.id ?? null }))}
+                          />
                         </div>
                         <div>
                           <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Date</label>
@@ -386,8 +411,13 @@ export default function OutreachPage() {
                       </div>
                       <div>
                         <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Notes</label>
-                        <textarea className={inputCls + ' resize-none'} rows={3} value={editForm.notes ?? ''}
-                          onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} />
+                        <MentionTextarea
+                          items={contacts}
+                          className={inputCls + ' resize-none'}
+                          rows={3}
+                          value={editForm.notes ?? ''}
+                          onChange={val => setEditForm(f => ({ ...f, notes: val }))}
+                        />
                       </div>
                       <div className="flex gap-2">
                         <button onClick={saveEdit} disabled={editSaving}
