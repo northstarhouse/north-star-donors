@@ -47,9 +47,11 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function ListsPage() {
   const [lists, setLists] = useState<(DonorList & { donor_count: number })[]>([])
+  const [allTags, setAllTags] = useState<(Tag & { donor_count: number })[]>([])
   const [noAddressCount, setNoAddressCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeList, setActiveList] = useState<DonorList | null>(null)
+  const [activeTag, setActiveTag] = useState<Tag | null>(null)
   const [listDonors, setListDonors] = useState<DonorWithStats[]>([])
   const [listLoading, setListLoading] = useState(false)
   const [selected, setSelected] = useState<DonorWithStats | null>(null)
@@ -66,9 +68,10 @@ export default function ListsPage() {
   }, [])
 
   async function loadLists() {
-    const [{ data }, { count }] = await Promise.all([
+    const [{ data }, { count }, { data: tagRows }] = await Promise.all([
       supabase.from('lists').select('id, name, created_at, list_donors(count)').order('created_at', { ascending: false }),
       supabase.from('donors').select('*', { count: 'exact', head: true }).or('address.is.null,address.eq.'),
+      supabase.from('tags').select('*, donor_tags(count)').order('name'),
     ])
 
     const mapped = (data ?? []).map((l: { id: string; name: string; created_at: string; list_donors: { count: number }[] }) => ({
@@ -79,6 +82,10 @@ export default function ListsPage() {
     }))
     setLists(mapped)
     setNoAddressCount(count ?? 0)
+    setAllTags((tagRows ?? []).map((t: { id: string; name: string; color: string; created_at: string; donor_tags: { count: number }[] }) => ({
+      id: t.id, name: t.name, color: t.color, created_at: t.created_at,
+      donor_count: t.donor_tags?.[0]?.count ?? 0,
+    })))
     cacheWrite('lists', mapped, TTL_SHORT)
     setLoading(false)
   }
@@ -149,6 +156,39 @@ export default function ListsPage() {
     setListLoading(false)
   }
 
+  async function openTag(tag: Tag) {
+    setActiveTag(tag)
+    setActiveList(null)
+    setListLoading(true)
+    setSelectedIds(new Set())
+
+    const { data: linkRows } = await supabase.from('donor_tags').select('donor_id').eq('tag_id', tag.id)
+    const donorIds = (linkRows ?? []).map((r: { donor_id: string }) => r.donor_id)
+
+    if (donorIds.length === 0) { setListDonors([]); setListLoading(false); return }
+
+    const { data: donorRows } = await supabase.from('donors').select('*').in('id', donorIds).order('formal_name')
+    const { data: donationRows } = await supabase.from('donations').select('*').in('donor_id', donorIds)
+    const donationsByDonor = (donationRows ?? []).reduce<Record<string, Donation[]>>((acc, d) => {
+      if (!acc[d.donor_id]) acc[d.donor_id] = []
+      acc[d.donor_id].push(d)
+      return acc
+    }, {})
+    const built = (donorRows ?? []).map((d: Donor) => buildDonorWithStats(d, donationsByDonor[d.id] ?? []))
+    setListDonors(built)
+    await fetchTagsForDonors(built.map(d => d.id))
+    setListLoading(false)
+  }
+
+  async function removeTagFromDonor(donorId: string) {
+    if (!activeTag) return
+    setRemovingId(donorId)
+    await supabase.from('donor_tags').delete().eq('tag_id', activeTag.id).eq('donor_id', donorId)
+    setListDonors(prev => prev.filter(d => d.id !== donorId))
+    setAllTags(prev => prev.map(t => t.id === activeTag.id ? { ...t, donor_count: t.donor_count - 1 } : t))
+    setRemovingId(null)
+  }
+
   async function fetchTagsForDonors(donorIds: string[]) {
     if (!donorIds.length) return
     const { data } = await supabase.from('donor_tags').select('donor_id, tags(*)').in('donor_id', donorIds)
@@ -180,6 +220,7 @@ export default function ListsPage() {
 
   async function handleUpdated() {
     if (activeList) await openList(activeList)
+    else if (activeTag) await openTag(activeTag)
   }
 
   function exportList() {
@@ -212,16 +253,18 @@ export default function ListsPage() {
         <div className="px-8 pt-8 pb-4">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              {activeList && (
-                <button onClick={() => setActiveList(null)} className="p-1.5 hover:bg-stone-200 rounded-lg text-stone-500 transition-colors">
+              {(activeList || activeTag) && (
+                <button onClick={() => { setActiveList(null); setActiveTag(null) }} className="p-1.5 hover:bg-stone-200 rounded-lg text-stone-500 transition-colors">
                   <ChevronLeft size={18} />
                 </button>
               )}
-              <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm">
-                <List size={16} className="text-stone-400" strokeWidth={1.5} />
+              <div className="w-9 h-9 rounded-xl bg-white border border-stone-200 flex items-center justify-center shadow-sm flex-shrink-0">
+                {activeTag
+                  ? <span className="w-3.5 h-3.5 rounded-full" style={{ background: activeTag.color }} />
+                  : <List size={16} className="text-stone-400" strokeWidth={1.5} />}
               </div>
               <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
-                {activeList ? activeList.name : 'Lists'}
+                {activeList ? activeList.name : activeTag ? activeTag.name : 'Lists'}
               </h1>
             </div>
             {activeList && listDonors.length > 0 && (
@@ -238,7 +281,7 @@ export default function ListsPage() {
         </div>
 
         <div className="mx-8 mb-8 bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden flex-1">
-          {!activeList ? (
+          {!activeList && !activeTag ? (
             /* All lists */
             loading ? (
               <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading lists...</div>
@@ -284,6 +327,28 @@ export default function ListsPage() {
                     </button>
                   </div>
                 ))}
+
+                {/* Tags section */}
+                {allTags.length > 0 && (
+                  <>
+                    <div className="px-6 py-2 border-t border-stone-100 bg-stone-50">
+                      <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Tags</p>
+                    </div>
+                    {allTags.map(tag => (
+                      <div key={tag.id} className="flex items-center gap-4 px-6 py-4 hover:bg-stone-50">
+                        <button className="flex-1 flex items-center gap-4 text-left" onClick={() => openTag(tag)}>
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: tag.color + '20' }}>
+                            <span className="w-3.5 h-3.5 rounded-full" style={{ background: tag.color }} />
+                          </div>
+                          <div>
+                            <p className="font-medium text-stone-800">{tag.name}</p>
+                            <p className="text-xs text-stone-400 mt-0.5">{tag.donor_count} donor{tag.donor_count !== 1 ? 's' : ''}</p>
+                          </div>
+                        </button>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             )
           ) : (
@@ -379,13 +444,25 @@ export default function ListsPage() {
                         <td className="px-4 py-3 text-right text-stone-600" onClick={() => setSelected(donor)}>
                           {fmt(Math.max(donor.lifetime_total, donor.historical_lifetime_giving))}
                         </td>
-                        {activeList?.id !== '__no_address__' && (
+                        {(activeList && activeList.id !== '__no_address__') && (
                           <td className="px-4 py-3">
                             <button
                               onClick={() => removeFromList(donor.id)}
                               disabled={removingId === donor.id}
                               className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-30"
                               title="Remove from list"
+                            >
+                              <X size={13} />
+                            </button>
+                          </td>
+                        )}
+                        {activeTag && (
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => removeTagFromDonor(donor.id)}
+                              disabled={removingId === donor.id}
+                              className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all disabled:opacity-30"
+                              title="Remove tag"
                             >
                               <X size={13} />
                             </button>
