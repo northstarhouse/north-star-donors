@@ -185,6 +185,29 @@ alter table calendar_comments enable row level security;
 drop policy if exists "Allow all" on calendar_comments;
 create policy "Allow all" on calendar_comments for all using (true) with check (true);
 
+-- Protected review documents
+create table if not exists protected_documents (
+  id uuid primary key default gen_random_uuid(),
+  slug text not null unique,
+  title text not null,
+  category text not null default 'fund-development',
+  status text not null default 'draft',
+  content_html text not null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists protected_documents_category_idx on protected_documents(category);
+
+alter table protected_documents enable row level security;
+revoke all on protected_documents from anon, authenticated;
+grant select on protected_documents to anon;
+drop policy if exists "Protected documents require app session" on protected_documents;
+create policy "Protected documents require app session"
+on protected_documents for select
+to anon
+using ((select public.has_valid_app_session()));
+
 -- Task attachment storage bucket
 insert into storage.buckets (id, name, public)
 values ('task-attachments', 'task-attachments', true)

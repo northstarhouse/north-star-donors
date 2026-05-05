@@ -1,4 +1,5 @@
 ﻿'use client'
+import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Paperclip, FileText, User } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -65,6 +66,46 @@ function fmtMeeting(d: Date): string {
 
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
+
+const FUND_DEVELOPMENT_AREAS = [
+  {
+    name: 'Membership',
+    status: 'In review',
+    description: '2026 membership email campaign overview',
+    href: '/campaigns/2026-membership-email/',
+    statusClass: 'bg-amber-50 text-amber-700 border-amber-100',
+  },
+  {
+    name: 'Donors',
+    status: 'Planning',
+    description: 'Individual giving and donor follow-up',
+    statusClass: 'bg-stone-50 text-stone-500 border-stone-100',
+  },
+  {
+    name: 'Sponsorships',
+    status: 'Planning',
+    description: 'Business and in-kind sponsorship development',
+    statusClass: 'bg-stone-50 text-stone-500 border-stone-100',
+  },
+  {
+    name: 'Grants',
+    status: 'Active / planning',
+    description: 'Grant opportunities and application timing',
+    statusClass: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  },
+  {
+    name: 'Earned Revenue',
+    status: 'Not started',
+    description: 'Tours, events, rentals, and program revenue',
+    statusClass: 'bg-stone-50 text-stone-400 border-stone-100',
+  },
+  {
+    name: 'Infrastructure / Systems',
+    status: 'In progress',
+    description: 'Lists, reporting, workflows, and review tools',
+    statusClass: 'bg-blue-50 text-blue-700 border-blue-100',
+  },
+]
 
 /* â”€â”€ TaskRow (outside Dashboard to prevent remount on re-render) â”€â”€ */
 interface TaskRowProps {
@@ -595,6 +636,40 @@ export default function Dashboard() {
                               <p className="text-xs font-semibold text-stone-800 leading-snug">{g.title}</p>
                               {g.description && (
                                 <p className="text-[11px] text-stone-400 mt-0.5 leading-snug">{g.description}</p>
+                              )}
+                              {g.title === 'Fund Development Plan' && goalTab !== 'three_year_vision' && (
+                                <div className="mt-3 rounded-lg border border-stone-100 bg-stone-50 p-2">
+                                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                                    <p className="text-[10px] font-bold uppercase tracking-wide text-stone-400">Plan areas</p>
+                                    <span className="text-[10px] text-stone-400">1 live overview</span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {FUND_DEVELOPMENT_AREAS.map(area => {
+                                      const row = (
+                                        <div className={`flex items-start gap-2 rounded-md border bg-white px-2 py-2 transition-colors ${area.href ? 'border-amber-100 hover:border-amber-200 hover:bg-amber-50/40' : 'border-stone-100'}`}>
+                                          <FileText size={13} className={`mt-0.5 flex-shrink-0 ${area.href ? 'text-amber-600' : 'text-stone-300'}`} />
+                                          <div className="min-w-0 flex-1">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <p className="truncate text-[11px] font-semibold text-stone-800">{area.name}</p>
+                                              <span className={`flex-shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${area.statusClass}`}>
+                                                {area.status}
+                                              </span>
+                                            </div>
+                                            <p className="mt-0.5 text-[10px] leading-snug text-stone-400">{area.description}</p>
+                                          </div>
+                                        </div>
+                                      )
+
+                                      return area.href ? (
+                                        <Link key={area.name} href={area.href} className="block">
+                                          {row}
+                                        </Link>
+                                      ) : (
+                                        <div key={area.name}>{row}</div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
                               )}
                             </div>
                             {goalTab !== 'three_year_vision' && (
