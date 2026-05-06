@@ -55,6 +55,8 @@ export default function TeamMemberClient({ member }: { member: string }) {
   const [addingTo, setAddingTo] = useState<Section | null>(null)
   const [newItem, setNewItem] = useState('')
   const [saving, setSaving] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoError, setPhotoError] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const meta = MEMBER_META[member] ?? {
@@ -62,6 +64,12 @@ export default function TeamMemberClient({ member }: { member: string }) {
     initials: member[0]?.toUpperCase() ?? '?',
     accent: '#886c44',
   }
+
+  useEffect(() => {
+    const { data } = supabase.storage.from('team-photos').getPublicUrl(member)
+    setPhotoUrl(data.publicUrl)
+    setPhotoError(false)
+  }, [member])
 
   useEffect(() => {
     async function load() {
@@ -124,9 +132,20 @@ export default function TeamMemberClient({ member }: { member: string }) {
 
           {/* Header */}
           <div className="flex items-center gap-4 mb-8">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-sm flex-shrink-0"
+            <div className="relative w-14 h-14 rounded-full overflow-hidden shadow-sm flex-shrink-0 flex items-center justify-center text-white text-xl font-bold"
               style={{ background: meta.accent }}>
               {meta.initials}
+              {photoUrl && (
+                <img
+                  key={photoUrl}
+                  src={photoUrl}
+                  alt={meta.display}
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ display: photoError ? 'none' : 'block' }}
+                  onError={() => setPhotoError(true)}
+                  onLoad={() => setPhotoError(false)}
+                />
+              )}
             </div>
             <div>
               <h1 className="text-2xl font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--gold)' }}>
