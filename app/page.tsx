@@ -1,7 +1,7 @@
 ﻿'use client'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
-import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Paperclip, FileText, User } from 'lucide-react'
+import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Paperclip, FileText, User, Camera } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
@@ -373,8 +373,11 @@ export default function Dashboard() {
   const [filterArea, setFilterArea] = useState<string | 'all'>('all')
   const [filterInitiative, setFilterInitiative] = useState<string | 'all'>('all')
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null)
+  const [teamPhotos, setTeamPhotos] = useState<Record<string, string>>({})
   const attachmentInputRef = useRef<HTMLInputElement>(null)
   const pendingUploadTaskId = useRef<string | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const pendingPhotoSlug = useRef<string | null>(null)
 
   useEffect(() => {
     const cached = cacheRead<Task[]>('tasks')
@@ -488,6 +491,27 @@ export default function Dashboard() {
     await supabase.from('tasks').update({ attachment_url: url }).eq('id', taskId)
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, attachment_url: url } : t))
     setUploadingTaskId(null)
+    e.target.value = ''
+  }
+
+  useEffect(() => {
+    const slugs = ['kaelen', 'haley', 'derek']
+    const urls: Record<string, string> = {}
+    for (const slug of slugs) {
+      const { data } = supabase.storage.from('team-photos').getPublicUrl(slug)
+      urls[slug] = data.publicUrl
+    }
+    setTeamPhotos(urls)
+  }, [])
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    const slug = pendingPhotoSlug.current
+    if (!file || !slug) return
+    const { error } = await supabase.storage.from('team-photos').upload(slug, file, { contentType: file.type, upsert: true })
+    if (error) { alert('Upload failed: ' + error.message); return }
+    const { data: urlData } = supabase.storage.from('team-photos').getPublicUrl(slug)
+    setTeamPhotos(prev => ({ ...prev, [slug]: urlData.publicUrl + '?t=' + Date.now() }))
     e.target.value = ''
   }
 
@@ -689,25 +713,38 @@ export default function Dashboard() {
           )}
 
           {/* Team Members */}
-          <div className="mt-4 bg-white rounded-xl border border-stone-200 shadow-sm p-5">
-            <h2 className="text-sm font-bold text-stone-700 mb-4">Team Members</h2>
-            <div className="flex gap-8 justify-center">
+          <div className="mt-5">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-400 mb-3">Team Members</p>
+            <div className="flex gap-6">
               {([
                 { name: 'Kaelen', slug: 'kaelen' },
                 { name: 'Haley',  slug: 'haley'  },
                 { name: 'Derek',  slug: 'derek'  },
               ] as const).map(member => (
-                <Link key={member.slug} href={`/team/${member.slug}/`}
-                  className="flex flex-col items-center gap-2 group">
-                  <div className="w-16 h-16 rounded-full border-2 border-stone-200 bg-stone-100 flex items-center justify-center overflow-hidden group-hover:border-amber-300 transition-colors">
-                    <span className="text-xl font-semibold text-stone-400 group-hover:text-amber-600 transition-colors select-none">
-                      {member.name[0]}
-                    </span>
+                <div key={member.slug} className="flex flex-col items-center gap-1.5 group">
+                  <div className="relative">
+                    <Link href={`/team/${member.slug}/`}>
+                      <div className="relative w-16 h-16 rounded-full overflow-hidden shadow-md ring-2 ring-white hover:ring-amber-300 transition-all bg-stone-200 flex items-center justify-center cursor-pointer">
+                        <span className="text-xl font-semibold text-stone-400 select-none">{member.name[0]}</span>
+                        {teamPhotos[member.slug] && (
+                          <img
+                            src={teamPhotos[member.slug]}
+                            alt={member.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onError={e => e.currentTarget.remove()}
+                          />
+                        )}
+                      </div>
+                    </Link>
+                    <button
+                      onClick={() => { pendingPhotoSlug.current = member.slug; photoInputRef.current?.click() }}
+                      className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:border-amber-300"
+                    >
+                      <Camera size={10} className="text-stone-400" />
+                    </button>
                   </div>
-                  <span className="text-xs font-medium text-stone-600 group-hover:text-amber-700 transition-colors">
-                    {member.name}
-                  </span>
-                </Link>
+                  <span className="text-xs font-medium text-stone-500">{member.name}</span>
+                </div>
               ))}
             </div>
           </div>
@@ -885,6 +922,7 @@ export default function Dashboard() {
       </div>
 
       <input ref={attachmentInputRef} type="file" className="hidden" onChange={handleAttachmentUpload} />
+      <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
     </div>
   )
 }
