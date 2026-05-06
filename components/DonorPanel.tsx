@@ -293,6 +293,146 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
             </div>
           </div>
 
+          {/* Donation history */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Donation History</h3>
+              <button onClick={() => setShowAddDonation(!showAddDonation)}
+                className="flex items-center gap-1 px-2.5 py-1 text-white text-xs rounded-lg" style={goldBtn}>
+                <Plus size={11} /> Add Gift
+              </button>
+            </div>
+
+            {showAddDonation && (
+              <div className="border border-stone-200 rounded-xl p-4 bg-stone-50 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-stone-400">Amount</label>
+                    <div className="relative mt-0.5">
+                      <DollarSign size={12} className="absolute left-2.5 top-2 text-stone-400" />
+                      <input type="number" className="w-full border border-stone-200 rounded-lg px-2 py-1.5 pl-6 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                        placeholder="0" value={newAmount} onChange={e => setNewAmount(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-stone-400">Date</label>
+                    <input type="date" className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                      value={newDate} onChange={e => setNewDate(e.target.value)} />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-stone-400">Type</label>
+                  <select className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    value={newType} onChange={e => setNewType(e.target.value as Donation['type'])}>
+                    <option value="one-time">One-time</option>
+                    <option value="recurring">Recurring</option>
+                    <option value="grant">Grant</option>
+                    <option value="in-kind">In-Kind</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-stone-400">Notes (optional)</label>
+                  <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    placeholder="Any notes about this gift..." value={newDonationNotes} onChange={e => setNewDonationNotes(e.target.value)} />
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={addDonation} className="px-3 py-1.5 text-white text-sm rounded-lg" style={goldBtn}>Add</button>
+                  <button onClick={() => setShowAddDonation(false)} className="px-3 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {years.map(yr => {
+                const gifts = donationsByYear[yr]
+                const yearTotal = gifts.reduce((s, d) => s + d.amount, 0)
+                return (
+                  <div key={yr}>
+                    <div className="flex items-center justify-between mb-1 pb-1 border-b border-stone-100">
+                      <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{yr}</span>
+                      <span className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>{fmt(yearTotal)}</span>
+                    </div>
+                    <div className="space-y-0">
+                      {gifts.map(d => (
+                        <div key={d.id} className="border-b border-stone-100 last:border-0">
+                          {editingDonationId === d.id ? (
+                            <div className="py-3 space-y-2 bg-stone-50 rounded-lg px-3 my-1">
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-xs text-stone-400">Amount</label>
+                                  <div className="relative mt-0.5">
+                                    <DollarSign size={12} className="absolute left-2.5 top-2 text-stone-400" />
+                                    <input type="number" className="w-full border border-stone-200 rounded-lg px-2 py-1.5 pl-6 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                      value={donationEdit.amount} onChange={e => setDonationEdit(v => ({ ...v, amount: e.target.value }))} />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="text-xs text-stone-400">Date</label>
+                                  <input type="date" className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                    value={donationEdit.date} onChange={e => setDonationEdit(v => ({ ...v, date: e.target.value }))} />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="text-xs text-stone-400">Type</label>
+                                <select className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                  value={donationEdit.type} onChange={e => setDonationEdit(v => ({ ...v, type: e.target.value as Donation['type'] }))}>
+                                  <option value="one-time">One-time</option>
+                                  <option value="recurring">Recurring</option>
+                                  <option value="grant">Grant</option>
+                                  <option value="in-kind">In-Kind</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-xs text-stone-400">Notes</label>
+                                <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                  value={donationEdit.donation_notes} onChange={e => setDonationEdit(v => ({ ...v, donation_notes: e.target.value }))} />
+                              </div>
+                              <div className="flex gap-2">
+                                <button onClick={() => saveDonation(d.id)} className="flex items-center gap-1 px-3 py-1.5 text-white text-xs rounded-lg" style={goldBtn}>
+                                  <Check size={11} /> Save
+                                </button>
+                                <button onClick={() => setEditingDonationId(null)} className="px-3 py-1.5 bg-stone-100 text-stone-600 text-xs rounded-lg hover:bg-stone-200">Cancel</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between py-2.5 group">
+                              <div>
+                                <span className="text-sm font-medium text-stone-800">{fmt(d.amount)}</span>
+                                {d.donation_notes && <p className="text-xs text-stone-400 mt-0.5">{d.donation_notes}</p>}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <div className="text-right">
+                                  <p className="text-sm text-stone-500">{fmtDate(d.date)}</p>
+                                  <span className="text-xs text-stone-400 capitalize">{d.type}</span>
+                                </div>
+                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button onClick={() => startEditDonation(d)} className="p-1 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded">
+                                    <Pencil size={12} />
+                                  </button>
+                                  <button onClick={() => deleteDonation(d.id)} className="p-1 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded">
+                                    <Trash2 size={12} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+              {years.length === 0 && (
+                <p className="text-xs text-stone-300 italic">No donations recorded yet.</p>
+              )}
+              {historicalExtra > 0 && (
+                <p className="text-xs text-stone-400 italic pt-1">
+                  + {historicalExtra} earlier gift{historicalExtra > 1 ? 's' : ''} recorded in historical total
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Contact info */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -417,147 +557,6 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
             </div>
           )}
 
-          {/* Donation history */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Donation History</h3>
-              <button onClick={() => setShowAddDonation(!showAddDonation)}
-                className="flex items-center gap-1 px-2.5 py-1 text-white text-xs rounded-lg" style={goldBtn}>
-                <Plus size={11} /> Add Gift
-              </button>
-            </div>
-
-            {showAddDonation && (
-              <div className="border border-stone-200 rounded-xl p-4 bg-stone-50 space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-stone-400">Amount</label>
-                    <div className="relative mt-0.5">
-                      <DollarSign size={12} className="absolute left-2.5 top-2 text-stone-400" />
-                      <input type="number" className="w-full border border-stone-200 rounded-lg px-2 py-1.5 pl-6 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                        placeholder="0" value={newAmount} onChange={e => setNewAmount(e.target.value)} />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-stone-400">Date</label>
-                    <input type="date" className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                      value={newDate} onChange={e => setNewDate(e.target.value)} />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs text-stone-400">Type</label>
-                  <select className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    value={newType} onChange={e => setNewType(e.target.value as Donation['type'])}>
-                    <option value="one-time">One-time</option>
-                    <option value="recurring">Recurring</option>
-                    <option value="grant">Grant</option>
-                    <option value="in-kind">In-Kind</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs text-stone-400">Notes (optional)</label>
-                  <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    placeholder="Any notes about this gift..." value={newDonationNotes} onChange={e => setNewDonationNotes(e.target.value)} />
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={addDonation} className="px-3 py-1.5 text-white text-sm rounded-lg" style={goldBtn}>Add</button>
-                  <button onClick={() => setShowAddDonation(false)} className="px-3 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              {years.map(yr => {
-                const gifts = donationsByYear[yr]
-                const yearTotal = gifts.reduce((s, d) => s + d.amount, 0)
-                return (
-                  <div key={yr}>
-                    {/* Year header */}
-                    <div className="flex items-center justify-between mb-1 pb-1 border-b border-stone-100">
-                      <span className="text-xs font-semibold text-stone-500 uppercase tracking-wider">{yr}</span>
-                      <span className="text-xs font-semibold" style={{ color: 'var(--gold)' }}>{fmt(yearTotal)}</span>
-                    </div>
-                    {/* Gifts in this year */}
-                    <div className="space-y-0">
-                      {gifts.map(d => (
-                        <div key={d.id} className="border-b border-stone-100 last:border-0">
-                          {editingDonationId === d.id ? (
-                            <div className="py-3 space-y-2 bg-stone-50 rounded-lg px-3 my-1">
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="text-xs text-stone-400">Amount</label>
-                                  <div className="relative mt-0.5">
-                                    <DollarSign size={12} className="absolute left-2.5 top-2 text-stone-400" />
-                                    <input type="number" className="w-full border border-stone-200 rounded-lg px-2 py-1.5 pl-6 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
-                                      value={donationEdit.amount} onChange={e => setDonationEdit(v => ({ ...v, amount: e.target.value }))} />
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="text-xs text-stone-400">Date</label>
-                                  <input type="date" className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                                    value={donationEdit.date} onChange={e => setDonationEdit(v => ({ ...v, date: e.target.value }))} />
-                                </div>
-                              </div>
-                              <div>
-                                <label className="text-xs text-stone-400">Type</label>
-                                <select className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                                  value={donationEdit.type} onChange={e => setDonationEdit(v => ({ ...v, type: e.target.value as Donation['type'] }))}>
-                                  <option value="one-time">One-time</option>
-                                  <option value="recurring">Recurring</option>
-                                  <option value="grant">Grant</option>
-                                  <option value="in-kind">In-Kind</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label className="text-xs text-stone-400">Notes</label>
-                                <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                                  value={donationEdit.donation_notes} onChange={e => setDonationEdit(v => ({ ...v, donation_notes: e.target.value }))} />
-                              </div>
-                              <div className="flex gap-2">
-                                <button onClick={() => saveDonation(d.id)} className="flex items-center gap-1 px-3 py-1.5 text-white text-xs rounded-lg" style={goldBtn}>
-                                  <Check size={11} /> Save
-                                </button>
-                                <button onClick={() => setEditingDonationId(null)} className="px-3 py-1.5 bg-stone-100 text-stone-600 text-xs rounded-lg hover:bg-stone-200">Cancel</button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between py-2.5 group">
-                              <div>
-                                <span className="text-sm font-medium text-stone-800">{fmt(d.amount)}</span>
-                                {d.donation_notes && <p className="text-xs text-stone-400 mt-0.5">{d.donation_notes}</p>}
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <div className="text-right">
-                                  <p className="text-sm text-stone-500">{fmtDate(d.date)}</p>
-                                  <span className="text-xs text-stone-400 capitalize">{d.type}</span>
-                                </div>
-                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button onClick={() => startEditDonation(d)} className="p-1 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded">
-                                    <Pencil size={12} />
-                                  </button>
-                                  <button onClick={() => deleteDonation(d.id)} className="p-1 text-stone-400 hover:text-red-500 hover:bg-red-50 rounded">
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-              })}
-              {years.length === 0 && (
-                <p className="text-xs text-stone-300 italic">No donations recorded yet.</p>
-              )}
-              {historicalExtra > 0 && (
-                <p className="text-xs text-stone-400 italic pt-1">
-                  + {historicalExtra} earlier gift{historicalExtra > 1 ? 's' : ''} recorded in historical total
-                </p>
-              )}
-            </div>
-          </div>
         </div>
       </div>
 
