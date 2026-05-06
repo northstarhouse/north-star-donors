@@ -1,11 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { FileText, Paperclip } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { FileText, Paperclip, Plus, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
 type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Research' | 'Technical' | 'Editing' | 'Decision' | 'Other'
 type TaskStatus = 'todo' | 'in_progress' | 'done'
+type Section = 'current' | 'completed'
 
 interface Task {
   id: string
@@ -17,6 +18,14 @@ interface Task {
   attachment_url: string | null
   assigned_to: string | null
   initiative: { id: string; title: string; area: string } | null
+  created_at: string
+}
+
+interface FocusEntry {
+  id: string
+  member: string
+  section: Section
+  content: string
   created_at: string
 }
 
@@ -41,7 +50,12 @@ const MEMBER_META: Record<string, { display: string; initials: string; accent: s
 
 export default function TeamMemberClient({ member }: { member: string }) {
   const [tasks, setTasks] = useState<Task[]>([])
+  const [entries, setEntries] = useState<FocusEntry[]>([])
   const [loading, setLoading] = useState(true)
+  const [addingTo, setAddingTo] = useState<Section | null>(null)
+  const [newItem, setNewItem] = useState('')
+  const [saving, setSaving] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const meta = MEMBER_META[member] ?? {
     display: member.charAt(0).toUpperCase() + member.slice(1),
@@ -51,19 +65,55 @@ export default function TeamMemberClient({ member }: { member: string }) {
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase
-        .from('tasks')
-        .select('*, initiative:initiatives(id,title,area,status,created_at,updated_at)')
-        .ilike('assigned_to', meta.display)
-        .order('created_at', { ascending: false })
-      if (data) setTasks(data as Task[])
+      const [tasksRes, entriesRes] = await Promise.all([
+        supabase
+          .from('tasks')
+          .select('*, initiative:initiatives(id,title,area,status,created_at,updated_at)')
+          .ilike('assigned_to', meta.display)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('team_focus_entries')
+          .select('*')
+          .eq('member', member)
+          .order('created_at', { ascending: true }),
+      ])
+      if (tasksRes.data) setTasks(tasksRes.data as Task[])
+      if (entriesRes.data) setEntries(entriesRes.data as FocusEntry[])
       setLoading(false)
     }
     load()
   }, [member, meta.display])
 
-  const current   = tasks.filter(t => t.status === 'in_progress')
-  const completed = tasks.filter(t => t.status === 'done')
+  useEffect(() => {
+    if (addingTo) inputRef.current?.focus()
+  }, [addingTo])
+
+  async function addEntry() {
+    if (!newItem.trim() || !addingTo) return
+    setSaving(true)
+    const { data } = await supabase
+      .from('team_focus_entries')
+      .insert({ member, section: addingTo, content: newItem.trim() })
+      .select()
+      .single()
+    if (data) setEntries(prev => [...prev, data as FocusEntry])
+    setNewItem('')
+    setAddingTo(null)
+    setSaving(false)
+  }
+
+  async function deleteEntry(id: string) {
+    await supabase.from('team_focus_entries').delete().eq('id', id)
+    setEntries(prev => prev.filter(e => e.id !== id))
+  }
+
+  const currentTasks    = tasks.filter(t => t.status === 'in_progress')
+  const completedTasks  = tasks.filter(t => t.status === 'done')
+  const currentEntries  = entries.filter(e => e.section === 'current')
+  const completedEntries = entries.filter(e => e.section === 'completed')
+
+  const currentCount   = currentTasks.length + currentEntries.length
+  const completedCount = completedTasks.length + completedEntries.length
 
   return (
     <div className="flex min-h-screen flex-1">
@@ -92,49 +142,150 @@ export default function TeamMemberClient({ member }: { member: string }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
               {/* Current Focus */}
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-sm font-bold text-stone-800">Current Focus</h2>
-                    <p className="text-[11px] text-stone-400 mt-0.5">In-progress tasks</p>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">
-                    {current.length}
-                  </span>
-                </div>
-                <div>
-                  {current.length === 0 ? (
-                    <p className="px-5 py-10 text-xs text-stone-300 text-center italic">Nothing in progress.</p>
-                  ) : current.map(task => (
-                    <TaskCard key={task.id} task={task} />
-                  ))}
-                </div>
-              </div>
+              <Section
+                title="Current Focus"
+                subtitle="In-progress tasks"
+                count={currentCount}
+                countColor="bg-amber-100 text-amber-700"
+                addingTo={addingTo}
+                section="current"
+                newItem={newItem}
+                saving={saving}
+                inputRef={inputRef}
+                onStartAdd={() => { setAddingTo('current'); setNewItem('') }}
+                onCancelAdd={() => setAddingTo(null)}
+                onNewItemChange={setNewItem}
+                onAdd={addEntry}
+              >
+                {currentEntries.map(e => (
+                  <ManualEntry key={e.id} entry={e} onDelete={deleteEntry} />
+                ))}
+                {currentTasks.map(task => (
+                  <TaskCard key={task.id} task={task} />
+                ))}
+                {currentCount === 0 && (
+                  <p className="px-5 py-8 text-xs text-stone-300 text-center italic">Nothing in progress.</p>
+                )}
+              </Section>
 
               {/* Completed */}
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
-                  <div>
-                    <h2 className="text-sm font-bold text-stone-800">Completed</h2>
-                    <p className="text-[11px] text-stone-400 mt-0.5">Done tasks</p>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
-                    {completed.length}
-                  </span>
-                </div>
-                <div>
-                  {completed.length === 0 ? (
-                    <p className="px-5 py-10 text-xs text-stone-300 text-center italic">No completed tasks yet.</p>
-                  ) : completed.map(task => (
-                    <TaskCard key={task.id} task={task} />
-                  ))}
-                </div>
-              </div>
+              <Section
+                title="Completed"
+                subtitle="Done tasks"
+                count={completedCount}
+                countColor="bg-emerald-100 text-emerald-700"
+                addingTo={addingTo}
+                section="completed"
+                newItem={newItem}
+                saving={saving}
+                inputRef={inputRef}
+                onStartAdd={() => { setAddingTo('completed'); setNewItem('') }}
+                onCancelAdd={() => setAddingTo(null)}
+                onNewItemChange={setNewItem}
+                onAdd={addEntry}
+              >
+                {completedEntries.map(e => (
+                  <ManualEntry key={e.id} entry={e} onDelete={deleteEntry} />
+                ))}
+                {completedTasks.map(task => (
+                  <TaskCard key={task.id} task={task} />
+                ))}
+                {completedCount === 0 && (
+                  <p className="px-5 py-8 text-xs text-stone-300 text-center italic">No completed tasks yet.</p>
+                )}
+              </Section>
 
             </div>
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+function Section({
+  title, subtitle, count, countColor, addingTo, section,
+  newItem, saving, inputRef,
+  onStartAdd, onCancelAdd, onNewItemChange, onAdd, children,
+}: {
+  title: string
+  subtitle: string
+  count: number
+  countColor: string
+  addingTo: Section | null
+  section: Section
+  newItem: string
+  saving: boolean
+  inputRef: React.RefObject<HTMLInputElement>
+  onStartAdd: () => void
+  onCancelAdd: () => void
+  onNewItemChange: (v: string) => void
+  onAdd: () => void
+  children: React.ReactNode
+}) {
+  const isAdding = addingTo === section
+  return (
+    <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden flex flex-col">
+      <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+        <div>
+          <h2 className="text-sm font-bold text-stone-800">{title}</h2>
+          <p className="text-[11px] text-stone-400 mt-0.5">{subtitle}</p>
+        </div>
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${countColor}`}>
+          {count}
+        </span>
+      </div>
+
+      <div className="flex-1">{children}</div>
+
+      {/* Add item area */}
+      <div className="px-5 py-3 border-t border-stone-50">
+        {isAdding ? (
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              className="flex-1 border border-stone-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
+              placeholder="Add an item..."
+              value={newItem}
+              onChange={e => onNewItemChange(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') onAdd(); if (e.key === 'Escape') onCancelAdd() }}
+            />
+            <button
+              onClick={onAdd}
+              disabled={!newItem.trim() || saving}
+              className="px-3 py-1.5 text-white text-xs rounded-lg disabled:opacity-40 font-medium"
+              style={{ background: 'var(--gold)' }}
+            >
+              {saving ? '…' : 'Add'}
+            </button>
+            <button onClick={onCancelAdd} className="p-1.5 text-stone-300 hover:text-stone-500">
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={onStartAdd}
+            className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-amber-600 transition-colors"
+          >
+            <Plus size={13} /> Add item
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ManualEntry({ entry, onDelete }: { entry: FocusEntry; onDelete: (id: string) => void }) {
+  return (
+    <div className="flex items-start gap-2 px-5 py-3 border-b border-stone-50 last:border-0 group">
+      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-300 flex-shrink-0" />
+      <p className="flex-1 text-sm text-stone-700 leading-snug">{entry.content}</p>
+      <button
+        onClick={() => onDelete(entry.id)}
+        className="opacity-0 group-hover:opacity-100 p-0.5 text-stone-300 hover:text-red-400 transition-all flex-shrink-0 mt-0.5"
+      >
+        <X size={12} />
+      </button>
     </div>
   )
 }
