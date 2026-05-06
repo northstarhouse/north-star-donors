@@ -129,7 +129,6 @@ export default function DonorList({ donors, onSelect, selectedIds, onToggle, onT
                 </td>
                 <td className="px-4 py-3" onClick={() => onSelect(donor)}>
                   <div className="flex items-center gap-2.5">
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: TIER_DOTS[donor.tier] }} />
                     <div>
                       <div className="flex items-center gap-1.5">
                         <p className="font-medium text-stone-800 group-hover:text-amber-800">{donor.formal_name}</p>
