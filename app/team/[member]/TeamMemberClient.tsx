@@ -317,7 +317,7 @@ function ManualEntry({ entry, onDelete, onUpdate }: {
   }
 
   return (
-    <div className="flex items-start gap-2.5 px-5 py-3 border-b border-stone-50 last:border-0 group">
+    <div className={`flex items-start gap-2.5 px-5 py-3 border-b border-stone-50 last:border-0 group transition-colors ${entry.completed ? 'bg-emerald-50/60' : ''}`}>
       {/* Complete toggle */}
       <button
         onClick={() => onUpdate(entry.id, { completed: !entry.completed })}
@@ -344,7 +344,7 @@ function ManualEntry({ entry, onDelete, onUpdate }: {
         ) : (
           <p
             onClick={() => { setEditing(true); setEditText(entry.content) }}
-            className={`text-sm leading-snug cursor-text ${entry.completed ? 'line-through text-stone-400' : 'text-stone-700'}`}
+            className={`text-sm leading-snug cursor-text ${entry.completed ? 'text-emerald-800' : 'text-stone-700'}`}
           >
             {entry.content}
           </p>
