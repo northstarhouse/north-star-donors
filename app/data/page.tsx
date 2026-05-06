@@ -1072,18 +1072,17 @@ function SocialSection() {
       {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading...</div> : (
         <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-            {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No posts logged yet.</div> : (
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-stone-100">
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Platform</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Caption</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Likes</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Reach</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Date</th>
-                </tr></thead>
-                <tbody>{rows.map(r => (
-                  <tr key={r.id} onClick={() => { setSelected(prev => prev?.id === r.id ? null : r); setEditing(false) }}
-                    className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === r.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-stone-100">
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Platform</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Caption</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Likes</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Reach</th>
+                <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Date</th>
+              </tr></thead>
+              <tbody>{rows.map(r => (
+                <tr key={r.id} onClick={() => { setSelected(prev => prev?.id === r.id ? null : r); setEditing(false) }}
+                  className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === r.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
                     <td className="px-4 py-3">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${platformBadge[r.platform] ?? 'bg-stone-100 text-stone-500'}`}>{r.platform}</span>
                     </td>
@@ -1092,9 +1091,8 @@ function SocialSection() {
                     <td className="px-4 py-3 text-right text-stone-600">{r.reach?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
                     <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : '-'}</td>
                   </tr>
-                ))}</tbody>
-              </table>
-            )}
+              ))}</tbody>
+            </table>
             <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{rows.length} post{rows.length !== 1 ? 's' : ''}</div>
           </div>
           {selected ? (
