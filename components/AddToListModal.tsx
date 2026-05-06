@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { X, Plus, Check, List } from 'lucide-react'
+import { X, Plus, Check, List, Tags } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { DonorList } from '@/lib/types'
 
@@ -12,11 +12,15 @@ interface Props {
 
 const goldBtn = { background: 'var(--gold)' }
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
+const TAG_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#8b5cf6','#ec4899']
 
 export default function AddToListModal({ donorIds, onClose, onDone }: Props) {
   const [lists, setLists] = useState<DonorList[]>([])
   const [loading, setLoading] = useState(true)
+  const [createMode, setCreateMode] = useState<'list' | 'tag'>('list')
   const [newListName, setNewListName] = useState('')
+  const [newTagName, setNewTagName] = useState('')
+  const [newTagColor, setNewTagColor] = useState(TAG_COLORS[5])
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
@@ -52,6 +56,28 @@ export default function AddToListModal({ donorIds, onClose, onDone }: Props) {
     setCreating(false)
   }
 
+  async function createTag() {
+    if (!newTagName.trim()) return
+    setCreating(true)
+    setError('')
+    const { data, error: err } = await supabase
+      .from('tags')
+      .insert({ name: newTagName.trim(), color: newTagColor })
+      .select()
+      .single()
+    if (err) { setError(err.message); setCreating(false); return }
+    if (data && donorIds.length > 0) {
+      await supabase.from('donor_tags').upsert(
+        donorIds.map(id => ({ donor_id: id, tag_id: data.id })),
+        { onConflict: 'donor_id,tag_id' }
+      )
+    }
+    setNewTagName('')
+    setCreating(false)
+    setDone(true)
+    setTimeout(() => { onDone(); onClose() }, 800)
+  }
+
   async function addToList() {
     if (!selectedListId) return
     setSaving(true)
@@ -80,26 +106,74 @@ export default function AddToListModal({ donorIds, onClose, onDone }: Props) {
         </div>
 
         <div className="px-5 py-4 space-y-4">
-          {/* Create new list */}
+          {/* Create new list or tag */}
           <div>
-            <label className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2 block">New List</label>
-            <div className="flex gap-2">
-              <input
-                className={inputCls}
-                placeholder="List name..."
-                value={newListName}
-                onChange={e => setNewListName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') createAndSelect() }}
-              />
+            <div className="flex items-center gap-1 mb-3">
+              <span className="text-xs font-semibold text-stone-400 uppercase tracking-wider mr-1">New</span>
               <button
-                onClick={createAndSelect}
-                disabled={!newListName.trim() || creating}
-                className="flex items-center gap-1 px-3 py-2 text-white text-sm rounded-lg disabled:opacity-40 whitespace-nowrap"
-                style={goldBtn}
+                onClick={() => setCreateMode('list')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${createMode === 'list' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
               >
-                <Plus size={13} /> Create
+                <List size={11} /> List
+              </button>
+              <button
+                onClick={() => setCreateMode('tag')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${createMode === 'tag' ? 'bg-stone-800 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200'}`}
+              >
+                <Tags size={11} /> Tag
               </button>
             </div>
+
+            {createMode === 'list' ? (
+              <div className="flex gap-2">
+                <input
+                  className={inputCls}
+                  placeholder="List name..."
+                  value={newListName}
+                  onChange={e => setNewListName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') createAndSelect() }}
+                />
+                <button
+                  onClick={createAndSelect}
+                  disabled={!newListName.trim() || creating}
+                  className="flex items-center gap-1 px-3 py-2 text-white text-sm rounded-lg disabled:opacity-40 whitespace-nowrap"
+                  style={goldBtn}
+                >
+                  <Plus size={13} /> Create
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    autoFocus
+                    className={inputCls}
+                    placeholder="Tag name..."
+                    value={newTagName}
+                    onChange={e => setNewTagName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') createTag() }}
+                  />
+                  <button
+                    onClick={createTag}
+                    disabled={!newTagName.trim() || creating || done}
+                    className="flex items-center gap-1 px-3 py-2 text-white text-sm rounded-lg disabled:opacity-40 whitespace-nowrap"
+                    style={{ background: newTagColor }}
+                  >
+                    {done ? <Check size={13} /> : <><Plus size={13} /> Create</>}
+                  </button>
+                </div>
+                <div className="flex gap-1.5">
+                  {TAG_COLORS.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setNewTagColor(c)}
+                      className="w-5 h-5 rounded-full flex-shrink-0 transition-all"
+                      style={{ background: c, outline: newTagColor === c ? `2px solid ${c}` : 'none', outlineOffset: '2px' }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Existing lists */}
