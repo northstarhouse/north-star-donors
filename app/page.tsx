@@ -687,6 +687,30 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* Team Members */}
+          <div className="mt-4 bg-white rounded-xl border border-stone-200 shadow-sm p-5">
+            <h2 className="text-sm font-bold text-stone-700 mb-4">Team Members</h2>
+            <div className="flex gap-8 justify-center">
+              {([
+                { name: 'Kaelen', slug: 'kaelen' },
+                { name: 'Haley',  slug: 'haley'  },
+                { name: 'Derek',  slug: 'derek'  },
+              ] as const).map(member => (
+                <Link key={member.slug} href={`/team/${member.slug}/`}
+                  className="flex flex-col items-center gap-2 group">
+                  <div className="w-16 h-16 rounded-full border-2 border-stone-200 bg-stone-100 flex items-center justify-center overflow-hidden group-hover:border-amber-300 transition-colors">
+                    <span className="text-xl font-semibold text-stone-400 group-hover:text-amber-600 transition-colors select-none">
+                      {member.name[0]}
+                    </span>
+                  </div>
+                  <span className="text-xs font-medium text-stone-600 group-hover:text-amber-700 transition-colors">
+                    {member.name}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
           </div>{/* end left col */}
 
           {/* Right: Fund Development goals */}
