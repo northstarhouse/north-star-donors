@@ -1069,46 +1069,6 @@ function SocialSection() {
 
   return (
     <div>
-      <div className="flex justify-end mb-4">
-        <button onClick={() => { setForm(SOCIAL_EMPTY); setShowAdd(true) }}
-          className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm" style={goldBtn}>
-          <Plus size={15} /> Add Post
-        </button>
-      </div>
-      {showAdd && (
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 mb-5">
-          <h3 className="text-sm font-semibold text-stone-700 mb-3">New Social Post</h3>
-          <form onSubmit={submit} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div><label className="text-xs text-stone-400 mb-1 block">Platform *</label>
-                <select required className={inputCls} value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))}>
-                  <option value="">Select...</option>
-                  {PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
-                </select></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Date</label>
-                <input type="date" className={inputCls} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Likes</label>
-                <input type="number" className={inputCls} value={form.likes} onChange={e => setForm(f => ({ ...f, likes: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Comments</label>
-                <input type="number" className={inputCls} value={form.comments} onChange={e => setForm(f => ({ ...f, comments: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Shares</label>
-                <input type="number" className={inputCls} value={form.shares} onChange={e => setForm(f => ({ ...f, shares: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Reach</label>
-                <input type="number" className={inputCls} value={form.reach} onChange={e => setForm(f => ({ ...f, reach: e.target.value }))} /></div>
-              <div className="col-span-2"><label className="text-xs text-stone-400 mb-1 block">Post Link</label>
-                <input className={inputCls} placeholder="URL" value={form.link} onChange={e => setForm(f => ({ ...f, link: e.target.value }))} /></div>
-            </div>
-            <div><label className="text-xs text-stone-400 mb-1 block">Content / Caption</label>
-              <textarea className={inputCls + ' resize-none'} rows={2} value={form.content} onChange={e => setForm(f => ({ ...f, content: e.target.value }))} /></div>
-            <div><label className="text-xs text-stone-400 mb-1 block">Notes</label>
-              <textarea className={inputCls + ' resize-none'} rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={saving || !form.platform} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Saving...' : 'Add'}</button>
-              <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
       {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading...</div> : (
         <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
           <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">

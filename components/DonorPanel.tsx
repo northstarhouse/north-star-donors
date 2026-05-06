@@ -293,6 +293,130 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
             </div>
           </div>
 
+          {/* Contact info */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Contact</h3>
+              <span className="text-[10px] text-stone-300 italic">Click any field to edit</span>
+            </div>
+            <div className="space-y-1.5">
+              {(['formal_name', 'informal_first_name', 'email', 'phone', 'employer', 'address'] as const).map(field => {
+                const icons: Record<string, React.ReactNode> = {
+                  email: <Mail size={13} />, phone: <Phone size={13} />,
+                  employer: <Briefcase size={13} />, address: <MapPin size={13} />,
+                }
+                const labels: Record<string, string> = {
+                  formal_name: 'Formal Name', informal_first_name: 'Informal First Name',
+                  email: 'Email', phone: 'Phone', employer: 'Employer', address: 'Address',
+                }
+                return (
+                  <div key={field} className="flex items-start gap-2">
+                    <span className="text-stone-300 mt-3.5 w-4 flex-shrink-0">{icons[field]}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] text-stone-400 uppercase tracking-wide">{labels[field]}</p>
+                      {editField === field ? (
+                        <div className="flex gap-1 mt-0.5">
+                          {field === 'address' ? (
+                            <textarea
+                              className="flex-1 text-sm border border-stone-200 rounded-lg px-2 py-1 resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
+                              rows={2}
+                              autoFocus
+                              value={editValues[field]}
+                              onChange={e => setEditValues(v => ({ ...v, [field]: e.target.value }))}
+                            />
+                          ) : (
+                            <input
+                              className="flex-1 text-sm border border-stone-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                              autoFocus
+                              value={editValues[field]}
+                              onChange={e => setEditValues(v => ({ ...v, [field]: e.target.value }))}
+                              onKeyDown={e => { if (e.key === 'Enter') saveField(field); if (e.key === 'Escape') setEditField(null) }}
+                            />
+                          )}
+                          <button onClick={() => saveField(field)} className="px-2 py-1 text-white text-xs rounded-lg" style={goldBtn}>Save</button>
+                          <button onClick={() => setEditField(null)} className="px-2 py-1 bg-stone-100 text-stone-600 text-xs rounded-lg hover:bg-stone-200">✕</button>
+                        </div>
+                      ) : (
+                        <p
+                          className="text-sm text-stone-700 cursor-pointer hover:bg-stone-50 rounded px-1 -mx-1 min-h-[1.5rem] py-0.5 group flex items-center gap-1"
+                          onClick={() => setEditField(field)}
+                        >
+                          <span className="flex-1">{editValues[field] || <span className="text-stone-300 italic text-xs">—</span>}</span>
+                          <Pencil size={10} className="text-stone-300 opacity-0 group-hover:opacity-100 flex-shrink-0" />
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Donor Notes</h3>
+            <textarea
+              className="w-full border border-stone-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
+              rows={4}
+              placeholder="Add notes about this donor..."
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+            />
+            <button onClick={saveNotes} disabled={saving}
+              className="px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50" style={goldBtn}>
+              {saving ? 'Saving...' : 'Save Notes'}
+            </button>
+          </div>
+
+          {/* Tags */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Tags</h3>
+            <div className="flex flex-wrap gap-1.5 items-center">
+              {donorTags.map(tag => (
+                <span key={tag.id}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
+                  style={{ background: tag.color }}>
+                  {tag.name}
+                  <button onClick={() => removeTag(tag.id)} className="hover:opacity-70 leading-none ml-0.5">×</button>
+                </span>
+              ))}
+              <button onClick={() => setShowTagPicker(true)}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border border-dashed border-stone-300 text-stone-400 hover:border-stone-400 hover:text-stone-600 transition-colors">
+                <Tag size={10} /> Add tag
+              </button>
+            </div>
+          </div>
+
+          {/* Linked Outreach */}
+          {linkedOutreach.length > 0 && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Linked Outreach</h3>
+              <div className="space-y-2">
+                {linkedOutreach.map(entry => (
+                  <div key={entry.id} className="border border-stone-100 rounded-xl px-3 py-2.5 bg-stone-50">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-stone-700 truncate">{entry.title}</p>
+                        {entry.area && <p className="text-xs text-stone-400">{entry.area}</p>}
+                      </div>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                        entry.status === 'completed' ? 'bg-green-100 text-green-700' :
+                        entry.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                        entry.status === 'follow_up' ? 'bg-amber-100 text-amber-700' :
+                        entry.status === 'no_response' ? 'bg-red-100 text-red-600' :
+                        'bg-stone-100 text-stone-500'
+                      }`}>
+                        {entry.status.replace('_', ' ')}
+                      </span>
+                    </div>
+                    {entry.notes && <p className="text-xs text-stone-500 mt-1.5 leading-relaxed line-clamp-2">{entry.notes}</p>}
+                    {entry.date && <p className="text-[10px] text-stone-300 mt-1">{fmtDate(entry.date)}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Donation history */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -437,130 +561,6 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
               )}
             </div>
           </div>
-
-          {/* Contact info */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Contact</h3>
-              <span className="text-[10px] text-stone-300 italic">Click any field to edit</span>
-            </div>
-            <div className="space-y-1.5">
-              {(['formal_name', 'informal_first_name', 'email', 'phone', 'employer', 'address'] as const).map(field => {
-                const icons: Record<string, React.ReactNode> = {
-                  email: <Mail size={13} />, phone: <Phone size={13} />,
-                  employer: <Briefcase size={13} />, address: <MapPin size={13} />,
-                }
-                const labels: Record<string, string> = {
-                  formal_name: 'Formal Name', informal_first_name: 'Informal First Name',
-                  email: 'Email', phone: 'Phone', employer: 'Employer', address: 'Address',
-                }
-                return (
-                  <div key={field} className="flex items-start gap-2">
-                    <span className="text-stone-300 mt-3.5 w-4 flex-shrink-0">{icons[field]}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] text-stone-400 uppercase tracking-wide">{labels[field]}</p>
-                      {editField === field ? (
-                        <div className="flex gap-1 mt-0.5">
-                          {field === 'address' ? (
-                            <textarea
-                              className="flex-1 text-sm border border-stone-200 rounded-lg px-2 py-1 resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
-                              rows={2}
-                              autoFocus
-                              value={editValues[field]}
-                              onChange={e => setEditValues(v => ({ ...v, [field]: e.target.value }))}
-                            />
-                          ) : (
-                            <input
-                              className="flex-1 text-sm border border-stone-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                              autoFocus
-                              value={editValues[field]}
-                              onChange={e => setEditValues(v => ({ ...v, [field]: e.target.value }))}
-                              onKeyDown={e => { if (e.key === 'Enter') saveField(field); if (e.key === 'Escape') setEditField(null) }}
-                            />
-                          )}
-                          <button onClick={() => saveField(field)} className="px-2 py-1 text-white text-xs rounded-lg" style={goldBtn}>Save</button>
-                          <button onClick={() => setEditField(null)} className="px-2 py-1 bg-stone-100 text-stone-600 text-xs rounded-lg hover:bg-stone-200">✕</button>
-                        </div>
-                      ) : (
-                        <p
-                          className="text-sm text-stone-700 cursor-pointer hover:bg-stone-50 rounded px-1 -mx-1 min-h-[1.5rem] py-0.5 group flex items-center gap-1"
-                          onClick={() => setEditField(field)}
-                        >
-                          <span className="flex-1">{editValues[field] || <span className="text-stone-300 italic text-xs">—</span>}</span>
-                          <Pencil size={10} className="text-stone-300 opacity-0 group-hover:opacity-100 flex-shrink-0" />
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Donor Notes</h3>
-            <textarea
-              className="w-full border border-stone-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
-              rows={4}
-              placeholder="Add notes about this donor..."
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-            />
-            <button onClick={saveNotes} disabled={saving}
-              className="px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50" style={goldBtn}>
-              {saving ? 'Saving...' : 'Save Notes'}
-            </button>
-          </div>
-
-          {/* Tags */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Tags</h3>
-            <div className="flex flex-wrap gap-1.5 items-center">
-              {donorTags.map(tag => (
-                <span key={tag.id}
-                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
-                  style={{ background: tag.color }}>
-                  {tag.name}
-                  <button onClick={() => removeTag(tag.id)} className="hover:opacity-70 leading-none ml-0.5">×</button>
-                </span>
-              ))}
-              <button onClick={() => setShowTagPicker(true)}
-                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs border border-dashed border-stone-300 text-stone-400 hover:border-stone-400 hover:text-stone-600 transition-colors">
-                <Tag size={10} /> Add tag
-              </button>
-            </div>
-          </div>
-
-          {/* Linked Outreach */}
-          {linkedOutreach.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Linked Outreach</h3>
-              <div className="space-y-2">
-                {linkedOutreach.map(entry => (
-                  <div key={entry.id} className="border border-stone-100 rounded-xl px-3 py-2.5 bg-stone-50">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-stone-700 truncate">{entry.title}</p>
-                        {entry.area && <p className="text-xs text-stone-400">{entry.area}</p>}
-                      </div>
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full flex-shrink-0 ${
-                        entry.status === 'completed' ? 'bg-green-100 text-green-700' :
-                        entry.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
-                        entry.status === 'follow_up' ? 'bg-amber-100 text-amber-700' :
-                        entry.status === 'no_response' ? 'bg-red-100 text-red-600' :
-                        'bg-stone-100 text-stone-500'
-                      }`}>
-                        {entry.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                    {entry.notes && <p className="text-xs text-stone-500 mt-1.5 leading-relaxed line-clamp-2">{entry.notes}</p>}
-                    {entry.date && <p className="text-[10px] text-stone-300 mt-1">{fmtDate(entry.date)}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
         </div>
       </div>
