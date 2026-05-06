@@ -149,6 +149,19 @@ export default function DonorList({ donors, onSelect, selectedIds, onToggle, onT
                   <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_PILL[donor.status]}`}>
                     {STATUS_LABEL[donor.status]}
                   </span>
+                  {donor.tags && donor.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1.5">
+                      {donor.tags.map(tag => (
+                        <span
+                          key={tag.id}
+                          className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium"
+                          style={{ background: tag.color + '22', color: tag.color }}
+                        >
+                          {tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3" onClick={() => onSelect(donor)}>
                   {donor.tier === 'none'

@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Heart, UserPlus, Tags, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
-import { Donor, Donation, DonorWithStats } from '@/lib/types'
+import { Donor, Donation, DonorWithStats, Tag } from '@/lib/types'
 import { getTier, getStatus } from '@/lib/tiers'
 import DonorList from '@/components/DonorList'
 import DonorPanel from '@/components/DonorPanel'
@@ -78,7 +78,23 @@ export default function Home() {
         return acc
       }, {})
 
-      const built = (donorRows ?? []).map(d => buildDonorWithStats(d, donationsByDonor[d.id] ?? []))
+      const donorIds = (donorRows ?? []).map((d: Donor) => d.id)
+      const { data: tagRows } = donorIds.length
+        ? await supabase.from('donor_tags').select('donor_id, tags(*)').in('donor_id', donorIds)
+        : { data: [] }
+
+      const tagsByDonor = (tagRows ?? []).reduce<Record<string, Tag[]>>((acc, row) => {
+        const r = row as { donor_id: string; tags: Tag | null }
+        if (!r.tags) return acc
+        if (!acc[r.donor_id]) acc[r.donor_id] = []
+        acc[r.donor_id].push(r.tags)
+        return acc
+      }, {})
+
+      const built = (donorRows ?? []).map((d: Donor) => ({
+        ...buildDonorWithStats(d, donationsByDonor[d.id] ?? []),
+        tags: tagsByDonor[d.id] ?? [],
+      }))
       setDonors(built)
       cacheWrite('donors', built, TTL_SHORT)
       setError(null)
