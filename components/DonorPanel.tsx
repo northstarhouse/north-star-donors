@@ -70,6 +70,7 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
   const [editingDonationId, setEditingDonationId] = useState<string | null>(null)
   const [donationEdit, setDonationEdit] = useState<DonationEdit>({ amount: '', date: '', type: 'one-time', donation_notes: '' })
   const [showMerge, setShowMerge] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   async function saveNotes() {
     setSaving(true)
@@ -139,6 +140,15 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
     onUpdated()
   }
 
+  async function deleteDonor() {
+    await supabase.from('donations').delete().eq('donor_id', donor.id)
+    await supabase.from('donor_tags').delete().eq('donor_id', donor.id)
+    await supabase.from('list_donors').delete().eq('donor_id', donor.id)
+    await supabase.from('donors').delete().eq('id', donor.id)
+    onClose()
+    onUpdated()
+  }
+
   async function deleteDonation(id: string) {
     if (!confirm('Delete this gift?')) return
     await supabase.from('donations').delete().eq('id', id)
@@ -190,6 +200,30 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
                 <GitMerge size={13} />
                 Merge
               </button>
+              {confirmDelete ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={deleteDonor}
+                    className="px-2.5 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                  >
+                    Delete?
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="px-2.5 py-1.5 text-xs text-stone-500 hover:bg-stone-100 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                  title="Delete donor"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
               <button onClick={onClose} className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-400">
                 <X size={18} />
               </button>

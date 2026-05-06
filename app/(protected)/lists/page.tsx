@@ -1,6 +1,6 @@
 ﻿'use client'
 import { useState, useEffect } from 'react'
-import { List, Trash2, X, Users, ChevronLeft, Download, Star, Tags, MapPinOff } from 'lucide-react'
+import { List, Trash2, X, Users, ChevronLeft, Download, Star, Tags, MapPinOff, Palette } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import { DonorList, DonorWithStats, Donor, Donation, Tag } from '@/lib/types'
@@ -12,6 +12,7 @@ import TagPickerModal from '@/components/TagPickerModal'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const fmt = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
+const TAG_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6','#8b5cf6','#ec4899','#6b7280','#b5a185']
 
 function isAddressIncomplete(address: string | null): boolean {
   return !address || address.trim() === ''
@@ -64,6 +65,8 @@ export default function ListsPage() {
   const [showAddToList, setShowAddToList] = useState(false)
   const [showTagModal, setShowTagModal] = useState(false)
   const [donorTagsMap, setDonorTagsMap] = useState<Record<string, Tag[]>>({})
+  const [editingColorTagId, setEditingColorTagId] = useState<string | null>(null)
+  const [confirmDeleteTagId, setConfirmDeleteTagId] = useState<string | null>(null)
 
   useEffect(() => {
     const cached = cacheRead<(DonorList & { donor_count: number })[]>('lists')
@@ -222,6 +225,20 @@ export default function ListsPage() {
     if (activeList?.id === listId) setActiveList(null)
   }
 
+  async function updateTagColor(tagId: string, color: string) {
+    await supabase.from('tags').update({ color }).eq('id', tagId)
+    setAllTags(prev => prev.map(t => t.id === tagId ? { ...t, color } : t))
+    if (activeTag?.id === tagId) setActiveTag(prev => prev ? { ...prev, color } : prev)
+    setEditingColorTagId(null)
+  }
+
+  async function deleteTag(tagId: string) {
+    await supabase.from('tags').delete().eq('id', tagId)
+    setAllTags(prev => prev.filter(t => t.id !== tagId))
+    if (activeTag?.id === tagId) { setActiveTag(null); setListDonors([]) }
+    setConfirmDeleteTagId(null)
+  }
+
   async function handleUpdated() {
     if (activeList) await openList(activeList)
     else if (activeTag) await openTag(activeTag)
@@ -339,7 +356,7 @@ export default function ListsPage() {
                       <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Tags</p>
                     </div>
                     {allTags.map(tag => (
-                      <div key={tag.id} className="flex items-center gap-4 px-6 py-4 hover:bg-stone-50">
+                      <div key={tag.id} className="flex items-center gap-4 px-6 py-4 hover:bg-stone-50 group">
                         <button className="flex-1 flex items-center gap-4 text-left" onClick={() => openTag(tag)}>
                           <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: tag.color + '20' }}>
                             <span className="w-3.5 h-3.5 rounded-full" style={{ background: tag.color }} />
@@ -349,6 +366,55 @@ export default function ListsPage() {
                             <p className="text-xs text-stone-400 mt-0.5">{tag.donor_count} donor{tag.donor_count !== 1 ? 's' : ''}</p>
                           </div>
                         </button>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {editingColorTagId === tag.id ? (
+                            <div className="flex items-center gap-1.5 bg-white border border-stone-200 rounded-xl px-3 py-2 shadow-md">
+                              {TAG_COLORS.map(c => (
+                                <button
+                                  key={c}
+                                  onClick={() => updateTagColor(tag.id, c)}
+                                  className="w-5 h-5 rounded-full ring-offset-1 hover:ring-2 hover:ring-stone-400 transition-all flex-shrink-0"
+                                  style={{ background: c, outline: tag.color === c ? `2px solid ${c}` : 'none', outlineOffset: 2 }}
+                                />
+                              ))}
+                              <button onClick={() => setEditingColorTagId(null)} className="ml-1 text-stone-400 hover:text-stone-600">
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={e => { e.stopPropagation(); setEditingColorTagId(tag.id); setConfirmDeleteTagId(null) }}
+                              className="p-1.5 text-stone-300 hover:text-stone-600 hover:bg-stone-100 rounded-lg transition-all"
+                              title="Edit color"
+                            >
+                              <Palette size={14} />
+                            </button>
+                          )}
+                          {confirmDeleteTagId === tag.id ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => deleteTag(tag.id)}
+                                className="px-2.5 py-1 text-xs font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-colors"
+                              >
+                                Delete?
+                              </button>
+                              <button
+                                onClick={() => setConfirmDeleteTagId(null)}
+                                className="px-2.5 py-1 text-xs font-medium text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={e => { e.stopPropagation(); setConfirmDeleteTagId(tag.id); setEditingColorTagId(null) }}
+                              className="p-1.5 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                              title="Delete tag"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </>
