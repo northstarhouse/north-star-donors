@@ -374,6 +374,7 @@ export default function Dashboard() {
   const [filterInitiative, setFilterInitiative] = useState<string | 'all'>('all')
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null)
   const [teamPhotos, setTeamPhotos] = useState<Record<string, string>>({})
+  const [photoErrors, setPhotoErrors] = useState<Record<string, boolean>>({})
   const attachmentInputRef = useRef<HTMLInputElement>(null)
   const pendingUploadTaskId = useRef<string | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
@@ -511,6 +512,7 @@ export default function Dashboard() {
     const { error } = await supabase.storage.from('team-photos').upload(slug, file, { contentType: file.type, upsert: true })
     if (error) { alert('Upload failed: ' + error.message); return }
     const { data: urlData } = supabase.storage.from('team-photos').getPublicUrl(slug)
+    setPhotoErrors(prev => ({ ...prev, [slug]: false }))
     setTeamPhotos(prev => ({ ...prev, [slug]: urlData.publicUrl + '?t=' + Date.now() }))
     e.target.value = ''
   }
@@ -726,14 +728,15 @@ export default function Dashboard() {
                     <Link href={`/team/${member.slug}/`}>
                       <div className="relative w-16 h-16 rounded-full overflow-hidden shadow-md ring-2 ring-white hover:ring-amber-300 transition-all bg-stone-200 flex items-center justify-center cursor-pointer">
                         <span className="text-xl font-semibold text-stone-400 select-none">{member.name[0]}</span>
-                        {teamPhotos[member.slug] && (
-                          <img
-                            src={teamPhotos[member.slug]}
-                            alt={member.name}
-                            className="absolute inset-0 w-full h-full object-cover"
-                            onError={e => e.currentTarget.remove()}
-                          />
-                        )}
+                        <img
+                          key={teamPhotos[member.slug] ?? member.slug}
+                          src={teamPhotos[member.slug] ?? ''}
+                          alt={member.name}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          style={{ display: teamPhotos[member.slug] && !photoErrors[member.slug] ? 'block' : 'none' }}
+                          onError={() => setPhotoErrors(prev => ({ ...prev, [member.slug]: true }))}
+                          onLoad={() => setPhotoErrors(prev => ({ ...prev, [member.slug]: false }))}
+                        />
                       </div>
                     </Link>
                     <button
