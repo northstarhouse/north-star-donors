@@ -231,7 +231,7 @@ function TaskRow({
               <button onClick={onCancelEdit} className="px-2 py-0.5 bg-stone-100 text-stone-500 text-xs rounded-lg">X</button>
             </div>
           ) : (
-            <p className={`text-sm text-stone-800 ${task.status === 'done' ? 'line-through' : ''}`}>{task.title}</p>
+            <p className="text-sm text-stone-800">{task.title}</p>
           )}
 
           <div className="flex items-center gap-2 mt-1 flex-wrap">
