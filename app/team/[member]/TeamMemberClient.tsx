@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { FileText, Paperclip, Plus, X } from 'lucide-react'
+import { FileText, Paperclip, Plus, X, Check, Circle, CalendarDays } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
@@ -26,6 +26,8 @@ interface FocusEntry {
   member: string
   section: Section
   content: string
+  completed: boolean
+  due_date: string | null
   created_at: string
 }
 
@@ -115,6 +117,11 @@ export default function TeamMemberClient({ member }: { member: string }) {
     setEntries(prev => prev.filter(e => e.id !== id))
   }
 
+  async function updateEntry(id: string, updates: Partial<FocusEntry>) {
+    await supabase.from('team_focus_entries').update(updates).eq('id', id)
+    setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e))
+  }
+
   const currentTasks    = tasks.filter(t => t.status === 'in_progress')
   const completedTasks  = tasks.filter(t => t.status === 'done')
   const currentEntries  = entries.filter(e => e.section === 'current')
@@ -177,7 +184,7 @@ export default function TeamMemberClient({ member }: { member: string }) {
                 onAdd={addEntry}
               >
                 {currentEntries.map(e => (
-                  <ManualEntry key={e.id} entry={e} onDelete={deleteEntry} />
+                  <ManualEntry key={e.id} entry={e} onDelete={deleteEntry} onUpdate={updateEntry} />
                 ))}
                 {currentTasks.map(task => (
                   <TaskCard key={task.id} task={task} />
@@ -204,7 +211,7 @@ export default function TeamMemberClient({ member }: { member: string }) {
                 onAdd={addEntry}
               >
                 {completedEntries.map(e => (
-                  <ManualEntry key={e.id} entry={e} onDelete={deleteEntry} />
+                  <ManualEntry key={e.id} entry={e} onDelete={deleteEntry} onUpdate={updateEntry} />
                 ))}
                 {completedTasks.map(task => (
                   <TaskCard key={task.id} task={task} />
@@ -294,11 +301,86 @@ function Section({
   )
 }
 
-function ManualEntry({ entry, onDelete }: { entry: FocusEntry; onDelete: (id: string) => void }) {
+function ManualEntry({ entry, onDelete, onUpdate }: {
+  entry: FocusEntry
+  onDelete: (id: string) => void
+  onUpdate: (id: string, updates: Partial<FocusEntry>) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [editText, setEditText] = useState(entry.content)
+  const [showDate, setShowDate] = useState(false)
+
+  function saveEdit() {
+    if (!editText.trim()) { setEditing(false); setEditText(entry.content); return }
+    onUpdate(entry.id, { content: editText.trim() })
+    setEditing(false)
+  }
+
   return (
-    <div className="flex items-start gap-2 px-5 py-3 border-b border-stone-50 last:border-0 group">
-      <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-300 flex-shrink-0" />
-      <p className="flex-1 text-sm text-stone-700 leading-snug">{entry.content}</p>
+    <div className="flex items-start gap-2.5 px-5 py-3 border-b border-stone-50 last:border-0 group">
+      {/* Complete toggle */}
+      <button
+        onClick={() => onUpdate(entry.id, { completed: !entry.completed })}
+        className="mt-0.5 flex-shrink-0 hover:scale-110 transition-transform"
+      >
+        {entry.completed
+          ? <Check size={15} className="text-emerald-500" />
+          : <Circle size={15} className="text-stone-300 hover:text-amber-400" />}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        {editing ? (
+          <input
+            autoFocus
+            value={editText}
+            onChange={e => setEditText(e.target.value)}
+            onBlur={saveEdit}
+            onKeyDown={e => {
+              if (e.key === 'Enter') saveEdit()
+              if (e.key === 'Escape') { setEditing(false); setEditText(entry.content) }
+            }}
+            className="w-full text-sm bg-transparent border-b border-amber-300 focus:outline-none text-stone-800 pb-0.5"
+          />
+        ) : (
+          <p
+            onClick={() => { setEditing(true); setEditText(entry.content) }}
+            className={`text-sm leading-snug cursor-text ${entry.completed ? 'line-through text-stone-400' : 'text-stone-700'}`}
+          >
+            {entry.content}
+          </p>
+        )}
+
+        <div className="flex items-center gap-2 mt-1">
+          {entry.due_date && !showDate && (
+            <button
+              onClick={() => setShowDate(true)}
+              className="flex items-center gap-1 text-[10px] text-stone-400 hover:text-amber-600 transition-colors"
+            >
+              <CalendarDays size={9} />
+              Due {new Date(entry.due_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </button>
+          )}
+          {!entry.due_date && !showDate && (
+            <button
+              onClick={() => setShowDate(true)}
+              className="flex items-center gap-1 text-[10px] text-stone-300 hover:text-amber-500 opacity-0 group-hover:opacity-100 transition-all"
+            >
+              <CalendarDays size={9} /> Add due date
+            </button>
+          )}
+          {showDate && (
+            <input
+              autoFocus
+              type="date"
+              defaultValue={entry.due_date ?? ''}
+              onBlur={e => { onUpdate(entry.id, { due_date: e.target.value || null }); setShowDate(false) }}
+              onChange={e => { if (e.target.value) { onUpdate(entry.id, { due_date: e.target.value }); setShowDate(false) } }}
+              className="text-xs border border-stone-200 rounded px-1.5 py-0.5 focus:outline-none focus:ring-1 focus:ring-amber-300 text-stone-600"
+            />
+          )}
+        </div>
+      </div>
+
       <button
         onClick={() => onDelete(entry.id)}
         className="opacity-0 group-hover:opacity-100 p-0.5 text-stone-300 hover:text-red-400 transition-all flex-shrink-0 mt-0.5"
