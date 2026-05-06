@@ -1,6 +1,6 @@
 ﻿'use client'
 import { useState, useEffect, useRef } from 'react'
-import { Award, Plus, X, Pencil, Check, Upload } from 'lucide-react'
+import { Award, Plus, X, Pencil, Check, Upload, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
@@ -89,6 +89,7 @@ export default function SponsorsPage() {
   const [ackForm, setAckForm] = useState({ date: today(), method: '', notes: '' })
   const [ackSaving, setAckSaving] = useState(false)
 
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [logoUploading, setLogoUploading] = useState(false)
   const logoRef = useRef<HTMLInputElement>(null)
   const [tab, setTab] = useState<'current' | 'past' | 'potential'>('current')
@@ -148,6 +149,7 @@ export default function SponsorsPage() {
   function selectSponsor(s: Sponsor) {
     setSelected(prev => prev?.id === s.id ? null : s)
     setEditing(false)
+    setConfirmDelete(false)
     setInkindForm({ description: '', date: today(), value: '' })
     setAckForm({ date: today(), method: '', notes: '' })
   }
@@ -179,6 +181,15 @@ export default function SponsorsPage() {
     setShowAdd(false)
     setAddForm(EMPTY_FORM)
     setAddSaving(false)
+  }
+
+  async function deleteSponsor() {
+    if (!selected) return
+    await supabase.from('Sponsors').delete().eq('id', selected.id)
+    setSponsors(prev => prev?.filter(s => s.id !== selected.id) ?? null)
+    setSelected(null)
+    setEditing(false)
+    setConfirmDelete(false)
   }
 
   async function setStatus(s: Sponsor, status: 'current' | 'past' | 'potential') {
@@ -348,7 +359,25 @@ export default function SponsorsPage() {
                         className="px-2.5 py-1 text-xs text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-50 flex items-center gap-1">
                         <Pencil size={11} /> Edit
                       </button>
-                      <button onClick={() => { setSelected(null); setEditing(false) }}
+                      {confirmDelete ? (
+                        <div className="flex items-center gap-1">
+                          <button onClick={deleteSponsor}
+                            className="px-2.5 py-1 text-xs text-white bg-red-500 rounded-lg font-medium flex items-center gap-1 hover:bg-red-600">
+                            <Trash2 size={11} /> Delete?
+                          </button>
+                          <button onClick={() => setConfirmDelete(false)}
+                            className="px-2 py-1 text-xs text-stone-400 border border-stone-200 rounded-lg hover:bg-stone-50">
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button onClick={() => setConfirmDelete(true)}
+                          className="p-1.5 text-stone-300 border border-stone-200 rounded-lg hover:text-red-400 hover:border-red-200 hover:bg-red-50 transition-colors"
+                          title="Delete sponsor">
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                      <button onClick={() => { setSelected(null); setEditing(false); setConfirmDelete(false) }}
                         className="p-1 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded-lg">
                         <X size={16} />
                       </button>
