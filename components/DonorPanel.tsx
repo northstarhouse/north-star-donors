@@ -426,9 +426,14 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
                 <p className="text-xs text-stone-300 italic">No donations recorded yet.</p>
               )}
               {historicalExtra > 0 && (
-                <p className="text-xs text-stone-400 italic pt-1">
-                  + {historicalExtra} earlier gift{historicalExtra > 1 ? 's' : ''} recorded in historical total
-                </p>
+                <div className="border-t border-stone-100 pt-2 mt-2 space-y-0">
+                  {Array.from({ length: historicalExtra }).map((_, i) => (
+                    <div key={`hist-${i}`} className="flex items-center justify-between py-2 opacity-50">
+                      <span className="text-sm text-stone-500 italic">Historical gift</span>
+                      <span className="text-xs text-stone-400">pre-import</span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
