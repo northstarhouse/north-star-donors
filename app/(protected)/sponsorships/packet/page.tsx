@@ -1,8 +1,8 @@
-import ProtectedDocumentPage from '@/components/ProtectedDocumentPage'
+import ProtectedHtmlDocumentLauncher from '@/components/ProtectedHtmlDocumentLauncher'
 
 export default function SponsorshipPacketPage() {
   return (
-    <ProtectedDocumentPage
+    <ProtectedHtmlDocumentLauncher
       slug="sponsorship-packet-v1"
       fallbackTitle="Sponsorship Packet V1"
       backHref="/sponsorships/"
