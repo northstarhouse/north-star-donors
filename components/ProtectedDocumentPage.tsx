@@ -21,6 +21,10 @@ interface ProtectedDocumentPageProps {
   eyebrow?: string
   description?: string
   warning?: string
+  actions?: Array<{
+    href: string
+    label: string
+  }>
 }
 
 export default function ProtectedDocumentPage({
@@ -31,6 +35,7 @@ export default function ProtectedDocumentPage({
   eyebrow = 'Protected review document',
   description = 'This page loads protected material from Supabase after the app password has been accepted.',
   warning = 'Draft operating overview. This is not final production copy.',
+  actions = [],
 }: ProtectedDocumentPageProps) {
   const [document, setDocument] = useState<ProtectedDocument | null>(null)
   const [loading, setLoading] = useState(true)
@@ -92,6 +97,19 @@ export default function ProtectedDocumentPage({
                 <p className="mt-2 text-sm leading-6 text-stone-500">
                   {description}
                 </p>
+                {actions.length > 0 && (
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {actions.map(action => (
+                      <Link
+                        key={action.href}
+                        href={action.href}
+                        className="inline-flex rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 hover:bg-amber-100"
+                      >
+                        {action.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {document && (
