@@ -1,8 +1,8 @@
-﻿import ProtectedCampaignDocumentPage from '../../ProtectedCampaignDocumentPage'
+import ProtectedDocumentPage from '@/components/ProtectedDocumentPage'
 
 export default function ColdTouchOneDraftPage() {
   return (
-    <ProtectedCampaignDocumentPage
+    <ProtectedDocumentPage
       slug="2026-membership-email-cold-touch-1"
       fallbackTitle="Cold Touch 1 Email Draft"
       backHref="/campaigns/2026-membership-email/"
