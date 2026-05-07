@@ -1,8 +1,8 @@
-﻿import ProtectedCampaignDocumentPage from '../../ProtectedCampaignDocumentPage'
+import ProtectedDocumentPage from '@/components/ProtectedDocumentPage'
 
 export default function BrickBuyersTouchOneDraftPage() {
   return (
-    <ProtectedCampaignDocumentPage
+    <ProtectedDocumentPage
       slug="2026-membership-email-brick-buyers-touch-1"
       fallbackTitle="Brick Buyers Touch 1 Email Draft"
       backHref="/campaigns/2026-membership-email/"

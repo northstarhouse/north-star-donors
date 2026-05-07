@@ -105,9 +105,10 @@ const FUND_DEVELOPMENT_AREAS = [
   },
   {
     name: 'Sponsorships',
-    status: 'Planning',
-    description: 'Business and in-kind sponsorship development',
-    statusClass: 'bg-stone-50 text-stone-500 border-stone-100',
+    status: 'In review',
+    description: 'Sponsorship plan overview and packet review',
+    href: '/sponsorships/',
+    statusClass: 'bg-rose-50 text-rose-700 border-rose-100',
   },
   {
     name: 'Grants',
@@ -894,7 +895,7 @@ export default function Dashboard() {
                                 <div className="mt-3 rounded-lg border border-stone-100 bg-stone-50 p-2">
                                   <div className="mb-1.5 flex items-center justify-between gap-2">
                                     <p className="text-[10px] font-bold uppercase tracking-wide text-stone-400">Plan areas</p>
-                                    <span className="text-[10px] text-stone-400">1 live overview</span>
+                                    <span className="text-[10px] text-stone-400">2 live overviews</span>
                                   </div>
                                   <div className="space-y-1.5">
                                     {FUND_DEVELOPMENT_AREAS.map(area => {
@@ -922,8 +923,8 @@ export default function Dashboard() {
                                             </div>
                                             <p className="mt-0.5 text-[10px] leading-snug text-stone-400">{area.description}</p>
                                             {area.href && (
-                                              <Link href={area.href} className="mt-1 inline-flex text-[10px] font-semibold text-amber-700 underline decoration-amber-200 underline-offset-2">
-                                                View overview
+                                              <Link href={area.href} className="mt-2 inline-flex items-center rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-800 hover:bg-amber-100">
+                                                Open {area.name} overview
                                               </Link>
                                             )}
                                             {areaInitiatives.length > 0 && (

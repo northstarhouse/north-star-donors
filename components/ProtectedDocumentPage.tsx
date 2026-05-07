@@ -13,7 +13,7 @@ interface ProtectedDocument {
   updated_at: string
 }
 
-interface ProtectedCampaignDocumentPageProps {
+interface ProtectedDocumentPageProps {
   slug: string
   fallbackTitle: string
   backHref?: string
@@ -23,15 +23,15 @@ interface ProtectedCampaignDocumentPageProps {
   warning?: string
 }
 
-export default function ProtectedCampaignDocumentPage({
+export default function ProtectedDocumentPage({
   slug,
   fallbackTitle,
   backHref = '/',
   backLabel = 'Fund Development',
   eyebrow = 'Protected review document',
-  description = 'This page loads protected campaign material from Supabase after the app password has been accepted.',
-  warning = 'Draft operating overview. This is not final production copy and does not authorize a send.',
-}: ProtectedCampaignDocumentPageProps) {
+  description = 'This page loads protected material from Supabase after the app password has been accepted.',
+  warning = 'Draft operating overview. This is not final production copy.',
+}: ProtectedDocumentPageProps) {
   const [document, setDocument] = useState<ProtectedDocument | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +52,7 @@ export default function ProtectedCampaignDocumentPage({
       if (cancelled) return
 
       if (loadError) {
-        setError('The protected campaign document could not be loaded.')
+        setError('The protected document could not be loaded.')
         setDocument(null)
       } else {
         setDocument(data as ProtectedDocument)
@@ -112,7 +112,7 @@ export default function ProtectedCampaignDocumentPage({
             {loading && (
               <div className="flex items-center justify-center gap-2 py-16 text-sm text-stone-400">
                 <Loader2 size={16} className="animate-spin" />
-                Loading protected campaign document...
+                Loading protected document...
               </div>
             )}
 
