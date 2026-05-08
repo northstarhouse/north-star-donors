@@ -1,6 +1,6 @@
 ﻿'use client'
 import { useState, useEffect } from 'react'
-import { Megaphone, Plus, X, Pencil, Trash2, ChevronDown, MessageSquare } from 'lucide-react'
+import { Megaphone, Plus, X, Pencil, Trash2, ChevronDown, MessageSquare, LayoutList, LayoutGrid } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
@@ -28,6 +28,8 @@ const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm fo
 const goldBtn = { background: 'var(--gold)' }
 
 const EMPTY_FORM = { area: '', title: '', contact: '', linked_donor_id: null as string | null, date: '', status: 'planned' as OutreachStatus, notes: '', submitted_by: '' }
+
+const BOARD_AREAS = ['Grants', 'Marketing', 'Sponsorships', 'Partnerships', 'Creative', 'Community', 'Other'] as const
 
 interface OutreachComment {
   id: string; entry_id: string; author: string; content: string; created_at: string
@@ -61,6 +63,7 @@ export default function OutreachPage() {
   const [editForm, setEditForm] = useState<Partial<OutreachEntry>>({})
   const [editSaving, setEditSaving] = useState(false)
 
+  const [view, setView] = useState<'list' | 'board'>('list')
   const [filterArea, setFilterArea] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<OutreachStatus | 'all'>('all')
   const [comments, setComments] = useState<OutreachComment[]>([])
@@ -217,10 +220,22 @@ export default function OutreachPage() {
                 Outreach
               </h1>
             </div>
-            <button onClick={() => { setAddForm(EMPTY_FORM); setShowAdd(true) }}
-              className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm flex-shrink-0" style={goldBtn}>
-              <Plus size={15} /> Add Entry
-            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="flex rounded-lg border border-stone-200 overflow-hidden bg-white shadow-sm">
+                <button onClick={() => setView('list')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${view === 'list' ? 'text-stone-700 bg-stone-100 font-medium' : 'text-stone-400 hover:text-stone-600'}`}>
+                  <LayoutList size={13} /> List
+                </button>
+                <button onClick={() => setView('board')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${view === 'board' ? 'text-stone-700 bg-stone-100 font-medium' : 'text-stone-400 hover:text-stone-600'}`}>
+                  <LayoutGrid size={13} /> Board
+                </button>
+              </div>
+              <button onClick={() => { setAddForm(EMPTY_FORM); setShowAdd(true) }}
+                className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm" style={goldBtn}>
+                <Plus size={15} /> Add Entry
+              </button>
+            </div>
           </div>
 
           {/* Stats + filters */}
@@ -328,8 +343,72 @@ export default function OutreachPage() {
             </div>
           )}
 
-          {/* Content */}
-          {entries === null ? (
+          {/* Board view */}
+          {view === 'board' && entries !== null && (
+            <div className="overflow-x-auto pb-4">
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BOARD_AREAS.length}, minmax(180px, 1fr))`, gap: 0, border: '1px solid #e7e0d6', borderRadius: 12, overflow: 'hidden', background: '#fff', minWidth: 900 }}>
+                {/* Header row */}
+                {BOARD_AREAS.map((area, i) => (
+                  <div key={area} style={{
+                    padding: '11px 16px',
+                    borderRight: i < BOARD_AREAS.length - 1 ? '1px solid #e7e0d6' : 'none',
+                    borderBottom: '1px solid #e7e0d6',
+                    background: '#faf8f5',
+                    fontFamily: 'var(--font-serif)',
+                    fontWeight: 600,
+                    fontSize: 13,
+                    color: '#5a4a35',
+                    letterSpacing: '0.01em',
+                  }}>
+                    {area}
+                    <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#b5a185', fontFamily: 'sans-serif' }}>
+                      {(entries ?? []).filter(e => e.area.toLowerCase() === area.toLowerCase()).length || ''}
+                    </span>
+                  </div>
+                ))}
+                {/* Content row */}
+                {BOARD_AREAS.map((area, i) => {
+                  const col = (entries ?? []).filter(e => e.area.toLowerCase() === area.toLowerCase())
+                  return (
+                    <div key={area} style={{
+                      borderRight: i < BOARD_AREAS.length - 1 ? '1px solid #e7e0d6' : 'none',
+                      padding: '10px 10px',
+                      minHeight: 160,
+                      verticalAlign: 'top',
+                    }}>
+                      {col.length === 0 ? (
+                        <p style={{ fontSize: 11, color: '#d1c9be', textAlign: 'center', paddingTop: 20 }}>—</p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                          {col.map(entry => (
+                            <button key={entry.id} onClick={() => { setSelected(prev => prev?.id === entry.id ? null : entry); setEditing(false); setView('list') }}
+                              style={{
+                                textAlign: 'left', width: '100%',
+                                background: selected?.id === entry.id ? '#fdf6ec' : '#faf8f5',
+                                border: `1px solid ${selected?.id === entry.id ? '#e0c98a' : '#ede8e0'}`,
+                                borderRadius: 8, padding: '7px 10px', cursor: 'pointer',
+                              }}>
+                              <p style={{ fontSize: 12, fontWeight: 500, color: '#3a3228', lineHeight: 1.3, marginBottom: 4 }}>{entry.title}</p>
+                              <span style={{
+                                fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99,
+                                background: STATUS_STYLES[entry.status].includes('amber') ? '#fef3c7' : STATUS_STYLES[entry.status].includes('emerald') ? '#d1fae5' : STATUS_STYLES[entry.status].includes('red') ? '#fee2e2' : STATUS_STYLES[entry.status].includes('blue') ? '#dbeafe' : '#f5f5f4',
+                                color: STATUS_STYLES[entry.status].includes('amber') ? '#92400e' : STATUS_STYLES[entry.status].includes('emerald') ? '#065f46' : STATUS_STYLES[entry.status].includes('red') ? '#991b1b' : STATUS_STYLES[entry.status].includes('blue') ? '#1e40af' : '#57534e',
+                              }}>
+                                {STATUS_LABELS[entry.status]}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* List view */}
+          {(view === 'list' || entries === null) && (entries === null ? (
             <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading...</div>
           ) : (
             <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
@@ -565,7 +644,7 @@ export default function OutreachPage() {
                 </div>
               ) : null}
             </div>
-          )}
+          ))}
         </div>
       </div>
     </div>
