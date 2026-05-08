@@ -268,12 +268,12 @@ function TaskRow({
             </span>
           ) : claiming ? (
             <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-              <input autoFocus className="border border-stone-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 w-28"
-                placeholder="Your name..." value={claimInput} onChange={e => setClaimInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && claimInput.trim()) { onClaim(task.id, claimInput.trim()); setClaiming(false); setClaimInput('') }
-                  if (e.key === 'Escape') { setClaiming(false); setClaimInput('') }
-                }} />
+              <select autoFocus className="border border-stone-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
+                value={claimInput} onChange={e => setClaimInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Escape') { setClaiming(false); setClaimInput('') } }}>
+                <option value="">Select…</option>
+                {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
               <button onClick={() => { if (claimInput.trim()) { onClaim(task.id, claimInput.trim()); setClaiming(false); setClaimInput('') } }}
                 disabled={!claimInput.trim()}
                 className="px-2 py-1 text-white text-xs rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>OK</button>
