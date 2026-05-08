@@ -77,6 +77,7 @@ export default function OutreachPage() {
   const [editSaving, setEditSaving] = useState(false)
 
   const [boardMonth, setBoardMonth] = useState<string>('2026-05')
+  const [boardEntries, setBoardEntries] = useState<{ id: number; area: string; title: string; status: OutreachStatus; date: string | null; logged_to_outreach: boolean }[]>([])
   const [boardQuickAdd, setBoardQuickAdd] = useState<string | null>(null)
   const [quickForm, setQuickForm] = useState({ title: '', status: 'planned' as OutreachStatus, date: '' })
   const [quickSaving, setQuickSaving] = useState(false)
@@ -88,6 +89,9 @@ export default function OutreachPage() {
   const [newComment, setNewComment] = useState('')
   const [commentAuthor, setCommentAuthor] = useState(TEAM_MEMBERS[0])
   const [savingComment, setSavingComment] = useState(false)
+  const [loggingEntry, setLoggingEntry] = useState<number | null>(null)
+  const [logForm, setLogForm] = useState({ contact: '', notes: '', submitted_by: '' })
+  const [logSaving, setLogSaving] = useState(false)
 
   /* â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   useEffect(() => {
@@ -95,6 +99,8 @@ export default function OutreachPage() {
     if (cached) setEntries(cached)
     supabase.from('outreach_entries').select('*').order('area').order('created_at', { ascending: false })
       .then(({ data }) => { if (data) { setEntries(data as OutreachEntry[]); cacheWrite('outreach', data, TTL_SHORT) } })
+    supabase.from('outreach_board').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => { if (data) setBoardEntries(data as typeof boardEntries) })
     supabase.from('outreach_comments').select('entry_id')
       .then(({ data }) => {
         const counts: Record<string, number> = {}
@@ -222,13 +228,41 @@ export default function OutreachPage() {
   async function submitQuickAdd(area: string) {
     if (!quickForm.title.trim()) return
     setQuickSaving(true)
-    const { data } = await supabase.from('outreach_entries').insert({
+    const { data } = await supabase.from('outreach_board').insert({
       area, title: quickForm.title.trim(), status: quickForm.status, date: quickForm.date || null,
     }).select().single()
-    if (data) setEntries(prev => prev ? [data as OutreachEntry, ...prev] : [data as OutreachEntry])
+    if (data) setBoardEntries(prev => [data as typeof boardEntries[number], ...prev])
     setQuickForm({ title: '', status: 'planned', date: '' })
     setBoardQuickAdd(null)
     setQuickSaving(false)
+  }
+
+  async function logToOutreach(entryId: number) {
+    const entry = boardEntries.find(e => e.id === entryId)
+    if (!entry) return
+    setLogSaving(true)
+    const { data } = await supabase.from('outreach_entries').insert({
+      area: entry.area,
+      title: entry.title,
+      contact: logForm.contact.trim() || null,
+      date: entry.date,
+      status: entry.status,
+      notes: logForm.notes.trim() || null,
+      submitted_by: logForm.submitted_by.trim() || null,
+    }).select().single()
+    if (data) {
+      // Mark the board entry as logged
+      await supabase.from('outreach_board').update({ logged_to_outreach: true }).eq('id', entryId)
+      setBoardEntries(prev => prev.map(e => e.id === entryId ? { ...e, logged_to_outreach: true } : e))
+      // Add to the outreach entries list
+      setEntries(prev => {
+        const updated = [...(prev ?? []), data as OutreachEntry]
+        return updated.sort((a, b) => a.area.localeCompare(b.area))
+      })
+    }
+    setLogForm({ contact: '', notes: '', submitted_by: '' })
+    setLoggingEntry(null)
+    setLogSaving(false)
   }
 
   /* â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -383,7 +417,7 @@ export default function OutreachPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BOARD_ROW1.length}, minmax(180px, 1fr))`, gap: 0, border: '1px solid #e7e0d6', borderRadius: 12, overflow: 'hidden', background: '#fff', minWidth: 600 }}>
                   {/* Header row */}
                   {BOARD_ROW1.map((area, i) => {
-                    const count = entries.filter(e => {
+                    const count = boardEntries.filter(e => {
                       const matchArea = e.area.toLowerCase() === area.toLowerCase()
                       const matchMonth = !boardMonth || (e.date ?? '').startsWith(boardMonth)
                       return matchArea && matchMonth
@@ -409,7 +443,7 @@ export default function OutreachPage() {
                   })}
                   {/* Content row */}
                   {BOARD_ROW1.map((area, i) => {
-                    const col = entries.filter(e => {
+                    const col = boardEntries.filter(e => {
                       const matchArea = e.area.toLowerCase() === area.toLowerCase()
                       const matchMonth = !boardMonth || (e.date ?? '').startsWith(boardMonth)
                       return matchArea && matchMonth
@@ -454,22 +488,86 @@ export default function OutreachPage() {
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {col.map(entry => (
-                              <button key={entry.id} onClick={() => { setSelected(prev => prev?.id === entry.id ? null : entry); setEditing(false) }}
-                                style={{
-                                  textAlign: 'left', width: '100%',
-                                  background: selected?.id === entry.id ? '#fdf6ec' : '#faf8f5',
-                                  border: `1px solid ${selected?.id === entry.id ? '#e0c98a' : '#ede8e0'}`,
-                                  borderRadius: 8, padding: '7px 10px', cursor: 'pointer',
-                                }}>
-                                <p style={{ fontSize: 12, fontWeight: 500, color: '#3a3228', lineHeight: 1.3, marginBottom: 4 }}>{entry.title}</p>
-                                <span style={{
-                                  fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99,
-                                  background: STATUS_STYLES[entry.status].includes('amber') ? '#fef3c7' : STATUS_STYLES[entry.status].includes('emerald') ? '#d1fae5' : STATUS_STYLES[entry.status].includes('red') ? '#fee2e2' : STATUS_STYLES[entry.status].includes('blue') ? '#dbeafe' : '#f5f5f4',
-                                  color: STATUS_STYLES[entry.status].includes('amber') ? '#92400e' : STATUS_STYLES[entry.status].includes('emerald') ? '#065f46' : STATUS_STYLES[entry.status].includes('red') ? '#991b1b' : STATUS_STYLES[entry.status].includes('blue') ? '#1e40af' : '#57534e',
-                                }}>
-                                  {STATUS_LABELS[entry.status]}
-                                </span>
-                              </button>
+                              <div key={entry.id} style={{
+                                background: entry.logged_to_outreach ? '#d1fae5' : selected?.id === entry.id ? '#fdf6ec' : '#faf8f5',
+                                border: `1px solid ${selected?.id === entry.id ? '#e0c98a' : '#ede8e0'}`,
+                                borderRadius: 8, padding: '7px 10px', cursor: 'pointer',
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={entry.logged_to_outreach}
+                                    onChange={async (e) => {
+                                      if (e.target.checked) {
+                                        setLoggingEntry(entry.id)
+                                        setLogForm({ contact: '', notes: '', submitted_by: '' })
+                                      } else {
+                                        // Unlog if unchecked
+                                        await supabase.from('outreach_board').update({ logged_to_outreach: false }).eq('id', entry.id)
+                                        setBoardEntries(prev => prev.map(e => e.id === entry.id ? { ...e, logged_to_outreach: false } : e))
+                                        // Remove from outreach entries if it exists
+                                        const outreachEntry = entries?.find(e => e.title === entry.title && e.area === entry.area)
+                                        if (outreachEntry) {
+                                          await supabase.from('outreach_entries').delete().eq('id', outreachEntry.id)
+                                          setEntries(prev => prev?.filter(e => e.id !== outreachEntry.id) ?? null)
+                                        }
+                                      }
+                                    }}
+                                    style={{ marginTop: 2, flexShrink: 0 }}
+                                  />
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontSize: 12, fontWeight: 500, color: '#3a3228', lineHeight: 1.3, marginBottom: 4 }}>{entry.title}</p>
+                                    <span style={{
+                                      fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99,
+                                      background: STATUS_STYLES[entry.status].includes('amber') ? '#fef3c7' : STATUS_STYLES[entry.status].includes('emerald') ? '#d1fae5' : STATUS_STYLES[entry.status].includes('red') ? '#fee2e2' : STATUS_STYLES[entry.status].includes('blue') ? '#dbeafe' : '#f5f5f4',
+                                      color: STATUS_STYLES[entry.status].includes('amber') ? '#92400e' : STATUS_STYLES[entry.status].includes('emerald') ? '#065f46' : STATUS_STYLES[entry.status].includes('red') ? '#991b1b' : STATUS_STYLES[entry.status].includes('blue') ? '#1e40af' : '#57534e',
+                                    }}>
+                                      {STATUS_LABELS[entry.status]}
+                                    </span>
+                                  </div>
+                                </div>
+                                {loggingEntry === entry.id && (
+                                  <div style={{ marginTop: 8, background: '#f0f9f0', border: '1px solid #d1fae5', borderRadius: 6, padding: '8px' }}>
+                                    <p style={{ fontSize: 11, fontWeight: 600, color: '#065f46', marginBottom: 6 }}>Log to Outreach</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                      <input
+                                        placeholder="Contact person/org"
+                                        value={logForm.contact}
+                                        onChange={e => setLogForm(f => ({ ...f, contact: e.target.value }))}
+                                        style={{ width: '100%', border: '1px solid #a7f3d0', borderRadius: 4, padding: '4px 6px', fontSize: 11, outline: 'none' }}
+                                      />
+                                      <textarea
+                                        placeholder="Additional notes..."
+                                        value={logForm.notes}
+                                        onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))}
+                                        rows={2}
+                                        style={{ width: '100%', border: '1px solid #a7f3d0', borderRadius: 4, padding: '4px 6px', fontSize: 11, outline: 'none', resize: 'none' }}
+                                      />
+                                      <input
+                                        placeholder="Submitted by"
+                                        value={logForm.submitted_by}
+                                        onChange={e => setLogForm(f => ({ ...f, submitted_by: e.target.value }))}
+                                        style={{ width: '100%', border: '1px solid #a7f3d0', borderRadius: 4, padding: '4px 6px', fontSize: 11, outline: 'none' }}
+                                      />
+                                      <div style={{ display: 'flex', gap: 4 }}>
+                                        <button
+                                          onClick={() => logToOutreach(entry.id)}
+                                          disabled={logSaving}
+                                          style={{ flex: 1, padding: '4px', background: '#059669', color: '#fff', border: 'none', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: logSaving ? 0.6 : 1 }}
+                                        >
+                                          {logSaving ? 'Saving...' : 'Log Entry'}
+                                        </button>
+                                        <button
+                                          onClick={() => setLoggingEntry(null)}
+                                          style={{ padding: '4px 8px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
@@ -483,7 +581,7 @@ export default function OutreachPage() {
               <div className="overflow-x-auto pb-4">
                 <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BOARD_ROW2.length}, minmax(180px, 1fr))`, gap: 0, border: '1px solid #e7e0d6', borderRadius: 12, overflow: 'hidden', background: '#fff', minWidth: 400 }}>
                   {BOARD_ROW2.map((area, i) => {
-                    const count = entries.filter(e => {
+                    const count = boardEntries.filter(e => {
                       const matchArea = e.area.toLowerCase() === area.toLowerCase()
                       const matchMonth = !boardMonth || (e.date ?? '').startsWith(boardMonth)
                       return matchArea && matchMonth
@@ -506,7 +604,7 @@ export default function OutreachPage() {
                     )
                   })}
                   {BOARD_ROW2.map((area, i) => {
-                    const col = entries.filter(e => {
+                    const col = boardEntries.filter(e => {
                       const matchArea = e.area.toLowerCase() === area.toLowerCase()
                       const matchMonth = !boardMonth || (e.date ?? '').startsWith(boardMonth)
                       return matchArea && matchMonth
@@ -545,13 +643,86 @@ export default function OutreachPage() {
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {col.map(entry => (
-                              <button key={entry.id} onClick={() => { setSelected(prev => prev?.id === entry.id ? null : entry); setEditing(false) }}
-                                style={{ textAlign: 'left', width: '100%', background: selected?.id === entry.id ? '#fdf6ec' : '#faf8f5', border: `1px solid ${selected?.id === entry.id ? '#e0c98a' : '#ede8e0'}`, borderRadius: 8, padding: '7px 10px', cursor: 'pointer' }}>
-                                <p style={{ fontSize: 12, fontWeight: 500, color: '#3a3228', lineHeight: 1.3, marginBottom: 4 }}>{entry.title}</p>
-                                <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99, background: STATUS_STYLES[entry.status].includes('amber') ? '#fef3c7' : STATUS_STYLES[entry.status].includes('emerald') ? '#d1fae5' : STATUS_STYLES[entry.status].includes('red') ? '#fee2e2' : STATUS_STYLES[entry.status].includes('blue') ? '#dbeafe' : '#f5f5f4', color: STATUS_STYLES[entry.status].includes('amber') ? '#92400e' : STATUS_STYLES[entry.status].includes('emerald') ? '#065f46' : STATUS_STYLES[entry.status].includes('red') ? '#991b1b' : STATUS_STYLES[entry.status].includes('blue') ? '#1e40af' : '#57534e' }}>
-                                  {STATUS_LABELS[entry.status]}
-                                </span>
-                              </button>
+                              <div key={entry.id} style={{
+                                background: entry.logged_to_outreach ? '#d1fae5' : selected?.id === entry.id ? '#fdf6ec' : '#faf8f5',
+                                border: `1px solid ${selected?.id === entry.id ? '#e0c98a' : '#ede8e0'}`,
+                                borderRadius: 8, padding: '7px 10px', cursor: 'pointer',
+                              }}>
+                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={entry.logged_to_outreach}
+                                    onChange={async (e) => {
+                                      if (e.target.checked) {
+                                        setLoggingEntry(entry.id)
+                                        setLogForm({ contact: '', notes: '', submitted_by: '' })
+                                      } else {
+                                        // Unlog if unchecked
+                                        await supabase.from('outreach_board').update({ logged_to_outreach: false }).eq('id', entry.id)
+                                        setBoardEntries(prev => prev.map(e => e.id === entry.id ? { ...e, logged_to_outreach: false } : e))
+                                        // Remove from outreach entries if it exists
+                                        const outreachEntry = entries?.find(e => e.title === entry.title && e.area === entry.area)
+                                        if (outreachEntry) {
+                                          await supabase.from('outreach_entries').delete().eq('id', outreachEntry.id)
+                                          setEntries(prev => prev?.filter(e => e.id !== outreachEntry.id) ?? null)
+                                        }
+                                      }
+                                    }}
+                                    style={{ marginTop: 2, flexShrink: 0 }}
+                                  />
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <p style={{ fontSize: 12, fontWeight: 500, color: '#3a3228', lineHeight: 1.3, marginBottom: 4 }}>{entry.title}</p>
+                                    <span style={{
+                                      fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99,
+                                      background: STATUS_STYLES[entry.status].includes('amber') ? '#fef3c7' : STATUS_STYLES[entry.status].includes('emerald') ? '#d1fae5' : STATUS_STYLES[entry.status].includes('red') ? '#fee2e2' : STATUS_STYLES[entry.status].includes('blue') ? '#dbeafe' : '#f5f5f4',
+                                      color: STATUS_STYLES[entry.status].includes('amber') ? '#92400e' : STATUS_STYLES[entry.status].includes('emerald') ? '#065f46' : STATUS_STYLES[entry.status].includes('red') ? '#991b1b' : STATUS_STYLES[entry.status].includes('blue') ? '#1e40af' : '#57534e',
+                                    }}>
+                                      {STATUS_LABELS[entry.status]}
+                                    </span>
+                                  </div>
+                                </div>
+                                {loggingEntry === entry.id && (
+                                  <div style={{ marginTop: 8, background: '#f0f9f0', border: '1px solid #d1fae5', borderRadius: 6, padding: '8px' }}>
+                                    <p style={{ fontSize: 11, fontWeight: 600, color: '#065f46', marginBottom: 6 }}>Log to Outreach</p>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                      <input
+                                        placeholder="Contact person/org"
+                                        value={logForm.contact}
+                                        onChange={e => setLogForm(f => ({ ...f, contact: e.target.value }))}
+                                        style={{ width: '100%', border: '1px solid #a7f3d0', borderRadius: 4, padding: '4px 6px', fontSize: 11, outline: 'none' }}
+                                      />
+                                      <textarea
+                                        placeholder="Additional notes..."
+                                        value={logForm.notes}
+                                        onChange={e => setLogForm(f => ({ ...f, notes: e.target.value }))}
+                                        rows={2}
+                                        style={{ width: '100%', border: '1px solid #a7f3d0', borderRadius: 4, padding: '4px 6px', fontSize: 11, outline: 'none', resize: 'none' }}
+                                      />
+                                      <input
+                                        placeholder="Submitted by"
+                                        value={logForm.submitted_by}
+                                        onChange={e => setLogForm(f => ({ ...f, submitted_by: e.target.value }))}
+                                        style={{ width: '100%', border: '1px solid #a7f3d0', borderRadius: 4, padding: '4px 6px', fontSize: 11, outline: 'none' }}
+                                      />
+                                      <div style={{ display: 'flex', gap: 4 }}>
+                                        <button
+                                          onClick={() => logToOutreach(entry.id)}
+                                          disabled={logSaving}
+                                          style={{ flex: 1, padding: '4px', background: '#059669', color: '#fff', border: 'none', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: logSaving ? 0.6 : 1 }}
+                                        >
+                                          {logSaving ? 'Saving...' : 'Log Entry'}
+                                        </button>
+                                        <button
+                                          onClick={() => setLoggingEntry(null)}
+                                          style={{ padding: '4px 8px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 4, fontSize: 11, cursor: 'pointer' }}
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             ))}
                           </div>
                         )}
