@@ -373,5 +373,3 @@ export default function VolunteersPage() {
     </div>
   )
 }
-
-const inputCls = 'w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700'
