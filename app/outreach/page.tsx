@@ -1,6 +1,6 @@
 ﻿'use client'
 import { useState, useEffect } from 'react'
-import { Megaphone, Plus, X, Pencil, Trash2, ChevronDown, MessageSquare, LayoutList, LayoutGrid } from 'lucide-react'
+import { Megaphone, Plus, X, Pencil, Trash2, ChevronDown, MessageSquare } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
@@ -29,7 +29,20 @@ const goldBtn = { background: 'var(--gold)' }
 
 const EMPTY_FORM = { area: '', title: '', contact: '', linked_donor_id: null as string | null, date: '', status: 'planned' as OutreachStatus, notes: '', submitted_by: '' }
 
-const BOARD_AREAS = ['Grants', 'Marketing', 'Sponsorships', 'Partnerships', 'Creative', 'Community', 'Other'] as const
+const BOARD_ROW1 = ['Grants', 'Marketing', 'Sponsorships', 'Partnerships'] as const
+const BOARD_ROW2 = ['Creative', 'Community', 'Other'] as const
+const BOARD_AREAS = [...BOARD_ROW1, ...BOARD_ROW2] as const
+
+const BOARD_MONTHS = [
+  { label: 'May',  value: '2026-05' },
+  { label: 'Jun',  value: '2026-06' },
+  { label: 'Jul',  value: '2026-07' },
+  { label: 'Aug',  value: '2026-08' },
+  { label: 'Sep',  value: '2026-09' },
+  { label: 'Oct',  value: '2026-10' },
+  { label: 'Nov',  value: '2026-11' },
+  { label: 'Dec',  value: '2026-12' },
+]
 
 interface OutreachComment {
   id: string; entry_id: string; author: string; content: string; created_at: string
@@ -63,7 +76,10 @@ export default function OutreachPage() {
   const [editForm, setEditForm] = useState<Partial<OutreachEntry>>({})
   const [editSaving, setEditSaving] = useState(false)
 
-  const [view, setView] = useState<'list' | 'board'>('list')
+  const [boardMonth, setBoardMonth] = useState<string>('2026-05')
+  const [boardQuickAdd, setBoardQuickAdd] = useState<string | null>(null)
+  const [quickForm, setQuickForm] = useState({ title: '', status: 'planned' as OutreachStatus, date: '' })
+  const [quickSaving, setQuickSaving] = useState(false)
   const [filterArea, setFilterArea] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<OutreachStatus | 'all'>('all')
   const [comments, setComments] = useState<OutreachComment[]>([])
@@ -203,6 +219,18 @@ export default function OutreachPage() {
 
   const totalOpen = (entries ?? []).filter(e => e.status !== 'completed').length
 
+  async function submitQuickAdd(area: string) {
+    if (!quickForm.title.trim()) return
+    setQuickSaving(true)
+    const { data } = await supabase.from('outreach_entries').insert({
+      area, title: quickForm.title.trim(), status: quickForm.status, date: quickForm.date || null,
+    }).select().single()
+    if (data) setEntries(prev => prev ? [data as OutreachEntry, ...prev] : [data as OutreachEntry])
+    setQuickForm({ title: '', status: 'planned', date: '' })
+    setBoardQuickAdd(null)
+    setQuickSaving(false)
+  }
+
   /* â”€â”€ Render â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   return (
     <div className="flex min-h-screen flex-1">
@@ -220,22 +248,10 @@ export default function OutreachPage() {
                 Outreach
               </h1>
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <div className="flex rounded-lg border border-stone-200 overflow-hidden bg-white shadow-sm">
-                <button onClick={() => setView('list')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${view === 'list' ? 'text-stone-700 bg-stone-100 font-medium' : 'text-stone-400 hover:text-stone-600'}`}>
-                  <LayoutList size={13} /> List
-                </button>
-                <button onClick={() => setView('board')}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs transition-colors ${view === 'board' ? 'text-stone-700 bg-stone-100 font-medium' : 'text-stone-400 hover:text-stone-600'}`}>
-                  <LayoutGrid size={13} /> Board
-                </button>
-              </div>
-              <button onClick={() => { setAddForm(EMPTY_FORM); setShowAdd(true) }}
-                className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm" style={goldBtn}>
-                <Plus size={15} /> Add Entry
-              </button>
-            </div>
+            <button onClick={() => { setAddForm(EMPTY_FORM); setShowAdd(true) }}
+              className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm flex-shrink-0" style={goldBtn}>
+              <Plus size={15} /> Add Entry
+            </button>
           </div>
 
           {/* Stats + filters */}
@@ -344,74 +360,214 @@ export default function OutreachPage() {
           )}
 
           {/* Board view */}
-          {view === 'board' && entries !== null && (
-            <div className="overflow-x-auto pb-4">
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BOARD_AREAS.length}, minmax(180px, 1fr))`, gap: 0, border: '1px solid #e7e0d6', borderRadius: 12, overflow: 'hidden', background: '#fff', minWidth: 900 }}>
-                {/* Header row */}
-                {BOARD_AREAS.map((area, i) => (
-                  <div key={area} style={{
-                    padding: '11px 16px',
-                    borderRight: i < BOARD_AREAS.length - 1 ? '1px solid #e7e0d6' : 'none',
-                    borderBottom: '1px solid #e7e0d6',
-                    background: '#faf8f5',
-                    fontFamily: 'var(--font-serif)',
-                    fontWeight: 600,
-                    fontSize: 13,
-                    color: '#5a4a35',
-                    letterSpacing: '0.01em',
-                  }}>
-                    {area}
-                    <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#b5a185', fontFamily: 'sans-serif' }}>
-                      {(entries ?? []).filter(e => e.area.toLowerCase() === area.toLowerCase()).length || ''}
-                    </span>
-                  </div>
+          {entries !== null && (
+            <div>
+              {/* Month tabs */}
+              <div className="flex items-center gap-1 mb-4">
+                <button onClick={() => setBoardMonth('')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${!boardMonth ? 'text-white' : 'bg-white border border-stone-200 text-stone-500 hover:text-stone-700'}`}
+                  style={!boardMonth ? { background: 'var(--gold)' } : {}}>
+                  All
+                </button>
+                {BOARD_MONTHS.map(m => (
+                  <button key={m.value} onClick={() => setBoardMonth(m.value)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${boardMonth === m.value ? 'text-white' : 'bg-white border border-stone-200 text-stone-500 hover:text-stone-700'}`}
+                    style={boardMonth === m.value ? { background: 'var(--gold)' } : {}}>
+                    {m.label}
+                  </button>
                 ))}
-                {/* Content row */}
-                {BOARD_AREAS.map((area, i) => {
-                  const col = (entries ?? []).filter(e => e.area.toLowerCase() === area.toLowerCase())
-                  return (
-                    <div key={area} style={{
-                      borderRight: i < BOARD_AREAS.length - 1 ? '1px solid #e7e0d6' : 'none',
-                      padding: '10px 10px',
-                      minHeight: 160,
-                      verticalAlign: 'top',
-                    }}>
-                      {col.length === 0 ? (
-                        <p style={{ fontSize: 11, color: '#d1c9be', textAlign: 'center', paddingTop: 20 }}>—</p>
-                      ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {col.map(entry => (
-                            <button key={entry.id} onClick={() => { setSelected(prev => prev?.id === entry.id ? null : entry); setEditing(false); setView('list') }}
-                              style={{
-                                textAlign: 'left', width: '100%',
-                                background: selected?.id === entry.id ? '#fdf6ec' : '#faf8f5',
-                                border: `1px solid ${selected?.id === entry.id ? '#e0c98a' : '#ede8e0'}`,
-                                borderRadius: 8, padding: '7px 10px', cursor: 'pointer',
-                              }}>
-                              <p style={{ fontSize: 12, fontWeight: 500, color: '#3a3228', lineHeight: 1.3, marginBottom: 4 }}>{entry.title}</p>
-                              <span style={{
-                                fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99,
-                                background: STATUS_STYLES[entry.status].includes('amber') ? '#fef3c7' : STATUS_STYLES[entry.status].includes('emerald') ? '#d1fae5' : STATUS_STYLES[entry.status].includes('red') ? '#fee2e2' : STATUS_STYLES[entry.status].includes('blue') ? '#dbeafe' : '#f5f5f4',
-                                color: STATUS_STYLES[entry.status].includes('amber') ? '#92400e' : STATUS_STYLES[entry.status].includes('emerald') ? '#065f46' : STATUS_STYLES[entry.status].includes('red') ? '#991b1b' : STATUS_STYLES[entry.status].includes('blue') ? '#1e40af' : '#57534e',
-                              }}>
-                                {STATUS_LABELS[entry.status]}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
+              </div>
+
+              {/* Table — row 1 (4 cols) */}
+              <div className="overflow-x-auto pb-3">
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BOARD_ROW1.length}, minmax(180px, 1fr))`, gap: 0, border: '1px solid #e7e0d6', borderRadius: 12, overflow: 'hidden', background: '#fff', minWidth: 600 }}>
+                  {/* Header row */}
+                  {BOARD_ROW1.map((area, i) => {
+                    const count = entries.filter(e => {
+                      const matchArea = e.area.toLowerCase() === area.toLowerCase()
+                      const matchMonth = !boardMonth || (e.date ?? '').startsWith(boardMonth)
+                      return matchArea && matchMonth
+                    }).length
+                    return (
+                      <div key={area} style={{
+                        padding: '11px 14px',
+                        borderRight: i < BOARD_ROW1.length - 1 ? '1px solid #e7e0d6' : 'none',
+                        borderBottom: '1px solid #e7e0d6',
+                        background: '#faf8f5',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      }}>
+                        <span style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 13, color: '#5a4a35' }}>
+                          {area}
+                          {count > 0 && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#b5a185', fontFamily: 'sans-serif' }}>{count}</span>}
+                        </span>
+                        <button onClick={() => { setBoardQuickAdd(boardQuickAdd === area ? null : area); setQuickForm({ title: '', status: 'planned', date: boardMonth ? boardMonth + '-01' : '' }) }}
+                          style={{ fontSize: 16, color: '#c4b49a', lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}>
+                          +
+                        </button>
+                      </div>
+                    )
+                  })}
+                  {/* Content row */}
+                  {BOARD_ROW1.map((area, i) => {
+                    const col = entries.filter(e => {
+                      const matchArea = e.area.toLowerCase() === area.toLowerCase()
+                      const matchMonth = !boardMonth || (e.date ?? '').startsWith(boardMonth)
+                      return matchArea && matchMonth
+                    })
+                    const isAdding = boardQuickAdd === area
+                    return (
+                      <div key={area} style={{
+                        borderRight: i < BOARD_ROW1.length - 1 ? '1px solid #e7e0d6' : 'none',
+                        padding: '10px',
+                        minHeight: 160,
+                        verticalAlign: 'top',
+                      }}>
+                        {/* Quick-add form */}
+                        {isAdding && (
+                          <div style={{ marginBottom: 8, background: '#fdf8f2', border: '1px solid #e7dccf', borderRadius: 8, padding: '8px' }}>
+                            <input autoFocus placeholder="Entry title…"
+                              value={quickForm.title} onChange={e => setQuickForm(f => ({ ...f, title: e.target.value }))}
+                              onKeyDown={e => { if (e.key === 'Enter') submitQuickAdd(area); if (e.key === 'Escape') setBoardQuickAdd(null) }}
+                              style={{ width: '100%', border: '1px solid #e0d8cc', borderRadius: 6, padding: '5px 8px', fontSize: 12, marginBottom: 5, outline: 'none', boxSizing: 'border-box' as const }} />
+                            <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
+                              <select value={quickForm.status} onChange={e => setQuickForm(f => ({ ...f, status: e.target.value as OutreachStatus }))}
+                                style={{ flex: 1, border: '1px solid #e0d8cc', borderRadius: 6, padding: '4px 6px', fontSize: 11, outline: 'none' }}>
+                                {(Object.keys(STATUS_LABELS) as OutreachStatus[]).map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                              </select>
+                              <input type="date" value={quickForm.date} onChange={e => setQuickForm(f => ({ ...f, date: e.target.value }))}
+                                style={{ flex: 1, border: '1px solid #e0d8cc', borderRadius: 6, padding: '4px 6px', fontSize: 11, outline: 'none' }} />
+                            </div>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button onClick={() => submitQuickAdd(area)} disabled={!quickForm.title.trim() || quickSaving}
+                                style={{ flex: 1, padding: '4px', background: '#b5a185', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: !quickForm.title.trim() ? 0.4 : 1 }}>
+                                {quickSaving ? '…' : 'Add'}
+                              </button>
+                              <button onClick={() => setBoardQuickAdd(null)}
+                                style={{ padding: '4px 8px', background: '#f5f0ea', color: '#888', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {col.length === 0 && !isAdding ? (
+                          <p style={{ fontSize: 11, color: '#d1c9be', textAlign: 'center', paddingTop: 20 }}>—</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {col.map(entry => (
+                              <button key={entry.id} onClick={() => { setSelected(prev => prev?.id === entry.id ? null : entry); setEditing(false) }}
+                                style={{
+                                  textAlign: 'left', width: '100%',
+                                  background: selected?.id === entry.id ? '#fdf6ec' : '#faf8f5',
+                                  border: `1px solid ${selected?.id === entry.id ? '#e0c98a' : '#ede8e0'}`,
+                                  borderRadius: 8, padding: '7px 10px', cursor: 'pointer',
+                                }}>
+                                <p style={{ fontSize: 12, fontWeight: 500, color: '#3a3228', lineHeight: 1.3, marginBottom: 4 }}>{entry.title}</p>
+                                <span style={{
+                                  fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99,
+                                  background: STATUS_STYLES[entry.status].includes('amber') ? '#fef3c7' : STATUS_STYLES[entry.status].includes('emerald') ? '#d1fae5' : STATUS_STYLES[entry.status].includes('red') ? '#fee2e2' : STATUS_STYLES[entry.status].includes('blue') ? '#dbeafe' : '#f5f5f4',
+                                  color: STATUS_STYLES[entry.status].includes('amber') ? '#92400e' : STATUS_STYLES[entry.status].includes('emerald') ? '#065f46' : STATUS_STYLES[entry.status].includes('red') ? '#991b1b' : STATUS_STYLES[entry.status].includes('blue') ? '#1e40af' : '#57534e',
+                                }}>
+                                  {STATUS_LABELS[entry.status]}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Table — row 2 (3 cols) */}
+              <div className="overflow-x-auto pb-4">
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BOARD_ROW2.length}, minmax(180px, 1fr))`, gap: 0, border: '1px solid #e7e0d6', borderRadius: 12, overflow: 'hidden', background: '#fff', minWidth: 400 }}>
+                  {BOARD_ROW2.map((area, i) => {
+                    const count = entries.filter(e => {
+                      const matchArea = e.area.toLowerCase() === area.toLowerCase()
+                      const matchMonth = !boardMonth || (e.date ?? '').startsWith(boardMonth)
+                      return matchArea && matchMonth
+                    }).length
+                    return (
+                      <div key={area} style={{
+                        padding: '11px 14px',
+                        borderRight: i < BOARD_ROW2.length - 1 ? '1px solid #e7e0d6' : 'none',
+                        borderBottom: '1px solid #e7e0d6',
+                        background: '#faf8f5',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      }}>
+                        <span style={{ fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 13, color: '#5a4a35' }}>
+                          {area}
+                          {count > 0 && <span style={{ marginLeft: 6, fontSize: 10, fontWeight: 600, color: '#b5a185', fontFamily: 'sans-serif' }}>{count}</span>}
+                        </span>
+                        <button onClick={() => { setBoardQuickAdd(boardQuickAdd === area ? null : area); setQuickForm({ title: '', status: 'planned', date: boardMonth ? boardMonth + '-01' : '' }) }}
+                          style={{ fontSize: 16, color: '#c4b49a', lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}>+</button>
+                      </div>
+                    )
+                  })}
+                  {BOARD_ROW2.map((area, i) => {
+                    const col = entries.filter(e => {
+                      const matchArea = e.area.toLowerCase() === area.toLowerCase()
+                      const matchMonth = !boardMonth || (e.date ?? '').startsWith(boardMonth)
+                      return matchArea && matchMonth
+                    })
+                    const isAdding = boardQuickAdd === area
+                    return (
+                      <div key={area} style={{
+                        borderRight: i < BOARD_ROW2.length - 1 ? '1px solid #e7e0d6' : 'none',
+                        padding: '10px', minHeight: 160, verticalAlign: 'top',
+                      }}>
+                        {isAdding && (
+                          <div style={{ marginBottom: 8, background: '#fdf8f2', border: '1px solid #e7dccf', borderRadius: 8, padding: '8px' }}>
+                            <input autoFocus placeholder="Entry title…" value={quickForm.title} onChange={e => setQuickForm(f => ({ ...f, title: e.target.value }))}
+                              onKeyDown={e => { if (e.key === 'Enter') submitQuickAdd(area); if (e.key === 'Escape') setBoardQuickAdd(null) }}
+                              style={{ width: '100%', border: '1px solid #e0d8cc', borderRadius: 6, padding: '5px 8px', fontSize: 12, marginBottom: 5, outline: 'none', boxSizing: 'border-box' as const }} />
+                            <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
+                              <select value={quickForm.status} onChange={e => setQuickForm(f => ({ ...f, status: e.target.value as OutreachStatus }))}
+                                style={{ flex: 1, border: '1px solid #e0d8cc', borderRadius: 6, padding: '4px 6px', fontSize: 11, outline: 'none' }}>
+                                {(Object.keys(STATUS_LABELS) as OutreachStatus[]).map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
+                              </select>
+                              <input type="date" value={quickForm.date} onChange={e => setQuickForm(f => ({ ...f, date: e.target.value }))}
+                                style={{ flex: 1, border: '1px solid #e0d8cc', borderRadius: 6, padding: '4px 6px', fontSize: 11, outline: 'none' }} />
+                            </div>
+                            <div style={{ display: 'flex', gap: 4 }}>
+                              <button onClick={() => submitQuickAdd(area)} disabled={!quickForm.title.trim() || quickSaving}
+                                style={{ flex: 1, padding: '4px', background: '#b5a185', color: '#fff', border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: !quickForm.title.trim() ? 0.4 : 1 }}>
+                                {quickSaving ? '…' : 'Add'}
+                              </button>
+                              <button onClick={() => setBoardQuickAdd(null)}
+                                style={{ padding: '4px 8px', background: '#f5f0ea', color: '#888', border: 'none', borderRadius: 6, fontSize: 11, cursor: 'pointer' }}>✕</button>
+                            </div>
+                          </div>
+                        )}
+                        {col.length === 0 && !isAdding ? (
+                          <p style={{ fontSize: 11, color: '#d1c9be', textAlign: 'center', paddingTop: 20 }}>—</p>
+                        ) : (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                            {col.map(entry => (
+                              <button key={entry.id} onClick={() => { setSelected(prev => prev?.id === entry.id ? null : entry); setEditing(false) }}
+                                style={{ textAlign: 'left', width: '100%', background: selected?.id === entry.id ? '#fdf6ec' : '#faf8f5', border: `1px solid ${selected?.id === entry.id ? '#e0c98a' : '#ede8e0'}`, borderRadius: 8, padding: '7px 10px', cursor: 'pointer' }}>
+                                <p style={{ fontSize: 12, fontWeight: 500, color: '#3a3228', lineHeight: 1.3, marginBottom: 4 }}>{entry.title}</p>
+                                <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99, background: STATUS_STYLES[entry.status].includes('amber') ? '#fef3c7' : STATUS_STYLES[entry.status].includes('emerald') ? '#d1fae5' : STATUS_STYLES[entry.status].includes('red') ? '#fee2e2' : STATUS_STYLES[entry.status].includes('blue') ? '#dbeafe' : '#f5f5f4', color: STATUS_STYLES[entry.status].includes('amber') ? '#92400e' : STATUS_STYLES[entry.status].includes('emerald') ? '#065f46' : STATUS_STYLES[entry.status].includes('red') ? '#991b1b' : STATUS_STYLES[entry.status].includes('blue') ? '#1e40af' : '#57534e' }}>
+                                  {STATUS_LABELS[entry.status]}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )}
 
-          {/* List view */}
-          {(view === 'list' || entries === null) && (entries === null ? (
+          {/* Outreach log — always visible */}
+          {entries === null ? (
             <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading...</div>
           ) : (
-            <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
+            <div className={`grid gap-5 mt-6 ${selected ? 'grid-cols-[1fr_380px]' : 'grid-cols-1'}`}>
               {/* Grouped list */}
               <div className="space-y-4 min-w-0">
                 {grouped.length === 0 && (
@@ -644,7 +800,7 @@ export default function OutreachPage() {
                 </div>
               ) : null}
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>
