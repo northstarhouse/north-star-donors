@@ -39,7 +39,7 @@ interface Props {
 }
 
 export default function DonorList({ donors, onSelect, selectedIds, onToggle, onToggleAll }: Props) {
-  const [sortKey, setSortKey] = useState<SortKey>('lifetime_total')
+  const [sortKey, setSortKey] = useState<SortKey>('last_gift_date')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
 
   function handleSort(key: SortKey) {
