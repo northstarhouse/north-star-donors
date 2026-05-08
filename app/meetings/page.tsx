@@ -1,17 +1,19 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { ClipboardList, Plus, X, Paperclip, Trash2, Download, Save, ChevronDown } from 'lucide-react'
+import { ClipboardList, Plus, X, Paperclip, Trash2, Download, Upload } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
-interface MeetingFile { name: string; path: string }
+interface MeetingFile {
+  name: string
+  path: string
+  type: 'agenda' | 'notes' | 'other'
+}
 
 interface Meeting {
   id: number
   meeting_date: string
   meeting_time: string | null
-  agenda: string | null
-  notes: string | null
   files: MeetingFile[]
   created_at: string
 }
@@ -21,7 +23,9 @@ const SUPABASE_URL = 'https://uvzwhhwzelaelfhfkvdb.supabase.co'
 const BUCKET = 'meeting-files'
 
 function fmtDate(d: string) {
-  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+  return new Date(d + 'T12:00:00').toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  })
 }
 function fmtTime(t: string | null) {
   if (!t) return ''
@@ -29,7 +33,6 @@ function fmtTime(t: string | null) {
   const ampm = h >= 12 ? 'PM' : 'AM'
   return `${((h % 12) || 12)}:${String(m).padStart(2, '0')} ${ampm}`
 }
-
 function publicUrl(path: string) {
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`
 }
@@ -41,16 +44,13 @@ export default function MeetingsPage() {
   const [newDate, setNewDate] = useState('')
   const [newTime, setNewTime] = useState('')
   const [creating, setCreating] = useState(false)
+  const [uploading, setUploading] = useState<'agenda' | 'notes' | 'other' | null>(null)
 
-  const [agenda, setAgenda] = useState('')
-  const [notes, setNotes] = useState('')
-  const [saving, setSaving] = useState<'agenda' | 'notes' | null>(null)
-  const [uploading, setUploading] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const agendaRef = useRef<HTMLInputElement>(null)
+  const notesRef = useRef<HTMLInputElement>(null)
+  const otherRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => {
-    load()
-  }, [])
+  useEffect(() => { load() }, [])
 
   async function load() {
     const { data } = await supabase
@@ -61,9 +61,7 @@ export default function MeetingsPage() {
   }
 
   function select(m: Meeting) {
-    setSelected(m)
-    setAgenda(m.agenda ?? '')
-    setNotes(m.notes ?? '')
+    setSelected({ ...m, files: m.files ?? [] })
   }
 
   async function createMeeting() {
@@ -84,36 +82,36 @@ export default function MeetingsPage() {
     setCreating(false)
   }
 
-  async function saveField(field: 'agenda' | 'notes', value: string) {
-    if (!selected) return
-    setSaving(field)
-    await supabase.from('development_meetings').update({ [field]: value }).eq('id', selected.id)
-    setSaving(null)
-    setMeetings(prev => prev?.map(m => m.id === selected.id ? { ...m, [field]: value } : m) ?? null)
-    setSelected(prev => prev ? { ...prev, [field]: value } : null)
-  }
-
-  async function uploadFile(e: React.ChangeEvent<HTMLInputElement>) {
+  async function uploadFile(type: 'agenda' | 'notes' | 'other', e: React.ChangeEvent<HTMLInputElement>) {
     if (!selected || !e.target.files?.length) return
-    setUploading(true)
+    setUploading(type)
     const file = e.target.files[0]
-    const path = `${selected.id}/${Date.now()}-${file.name}`
+    const path = `${selected.id}/${type}-${Date.now()}-${file.name}`
     const { error } = await supabase.storage.from(BUCKET).upload(path, file)
     if (!error) {
-      const newFiles = [...(selected.files ?? []), { name: file.name, path }]
+      // For agenda/notes, replace existing; for other, append
+      const kept = type === 'other'
+        ? selected.files
+        : selected.files.filter(f => f.type !== type)
+      // Remove old file from storage if replacing
+      if (type !== 'other') {
+        const old = selected.files.find(f => f.type === type)
+        if (old) await supabase.storage.from(BUCKET).remove([old.path])
+      }
+      const newFiles: MeetingFile[] = [...kept, { name: file.name, path, type }]
       await supabase.from('development_meetings').update({ files: newFiles }).eq('id', selected.id)
       const updated = { ...selected, files: newFiles }
       setSelected(updated)
       setMeetings(prev => prev?.map(m => m.id === selected.id ? updated : m) ?? null)
     }
-    setUploading(false)
+    setUploading(null)
     e.target.value = ''
   }
 
-  async function deleteFile(path: string) {
+  async function deleteFile(f: MeetingFile) {
     if (!selected) return
-    await supabase.storage.from(BUCKET).remove([path])
-    const newFiles = selected.files.filter(f => f.path !== path)
+    await supabase.storage.from(BUCKET).remove([f.path])
+    const newFiles = selected.files.filter(x => x.path !== f.path)
     await supabase.from('development_meetings').update({ files: newFiles }).eq('id', selected.id)
     const updated = { ...selected, files: newFiles }
     setSelected(updated)
@@ -121,7 +119,7 @@ export default function MeetingsPage() {
   }
 
   async function deleteMeeting() {
-    if (!selected || !confirm('Delete this meeting?')) return
+    if (!selected || !confirm('Delete this meeting and all its files?')) return
     if (selected.files?.length) {
       await supabase.storage.from(BUCKET).remove(selected.files.map(f => f.path))
     }
@@ -133,6 +131,10 @@ export default function MeetingsPage() {
   const today = new Date().toISOString().slice(0, 10)
   const upcoming = meetings?.filter(m => m.meeting_date >= today) ?? []
   const past = meetings?.filter(m => m.meeting_date < today) ?? []
+
+  const agendaFile = selected?.files.find(f => f.type === 'agenda') ?? null
+  const notesFile = selected?.files.find(f => f.type === 'notes') ?? null
+  const otherFiles = selected?.files.filter(f => f.type === 'other') ?? []
 
   return (
     <div className="flex min-h-screen flex-1">
@@ -161,7 +163,7 @@ export default function MeetingsPage() {
 
         <div className="px-8 pb-8 flex gap-5 flex-1 min-h-0">
           {/* Meeting list */}
-          <div className="w-72 flex-shrink-0 space-y-1 overflow-y-auto">
+          <div className="w-64 flex-shrink-0 space-y-1 overflow-y-auto">
             {meetings === null ? (
               <p className="text-sm text-stone-400 py-8 text-center">Loading...</p>
             ) : meetings.length === 0 ? (
@@ -172,7 +174,7 @@ export default function MeetingsPage() {
                   <>
                     <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider px-1 pb-1">Upcoming</p>
                     {upcoming.map(m => <MeetingRow key={m.id} m={m} active={selected?.id === m.id} onClick={() => select(m)} />)}
-                    {past.length > 0 && <div className="pt-2" />}
+                    {past.length > 0 && <div className="pt-3" />}
                   </>
                 )}
                 {past.length > 0 && (
@@ -188,7 +190,6 @@ export default function MeetingsPage() {
           {/* Detail panel */}
           {selected ? (
             <div className="flex-1 bg-white rounded-xl border border-stone-200 shadow-sm overflow-y-auto">
-              {/* Meeting header */}
               <div className="px-6 py-5 border-b border-stone-100 flex items-start justify-between">
                 <div>
                   <p className="text-lg font-semibold text-stone-800" style={{ fontFamily: 'var(--font-serif)' }}>
@@ -206,74 +207,45 @@ export default function MeetingsPage() {
 
               <div className="px-6 py-5 space-y-6">
                 {/* Agenda */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Agenda</label>
-                    <button onClick={() => saveField('agenda', agenda)} disabled={saving === 'agenda'}
-                      className="flex items-center gap-1 text-[10px] text-stone-400 hover:text-amber-600 transition-colors disabled:opacity-40">
-                      <Save size={10} /> {saving === 'agenda' ? 'Saving…' : 'Save'}
-                    </button>
-                  </div>
-                  <textarea
-                    className={inputCls + ' resize-none'}
-                    rows={6}
-                    placeholder="Meeting agenda…"
-                    value={agenda}
-                    onChange={e => setAgenda(e.target.value)}
-                    onBlur={() => saveField('agenda', agenda)}
-                  />
-                </div>
+                <FileSlot
+                  label="Agenda"
+                  file={agendaFile}
+                  uploading={uploading === 'agenda'}
+                  onUpload={e => uploadFile('agenda', e)}
+                  onDelete={() => agendaFile && deleteFile(agendaFile)}
+                  inputRef={agendaRef}
+                />
 
-                {/* Notes */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Notes & Minutes</label>
-                    <button onClick={() => saveField('notes', notes)} disabled={saving === 'notes'}
-                      className="flex items-center gap-1 text-[10px] text-stone-400 hover:text-amber-600 transition-colors disabled:opacity-40">
-                      <Save size={10} /> {saving === 'notes' ? 'Saving…' : 'Save'}
-                    </button>
-                  </div>
-                  <textarea
-                    className={inputCls + ' resize-none'}
-                    rows={8}
-                    placeholder="Meeting notes and minutes…"
-                    value={notes}
-                    onChange={e => setNotes(e.target.value)}
-                    onBlur={() => saveField('notes', notes)}
-                  />
-                </div>
+                {/* Meeting Notes */}
+                <FileSlot
+                  label="Meeting Notes"
+                  file={notesFile}
+                  uploading={uploading === 'notes'}
+                  onUpload={e => uploadFile('notes', e)}
+                  onDelete={() => notesFile && deleteFile(notesFile)}
+                  inputRef={notesRef}
+                />
 
-                {/* Files */}
+                {/* Other attachments */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">
-                      Attachments {selected.files?.length > 0 && `(${selected.files.length})`}
+                      Other Attachments {otherFiles.length > 0 && `(${otherFiles.length})`}
                     </label>
-                    <button onClick={() => fileRef.current?.click()} disabled={uploading}
+                    <button onClick={() => otherRef.current?.click()} disabled={uploading === 'other'}
                       className="flex items-center gap-1 text-[10px] text-stone-400 hover:text-amber-600 transition-colors disabled:opacity-40">
-                      <Paperclip size={10} /> {uploading ? 'Uploading…' : 'Attach file'}
+                      <Paperclip size={10} /> {uploading === 'other' ? 'Uploading…' : 'Attach'}
                     </button>
-                    <input ref={fileRef} type="file" className="hidden" onChange={uploadFile} />
+                    <input ref={otherRef} type="file" className="hidden" onChange={e => uploadFile('other', e)} />
                   </div>
-                  {selected.files?.length > 0 ? (
+                  {otherFiles.length > 0 ? (
                     <div className="space-y-1">
-                      {selected.files.map(f => (
-                        <div key={f.path} className="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-lg">
-                          <Paperclip size={11} className="text-stone-400 flex-shrink-0" />
-                          <span className="text-sm text-stone-700 flex-1 truncate">{f.name}</span>
-                          <a href={publicUrl(f.path)} target="_blank" rel="noreferrer"
-                            className="p-1 text-stone-300 hover:text-amber-600 transition-colors">
-                            <Download size={12} />
-                          </a>
-                          <button onClick={() => deleteFile(f.path)}
-                            className="p-1 text-stone-300 hover:text-red-400 transition-colors">
-                            <X size={12} />
-                          </button>
-                        </div>
+                      {otherFiles.map(f => (
+                        <FileRow key={f.path} f={f} onDelete={() => deleteFile(f)} />
                       ))}
                     </div>
                   ) : (
-                    <p className="text-xs text-stone-300 italic">No files attached</p>
+                    <p className="text-xs text-stone-300 italic">No additional attachments</p>
                   )}
                 </div>
               </div>
@@ -324,9 +296,69 @@ export default function MeetingsPage() {
   )
 }
 
+function FileSlot({
+  label, file, uploading, onUpload, onDelete, inputRef,
+}: {
+  label: string
+  file: MeetingFile | null
+  uploading: boolean
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onDelete: () => void
+  inputRef: React.RefObject<HTMLInputElement>
+}) {
+  return (
+    <div>
+      <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2 block">{label}</label>
+      {file ? (
+        <div className="flex items-center gap-2 px-4 py-3 bg-stone-50 rounded-xl border border-stone-100">
+          <Paperclip size={13} className="text-stone-400 flex-shrink-0" />
+          <span className="text-sm text-stone-700 flex-1 truncate">{file.name}</span>
+          <a href={publicUrl(file.path)} target="_blank" rel="noreferrer"
+            className="p-1.5 text-stone-300 hover:text-amber-600 transition-colors" title="Download">
+            <Download size={13} />
+          </a>
+          <button onClick={onDelete}
+            className="p-1.5 text-stone-300 hover:text-red-400 transition-colors" title="Remove">
+            <X size={13} />
+          </button>
+          <button onClick={() => inputRef.current?.click()} disabled={uploading}
+            className="p-1.5 text-stone-300 hover:text-amber-600 transition-colors disabled:opacity-40" title="Replace">
+            <Upload size={13} />
+          </button>
+        </div>
+      ) : (
+        <button onClick={() => inputRef.current?.click()} disabled={uploading}
+          className="w-full flex items-center justify-center gap-2 px-4 py-4 border-2 border-dashed border-stone-200 rounded-xl text-sm text-stone-400 hover:border-amber-300 hover:text-amber-600 transition-colors disabled:opacity-40">
+          <Upload size={14} />
+          {uploading ? 'Uploading…' : `Upload ${label}`}
+        </button>
+      )}
+      <input ref={inputRef} type="file" className="hidden" onChange={onUpload} />
+    </div>
+  )
+}
+
+function FileRow({ f, onDelete }: { f: MeetingFile; onDelete: () => void }) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-lg">
+      <Paperclip size={11} className="text-stone-400 flex-shrink-0" />
+      <span className="text-sm text-stone-700 flex-1 truncate">{f.name}</span>
+      <a href={publicUrl(f.path)} target="_blank" rel="noreferrer"
+        className="p-1 text-stone-300 hover:text-amber-600 transition-colors">
+        <Download size={12} />
+      </a>
+      <button onClick={onDelete} className="p-1 text-stone-300 hover:text-red-400 transition-colors">
+        <X size={12} />
+      </button>
+    </div>
+  )
+}
+
 function MeetingRow({ m, active, onClick }: { m: Meeting; active: boolean; onClick: () => void }) {
   const today = new Date().toISOString().slice(0, 10)
-  const isUpcoming = m.meeting_date >= today
+  const files = m.files ?? []
+  const hasAgenda = files.some(f => f.type === 'agenda')
+  const hasNotes = files.some(f => f.type === 'notes')
   return (
     <button onClick={onClick} className="w-full text-left px-3 py-2.5 rounded-lg transition-colors"
       style={{ background: active ? 'rgba(181,161,133,0.12)' : 'transparent' }}>
@@ -334,17 +366,13 @@ function MeetingRow({ m, active, onClick }: { m: Meeting; active: boolean; onCli
         <span className="text-sm font-semibold text-stone-700">
           {new Date(m.meeting_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
         </span>
-        {m.files?.length > 0 && (
-          <span className="text-[10px] text-stone-400 flex items-center gap-0.5">
-            <Paperclip size={9} />{m.files.length}
-          </span>
-        )}
+        <div className="flex items-center gap-1">
+          {hasAgenda && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 font-medium">Agenda</span>}
+          {hasNotes && <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600 font-medium">Notes</span>}
+        </div>
       </div>
       {m.meeting_time && (
         <p className="text-[11px] text-stone-400 mt-0.5">{fmtTime(m.meeting_time)}</p>
-      )}
-      {m.agenda && (
-        <p className="text-[11px] text-stone-400 mt-0.5 truncate">{m.agenda.split('\n')[0]}</p>
       )}
     </button>
   )
