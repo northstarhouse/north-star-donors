@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, Heart, List, Award, Megaphone, Lightbulb, BarChart2, CalendarDays, Ellipsis, ChevronRight } from 'lucide-react'
+import { LayoutDashboard, Heart, List, Award, Megaphone, Lightbulb, BarChart2, CalendarDays, Ellipsis, ChevronRight, Users } from 'lucide-react'
 
 function CoordIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; strokeWidth?: number }) {
   return (
@@ -28,6 +28,7 @@ const MAIN_NAV = [
 const MORE_NAV = [
   { id: 'lists', label: 'Lists', icon: List, href: '/lists/' },
   { id: 'gifts', label: 'Gift Log', icon: Heart, href: '/gifts/' },
+  { id: 'volunteers', label: 'Volunteer Emails', icon: Users, href: '/volunteers/' },
 ] as const
 
 interface Props {
@@ -76,7 +77,7 @@ export default function Sidebar({ activePage }: Props) {
     if (activePage === 'lists' || activePage === 'gifts') setMoreOpen(true)
   }, [activePage])
 
-  const moreActive = activePage === 'lists' || activePage === 'gifts'
+  const moreActive = activePage === 'lists' || activePage === 'gifts' || activePage === 'volunteers'
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', flexShrink: 0 }}>
