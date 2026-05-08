@@ -1,7 +1,7 @@
 ﻿'use client'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
-import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Paperclip, FileText, User, Camera } from 'lucide-react'
+import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Paperclip, FileText, User, Camera, MessageSquare } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
@@ -162,6 +162,7 @@ interface TaskRowProps {
   editingId: string | null
   editTitle: string
   uploadingTaskId: string | null
+  commentCount: number
   onCycleStatus: (task: Task) => void
   onDelete: (id: string) => void
   onToggleExpand: (task: Task) => void
@@ -172,6 +173,7 @@ interface TaskRowProps {
   onTriggerUpload: (id: string) => void
   onClaim: (id: string, name: string) => void
   onUnclaim: (id: string) => void
+  onCommentAdded: (taskId: string) => void
 }
 
 function StatusIcon({ status }: { status: TaskStatus }) {
@@ -181,10 +183,10 @@ function StatusIcon({ status }: { status: TaskStatus }) {
 }
 
 function TaskRow({
-  task, expandedId, editingId, editTitle, uploadingTaskId,
+  task, expandedId, editingId, editTitle, uploadingTaskId, commentCount,
   onCycleStatus, onDelete, onToggleExpand, onStartEdit, onCancelEdit,
   onSaveEdit, onEditTitleChange, onTriggerUpload,
-  onClaim, onUnclaim,
+  onClaim, onUnclaim, onCommentAdded,
 }: TaskRowProps) {
   const expanded = expandedId === task.id
   const editing  = editingId  === task.id
@@ -210,7 +212,7 @@ function TaskRow({
     const { data } = await supabase.from('task_comments')
       .insert({ task_id: task.id, author: commentAuthor, content: newComment.trim() })
       .select().single()
-    if (data) setComments(prev => [...prev, data as TaskComment])
+    if (data) { setComments(prev => [...prev, data as TaskComment]); onCommentAdded(task.id) }
     setNewComment('')
     setSavingComment(false)
   }
@@ -282,6 +284,13 @@ function TaskRow({
               className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-dashed border-stone-300 text-[11px] text-stone-400 hover:border-amber-300 hover:text-amber-600 transition-colors">
               <User size={10} /> Take on
             </button>
+          )}
+
+          {/* Comment count bubble */}
+          {commentCount > 0 && !expanded && (
+            <span className="flex items-center gap-0.5 text-[10px] text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-full">
+              <MessageSquare size={9} />{commentCount}
+            </span>
           )}
 
           {/* Edit / delete */}
@@ -461,6 +470,7 @@ export default function Dashboard() {
   const [filterArea, setFilterArea] = useState<string | 'all'>('all')
   const [filterInitiative, setFilterInitiative] = useState<string | 'all'>('all')
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null)
+  const [taskCommentCounts, setTaskCommentCounts] = useState<Record<string, number>>({})
   const [teamPhotos, setTeamPhotos] = useState<Record<string, string>>({})
   const [photoErrors, setPhotoErrors] = useState<Record<string, boolean>>({})
   const attachmentInputRef = useRef<HTMLInputElement>(null)
@@ -473,6 +483,14 @@ export default function Dashboard() {
     if (cached) { setTasks(cached); setLoading(false) }
     loadTasks()
     loadInitiatives()
+    supabase.from('task_comments').select('task_id')
+      .then(({ data }) => {
+        if (data) {
+          const counts: Record<string, number> = {}
+          data.forEach((r: { task_id: string }) => { counts[r.task_id] = (counts[r.task_id] ?? 0) + 1 })
+          setTaskCommentCounts(counts)
+        }
+      })
   }, [])
 
   async function loadTasks() {
@@ -651,6 +669,7 @@ export default function Dashboard() {
     onTriggerUpload: triggerAttachmentUpload,
     onClaim: claimTask,
     onUnclaim: unclaimTask,
+    onCommentAdded: (taskId: string) => setTaskCommentCounts(prev => ({ ...prev, [taskId]: (prev[taskId] ?? 0) + 1 })),
   }
 
   return (
@@ -786,7 +805,7 @@ export default function Dashboard() {
               <div>
                 {byTab.length === 0
                   ? <p className="px-4 py-10 text-xs text-stone-300 text-center italic">No {taskTab === 'in_progress' ? 'in-progress' : taskTab} tasks.</p>
-                  : byTab.map(t => <TaskRow key={t.id} task={t} {...rowProps} />)
+                  : byTab.map(t => <TaskRow key={t.id} task={t} commentCount={taskCommentCounts[t.id] ?? 0} {...rowProps} />)
                 }
               </div>
             </div>
