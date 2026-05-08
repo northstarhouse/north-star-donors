@@ -162,6 +162,42 @@ export default function MeetingsPage() {
           </button>
         </div>
 
+        {/* Suggestions strip */}
+        {meetings !== null && (() => {
+          const suggestions: { m: Meeting; label: string; color: string }[] = []
+          const todayStr = new Date().toISOString().slice(0, 10)
+          // Next upcoming meeting(s)
+          const nextThree = [...upcoming].sort((a, b) => a.meeting_date.localeCompare(b.meeting_date)).slice(0, 3)
+          for (const m of nextThree) {
+            const files = m.files ?? []
+            const hasAgenda = files.some(f => f.type === 'agenda')
+            const daysAway = Math.round((new Date(m.meeting_date + 'T12:00:00').getTime() - new Date(todayStr + 'T12:00:00').getTime()) / 86400000)
+            const when = daysAway === 0 ? 'Today' : daysAway === 1 ? 'Tomorrow' : `In ${daysAway}d`
+            suggestions.push({ m, color: hasAgenda ? '#d1fae5' : '#fef3c7', label: `${when}${hasAgenda ? '' : ' · No agenda'}` })
+          }
+          // Most recent past meeting missing notes
+          const lastPast = [...past].sort((a, b) => b.meeting_date.localeCompare(a.meeting_date)).find(m => !(m.files ?? []).some(f => f.type === 'notes'))
+          if (lastPast) suggestions.push({ m: lastPast, color: '#f1f5f9', label: 'Notes missing' })
+          if (!suggestions.length) return null
+          return (
+            <div className="px-8 pb-4">
+              <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">Suggestions</p>
+              <div className="flex gap-2 flex-wrap">
+                {suggestions.map(({ m, label, color }) => (
+                  <button key={`${m.id}-${label}`} onClick={() => select(m)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200 text-left transition-colors hover:border-amber-300"
+                    style={{ background: color }}>
+                    <span className="text-xs font-semibold text-stone-700">
+                      {new Date(m.meeting_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                    <span className="text-[11px] text-stone-500">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })()}
+
         <div className="px-8 pb-8 flex gap-5 flex-1 min-h-0">
           {/* Meeting list */}
           <div className="w-64 flex-shrink-0 space-y-1 overflow-y-auto">
@@ -385,13 +421,16 @@ function FileRow({ f, onDelete, onPreview }: { f: MeetingFile; onDelete: () => v
 }
 
 function MeetingRow({ m, active, onClick }: { m: Meeting; active: boolean; onClick: () => void }) {
-  const today = new Date().toISOString().slice(0, 10)
   const files = m.files ?? []
   const hasAgenda = files.some(f => f.type === 'agenda')
   const hasNotes = files.some(f => f.type === 'notes')
   return (
-    <button onClick={onClick} className="w-full text-left px-3 py-2.5 rounded-lg transition-colors"
-      style={{ background: active ? 'rgba(181,161,133,0.12)' : 'transparent' }}>
+    <button onClick={onClick} className="w-full text-left px-3 py-2.5 rounded-xl border transition-colors"
+      style={{
+        background: active ? '#fffbf5' : '#ffffff',
+        borderColor: active ? '#e0c98a' : '#e7e0d6',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+      }}>
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-semibold text-stone-700">
           {new Date(m.meeting_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
