@@ -108,23 +108,30 @@ export default function VolunteersPage() {
     setSent(false)
   }
 
-  function buildMailto() {
-    if (!modal) return '#'
-    const bcc = modal.members.map(v => v.Email!.trim()).join(',')
-    const parts: string[] = []
-    if (bcc) parts.push('bcc=' + encodeURIComponent(bcc))
-    if (subject) parts.push('subject=' + encodeURIComponent(subject))
-    if (body) parts.push('body=' + encodeURIComponent(body))
-    return 'mailto:?' + parts.join('&')
-  }
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
 
   async function handleSend() {
     if (!modal) return
-    const a = document.createElement('a')
-    a.href = buildMailto()
-    a.click()
-    setSent(true)
+    setSending(true)
+    setSendError(null)
     try {
+      const res = await fetch(
+        'https://uvzwhhwzelaelfhfkvdb.supabase.co/functions/v1/send-email',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bcc: modal.members.map(v => v.Email!.trim()),
+            subject,
+            body,
+            sender,
+          }),
+        }
+      )
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Send failed')
+      setSent(true)
       await supabase.from('volunteer_email_logs').insert({
         sent_at: new Date().toISOString(),
         team_tag: modal.team,
@@ -132,11 +139,15 @@ export default function VolunteersPage() {
         recipients: modal.members.map(v => `${v['First Name']} ${v['Last Name']} <${v.Email}>`),
         subject,
         sender,
-      })
-      // Refresh logs
-      const { data } = await supabase.from('volunteer_email_logs').select('*').order('sent_at', { ascending: false }).limit(20)
-      if (data) setLogs(data as EmailLog[])
-    } catch { /* log table may not exist */ }
+      }).then(async () => {
+        const { data } = await supabase.from('volunteer_email_logs').select('*').order('sent_at', { ascending: false }).limit(20)
+        if (data) setLogs(data as EmailLog[])
+      }).catch(() => {})
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setSending(false)
+    }
   }
 
   const goldBtn = { background: 'var(--gold)' }
@@ -298,9 +309,9 @@ export default function VolunteersPage() {
                 <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
                   <Check size={20} className="text-emerald-600" />
                 </div>
-                <p className="text-sm font-semibold text-stone-700">Email client opened</p>
+                <p className="text-sm font-semibold text-stone-700">Email sent!</p>
                 <p className="text-xs text-stone-400 mt-1">
-                  {modal.members.length} recipients pre-filled in BCC. Review and send from your email app.
+                  Delivered to {modal.members.length} recipient{modal.members.length !== 1 ? 's' : ''} from info@thenorthstarhouse.org
                 </p>
                 <button onClick={() => setModal(null)} className="mt-4 px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg">
                   Done
@@ -341,17 +352,21 @@ export default function VolunteersPage() {
                   </select>
                 </div>
 
+                {sendError && (
+                  <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{sendError}</p>
+                )}
                 <div className="flex gap-2 pt-1">
-                  <button onClick={handleSend} disabled={!subject.trim()}
+                  <button onClick={handleSend} disabled={!subject.trim() || sending}
                     className="flex-1 flex items-center justify-center gap-1.5 py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium"
                     style={goldBtn}>
-                    <Mail size={13} /> Open in Email App
+                    <Mail size={13} /> {sending ? 'Sending…' : 'Send Email'}
                   </button>
-                  <button onClick={() => setModal(null)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">
+                  <button onClick={() => setModal(null)} disabled={sending}
+                    className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200 disabled:opacity-40">
                     Cancel
                   </button>
                 </div>
-                <p className="text-[10px] text-stone-300 text-center">Opens your email client with all recipients pre-filled in BCC</p>
+                <p className="text-[10px] text-stone-300 text-center">Sends from info@thenorthstarhouse.org · all recipients in BCC</p>
               </div>
             )}
           </div>
