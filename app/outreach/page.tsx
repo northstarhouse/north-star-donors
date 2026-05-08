@@ -29,8 +29,8 @@ const goldBtn = { background: 'var(--gold)' }
 
 const EMPTY_FORM = { area: '', title: '', contact: '', linked_donor_id: null as string | null, date: '', status: 'planned' as OutreachStatus, notes: '', submitted_by: '' }
 
-const BOARD_ROW1 = ['Grants', 'Marketing', 'Sponsorships', 'Partnerships'] as const
-const BOARD_ROW2 = ['Creative', 'Community', 'Other'] as const
+const BOARD_ROW1 = ['Membership', 'Marketing', 'Sponsorships', 'Partnerships'] as const
+const BOARD_ROW2 = ['Grants', 'Creative', 'Community', 'Other'] as const
 const BOARD_AREAS = [...BOARD_ROW1, ...BOARD_ROW2] as const
 
 const BOARD_MONTHS = [
@@ -579,7 +579,7 @@ export default function OutreachPage() {
 
               {/* Table — row 2 (3 cols) */}
               <div className="overflow-x-auto pb-4">
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BOARD_ROW2.length}, minmax(180px, 1fr))`, gap: 0, border: '1px solid #e7e0d6', borderRadius: 12, overflow: 'hidden', background: '#fff', minWidth: 400 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${BOARD_ROW2.length}, minmax(180px, 1fr))`, gap: 0, border: '1px solid #e7e0d6', borderRadius: 12, overflow: 'hidden', background: '#fff', minWidth: 600 }}>
                   {BOARD_ROW2.map((area, i) => {
                     const count = boardEntries.filter(e => {
                       const matchArea = e.area.toLowerCase() === area.toLowerCase()
