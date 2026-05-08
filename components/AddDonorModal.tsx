@@ -50,13 +50,19 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
     setSearching(true)
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
-      const { data } = await supabase
-        .from('donors')
-        .select('id, formal_name, informal_first_name, email')
-        .or(`formal_name.ilike.%${query}%,informal_first_name.ilike.%${query}%`)
-        .order('formal_name')
-        .limit(8)
-      setResults((data ?? []) as DonorMatch[])
+      const [{ data: byFormal }, { data: byInformal }] = await Promise.all([
+        supabase.from('donors').select('id, formal_name, informal_first_name, email')
+          .ilike('formal_name', `%${query}%`).order('formal_name').limit(8),
+        supabase.from('donors').select('id, formal_name, informal_first_name, email')
+          .ilike('informal_first_name', `%${query}%`).order('formal_name').limit(8),
+      ])
+      const seen = new Set<string>()
+      const merged = [...(byFormal ?? []), ...(byInformal ?? [])].filter(d => {
+        if (seen.has(d.id)) return false
+        seen.add(d.id)
+        return true
+      }).slice(0, 8)
+      setResults(merged as DonorMatch[])
       setSearching(false)
     }, 250)
   }, [query])
