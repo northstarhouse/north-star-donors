@@ -45,6 +45,7 @@ export default function MeetingsPage() {
   const [newTime, setNewTime] = useState('')
   const [creating, setCreating] = useState(false)
   const [uploading, setUploading] = useState<'agenda' | 'notes' | 'other' | null>(null)
+  const [preview, setPreview] = useState<{ name: string; url: string } | null>(null)
 
   const agendaRef = useRef<HTMLInputElement>(null)
   const notesRef = useRef<HTMLInputElement>(null)
@@ -213,6 +214,7 @@ export default function MeetingsPage() {
                   uploading={uploading === 'agenda'}
                   onUpload={e => uploadFile('agenda', e)}
                   onDelete={() => agendaFile && deleteFile(agendaFile)}
+                  onPreview={f => setPreview({ name: f.name, url: publicUrl(f.path) })}
                   inputRef={agendaRef}
                 />
 
@@ -223,6 +225,7 @@ export default function MeetingsPage() {
                   uploading={uploading === 'notes'}
                   onUpload={e => uploadFile('notes', e)}
                   onDelete={() => notesFile && deleteFile(notesFile)}
+                  onPreview={f => setPreview({ name: f.name, url: publicUrl(f.path) })}
                   inputRef={notesRef}
                 />
 
@@ -241,7 +244,7 @@ export default function MeetingsPage() {
                   {otherFiles.length > 0 ? (
                     <div className="space-y-1">
                       {otherFiles.map(f => (
-                        <FileRow key={f.path} f={f} onDelete={() => deleteFile(f)} />
+                        <FileRow key={f.path} f={f} onDelete={() => deleteFile(f)} onPreview={() => setPreview({ name: f.name, url: publicUrl(f.path) })} />
                       ))}
                     </div>
                   ) : (
@@ -257,6 +260,27 @@ export default function MeetingsPage() {
           )}
         </div>
       </div>
+
+      {/* File preview modal */}
+      {preview && (
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'rgba(0,0,0,0.92)' }}>
+          <div className="flex items-center justify-between px-5 py-3 bg-stone-900 flex-shrink-0">
+            <span className="text-white text-sm font-medium truncate max-w-lg">{preview.name}</span>
+            <div className="flex items-center gap-4 flex-shrink-0">
+              <a href={preview.url} download target="_blank" rel="noreferrer"
+                className="text-stone-400 hover:text-white text-xs flex items-center gap-1 transition-colors">
+                <Download size={12} /> Download
+              </a>
+              <button onClick={() => setPreview(null)} className="text-stone-400 hover:text-white transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-hidden">
+            <iframe src={preview.url} className="w-full h-full border-0" title={preview.name} />
+          </div>
+        </div>
+      )}
 
       {/* New meeting modal */}
       {newOpen && (
@@ -297,13 +321,14 @@ export default function MeetingsPage() {
 }
 
 function FileSlot({
-  label, file, uploading, onUpload, onDelete, inputRef,
+  label, file, uploading, onUpload, onDelete, onPreview, inputRef,
 }: {
   label: string
   file: MeetingFile | null
   uploading: boolean
   onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   onDelete: () => void
+  onPreview: (f: MeetingFile) => void
   inputRef: React.RefObject<HTMLInputElement>
 }) {
   return (
@@ -312,8 +337,11 @@ function FileSlot({
       {file ? (
         <div className="flex items-center gap-2 px-4 py-3 bg-stone-50 rounded-xl border border-stone-100">
           <Paperclip size={13} className="text-stone-400 flex-shrink-0" />
-          <span className="text-sm text-stone-700 flex-1 truncate">{file.name}</span>
-          <a href={publicUrl(file.path)} target="_blank" rel="noreferrer"
+          <button onClick={() => onPreview(file)}
+            className="text-sm text-stone-700 flex-1 truncate text-left hover:text-amber-600 transition-colors">
+            {file.name}
+          </button>
+          <a href={publicUrl(file.path)} download target="_blank" rel="noreferrer"
             className="p-1.5 text-stone-300 hover:text-amber-600 transition-colors" title="Download">
             <Download size={13} />
           </a>
@@ -338,12 +366,14 @@ function FileSlot({
   )
 }
 
-function FileRow({ f, onDelete }: { f: MeetingFile; onDelete: () => void }) {
+function FileRow({ f, onDelete, onPreview }: { f: MeetingFile; onDelete: () => void; onPreview: () => void }) {
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-stone-50 rounded-lg">
       <Paperclip size={11} className="text-stone-400 flex-shrink-0" />
-      <span className="text-sm text-stone-700 flex-1 truncate">{f.name}</span>
-      <a href={publicUrl(f.path)} target="_blank" rel="noreferrer"
+      <button onClick={onPreview} className="text-sm text-stone-700 flex-1 truncate text-left hover:text-amber-600 transition-colors">
+        {f.name}
+      </button>
+      <a href={publicUrl(f.path)} download target="_blank" rel="noreferrer"
         className="p-1 text-stone-300 hover:text-amber-600 transition-colors">
         <Download size={12} />
       </a>
