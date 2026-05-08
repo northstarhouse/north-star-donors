@@ -100,7 +100,7 @@ export default function OutreachPage() {
     supabase.from('outreach_entries').select('*').order('area').order('created_at', { ascending: false })
       .then(({ data }) => { if (data) { setEntries(data as OutreachEntry[]); cacheWrite('outreach', data, TTL_SHORT) } })
     supabase.from('outreach_board').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setBoardEntries(data as typeof boardEntries) })
+      .then(({ data }) => { if (data) setBoardEntries(data.map(entry => ({ ...entry, logged_to_outreach: entry.logged_to_outreach ?? false }))) })
     supabase.from('outreach_comments').select('entry_id')
       .then(({ data }) => {
         const counts: Record<string, number> = {}
@@ -231,7 +231,7 @@ export default function OutreachPage() {
     const { data } = await supabase.from('outreach_board').insert({
       area, title: quickForm.title.trim(), status: quickForm.status, date: quickForm.date || null,
     }).select().single()
-    if (data) setBoardEntries(prev => [data as typeof boardEntries[number], ...prev])
+    if (data) setBoardEntries(prev => [{ ...data, logged_to_outreach: data.logged_to_outreach ?? false } as typeof boardEntries[number], ...prev])
     setQuickForm({ title: '', status: 'planned', date: '' })
     setBoardQuickAdd(null)
     setQuickSaving(false)
