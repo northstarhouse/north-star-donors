@@ -320,7 +320,10 @@ function ManualEntry({ entry, onDelete, onUpdate }: {
     <div className={`flex items-start gap-2.5 px-5 py-3 border-b border-stone-50 last:border-0 group transition-colors ${entry.completed ? 'bg-emerald-50/60' : ''}`}>
       {/* Complete toggle */}
       <button
-        onClick={() => onUpdate(entry.id, { completed: !entry.completed })}
+        onClick={() => onUpdate(entry.id, { 
+          completed: !entry.completed,
+          section: !entry.completed ? 'completed' : 'current' as Section
+        })}
         className="mt-0.5 flex-shrink-0 hover:scale-110 transition-transform"
       >
         {entry.completed
