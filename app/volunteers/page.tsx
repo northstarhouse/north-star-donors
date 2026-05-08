@@ -25,6 +25,17 @@ interface EmailLog {
   sender: string
 }
 
+const GROUPS = [
+  { tag: 'Board Member',  label: 'Board Members' },
+  { tag: 'Restoration',   label: 'Construction' },
+  { tag: 'Events Team',   label: 'Events Team' },
+  { tag: 'Landscaping',   label: 'Grounds' },
+  { tag: 'Interiors',     label: 'Interiors' },
+  { tag: 'Event Support', label: 'Event Support' },
+  { tag: 'Development',   label: 'Fundraising' },
+  { tag: 'Staff',         label: 'Venue' },
+] as const
+
 function parseTeams(t: string | null): string[] {
   return (t ?? '').split(',').map(s => s.replace(/\bNEW\b/g, '').trim()).filter(Boolean)
 }
@@ -33,36 +44,12 @@ function isActive(v: Volunteer) {
   return (v.Status ?? '').trim().toLowerCase() === 'active'
 }
 
-/* Groups volunteers by each of their team tags */
-function groupByTeam(volunteers: Volunteer[]): Map<string, Volunteer[]> {
-  const map = new Map<string, Volunteer[]>()
-  volunteers.forEach(v => {
-    parseTeams(v.Team).forEach(team => {
-      if (!map.has(team)) map.set(team, [])
-      map.get(team)!.push(v)
-    })
-  })
-  // Sort teams alphabetically
-  return new Map([...map.entries()].sort(([a], [b]) => a.localeCompare(b)))
+function membersForTag(volunteers: Volunteer[], tag: string): Volunteer[] {
+  return volunteers.filter(v => parseTeams(v.Team).some(t => t === tag))
 }
 
-const TEAM_DISPLAY: Record<string, string> = {
-  'Board Member':    'Board Members',
-  'Docents':         'Docent Committee',
-  'Events Team':     'Events Committee',
-  'Event Support':   'Event Support',
-  'Landscaping':     'Grounds Team',
-  'Restoration':     'Restoration / Construction',
-  'Interiors':       'Interiors Team',
-  'Development':     'Development Committee',
-  'Support':         'Support Team',
-  'Staff':           'Staff',
-  'Volunteer Exchange': 'Volunteer Exchange',
-  'Float':           'Float Team',
-}
-
-function displayName(team: string): string {
-  return TEAM_DISPLAY[team] ?? team
+function displayName(tag: string): string {
+  return GROUPS.find(g => g.tag === tag)?.label ?? tag
 }
 
 const inputCls = 'w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700'
@@ -93,7 +80,10 @@ export default function VolunteersPage() {
     return activeOnly ? volunteers.filter(isActive) : volunteers
   }, [volunteers, activeOnly])
 
-  const grouped = useMemo(() => groupByTeam(displayed), [displayed])
+  const groups = useMemo(() =>
+    GROUPS.map(g => ({ ...g, members: membersForTag(displayed, g.tag) })),
+    [displayed]
+  )
 
   function toggleTeam(team: string) {
     setExpandedTeams(prev => {
@@ -181,23 +171,18 @@ export default function VolunteersPage() {
           <div className="flex-1 space-y-3">
             {volunteers === null ? (
               <div className="flex items-center justify-center py-24 text-stone-400 text-sm">Loading...</div>
-            ) : grouped.size === 0 ? (
-              <div className="text-center py-16 text-stone-400 text-sm">No volunteers found.</div>
             ) : (
-              Array.from(grouped.entries()).map(([team, members]) => {
+              groups.map(({ tag, label, members }) => {
                 const withEmail = members.filter(v => v.Email?.trim())
                 const noEmail = members.filter(v => !v.Email?.trim())
-                const isOpen = expandedTeams.has(team)
+                const isOpen = expandedTeams.has(tag)
                 return (
-                  <div key={team} className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+                  <div key={tag} className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
                     {/* Group header */}
                     <div className="flex items-center gap-3 px-5 py-3.5"
                       style={{ borderBottom: isOpen ? '0.5px solid #f0ece6' : 'none', background: '#fdfcfb' }}>
-                      <button className="flex-1 flex items-center gap-3 text-left" onClick={() => toggleTeam(team)}>
-                        <div>
-                          <span className="text-sm font-semibold text-stone-800">{displayName(team)}</span>
-                          <span className="ml-2 text-[10px] text-stone-400 font-medium uppercase tracking-wider">({team})</span>
-                        </div>
+                      <button className="flex-1 flex items-center gap-3 text-left" onClick={() => toggleTeam(tag)}>
+                        <span className="text-sm font-semibold text-stone-800">{label}</span>
                         <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">
                           {withEmail.length} {withEmail.length !== members.length ? `/ ${members.length}` : ''} with email
                         </span>
@@ -213,11 +198,11 @@ export default function VolunteersPage() {
 
                       {/* Action buttons */}
                       <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <button onClick={() => copyEmails(members, team)}
+                        <button onClick={() => copyEmails(members, tag)}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs border border-stone-200 rounded-lg text-stone-500 hover:bg-stone-50 transition-colors">
-                          {copied === team ? <><Check size={11} className="text-emerald-500" /> Copied</> : <><Copy size={11} /> Copy emails</>}
+                          {copied === tag ? <><Check size={11} className="text-emerald-500" /> Copied</> : <><Copy size={11} /> Copy emails</>}
                         </button>
-                        <button onClick={() => openModal(team, members)} disabled={withEmail.length === 0}
+                        <button onClick={() => openModal(tag, members)} disabled={withEmail.length === 0}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg text-white font-medium disabled:opacity-40 transition-colors"
                           style={goldBtn}>
                           <Mail size={11} /> Email group
@@ -228,11 +213,11 @@ export default function VolunteersPage() {
                     {/* Member list */}
                     {isOpen && (
                       <div>
-                        {members.sort((a, b) => (a['Last Name'] ?? '').localeCompare(b['Last Name'] ?? '')).map((v, i) => (
+                        {[...members].sort((a, b) => (a['Last Name'] ?? '').localeCompare(b['Last Name'] ?? '')).map((v, i) => (
                           <div key={v.id}
                             className="flex items-center gap-3 px-5 py-2.5"
                             style={{ borderBottom: i < members.length - 1 ? '0.5px solid #f5f1eb' : 'none' }}>
-                            <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white bg-stone-400"
+                            <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white"
                               style={{ background: 'var(--gold)', opacity: isActive(v) ? 1 : 0.4 }}>
                               {(v['First Name']?.[0] ?? '') + (v['Last Name']?.[0] ?? '')}
                             </div>
