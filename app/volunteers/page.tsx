@@ -82,7 +82,7 @@ export default function VolunteersPage() {
   const [sent, setSent] = useState(false)
 
   useEffect(() => {
-    supabase.from('2026 Volunteers').select('id, First Name, Last Name, Email, Status, Team, Overview Notes, Phone Number')
+    supabase.from('2026 Volunteers').select('*')
       .then(({ data }) => { if (data) setVolunteers(data as Volunteer[]) })
     supabase.from('volunteer_email_logs').select('*').order('sent_at', { ascending: false }).limit(20)
       .then(({ data }) => { if (data) setLogs(data as EmailLog[]) })

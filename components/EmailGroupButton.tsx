@@ -40,7 +40,7 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
     setLoading(true)
     setOpen(true)
     setSent(false)
-    const { data } = await supabase.from('2026 Volunteers').select('id, First Name, Last Name, Email, Status, Team, Overview Notes')
+    const { data } = await supabase.from('2026 Volunteers').select('*')
     if (data) {
       const matched = (data as Volunteer[]).filter(v => {
         const activeStatus = (v.Status ?? '').trim().toLowerCase() === 'active'
