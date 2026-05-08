@@ -93,6 +93,7 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
 
   async function saveNew() {
     if (!form.formal_name.trim()) { setError('Formal name is required.'); return }
+    if (!form.formal_name.trim().includes(' ')) { setError('Formal name should be a full name (e.g. "Susan Johnson"), not just a first name.'); return }
     setSaving(true)
     setError('')
     try {
