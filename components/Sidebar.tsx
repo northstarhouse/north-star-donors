@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, Heart, List, Award, Megaphone, Lightbulb, BarChart2, CalendarDays, Ellipsis, ChevronRight, Users } from 'lucide-react'
+import { LayoutDashboard, Heart, List, Award, Megaphone, Lightbulb, BarChart2, CalendarDays, Ellipsis, ChevronRight, Users, ClipboardList } from 'lucide-react'
 
 function CoordIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; strokeWidth?: number }) {
   return (
@@ -23,6 +23,7 @@ const MAIN_NAV = [
   { id: 'ideas', label: 'Ideas & Initiatives', icon: Lightbulb, href: '/ideas/' },
   { id: 'coordination', label: 'Cross-Coordination', icon: CoordIcon, href: '/coordination/' },
   { id: 'content-calendar', label: 'Content Calendar', icon: CalendarDays, href: '/content-calendar/' },
+  { id: 'meetings', label: 'Meetings', icon: ClipboardList, href: '/meetings/' },
 ] as const
 
 const MORE_NAV = [
