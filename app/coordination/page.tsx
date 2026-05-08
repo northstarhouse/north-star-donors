@@ -33,7 +33,6 @@ interface CoordComment {
   item_id: string
   body: string
   author: string | null
-  feasibility: string | null
   created_at: string
 }
 
@@ -47,11 +46,19 @@ const STATUS_LABELS: Record<CoordStatus, string> = {
   open: 'Open', in_progress: 'In Progress', resolved: 'Resolved',
 }
 
-const FEASIBILITY_STYLES: Record<string, string> = {
-  'Do-able':          'bg-emerald-100 text-emerald-700 border-emerald-200',
-  'Not feasible':     'bg-red-100 text-red-600 border-red-200',
-  'Needs discussion': 'bg-amber-100 text-amber-700 border-amber-200',
-  'In progress':      'bg-blue-100 text-blue-700 border-blue-200',
+const TEAM_MEMBERS = ['Kaelen', 'Haley', 'Derek']
+const AUTHOR_COLORS: Record<string, string> = { Kaelen: '#886c44', Haley: '#5a7a8a', Derek: '#6b7c5a' }
+
+function fmtRelative(ts: string): string {
+  const diff = Date.now() - new Date(ts).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d}d ago`
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
@@ -71,9 +78,9 @@ export default function CoordinationPage() {
   const [editForm, setEditForm] = useState<Partial<CoordItem>>({})
   const [editSaving, setEditSaving] = useState(false)
 
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
   const [commentBody, setCommentBody] = useState('')
-  const [commentAuthor, setCommentAuthor] = useState('')
-  const [commentFeasibility, setCommentFeasibility] = useState('')
+  const [commentAuthor, setCommentAuthor] = useState(TEAM_MEMBERS[0])
   const [commentSaving, setCommentSaving] = useState(false)
 
   const [filterStatus, setFilterStatus] = useState<CoordStatus | 'all'>('all')
@@ -84,6 +91,14 @@ export default function CoordinationPage() {
     if (cached) setItems(cached)
     supabase.from('coordination_items').select('*').order('created_at', { ascending: false })
       .then(({ data }) => { if (data) { setItems(data as CoordItem[]); cacheWrite('coordination', data, TTL_SHORT) } })
+    supabase.from('coordination_comments').select('item_id')
+      .then(({ data }) => {
+        if (data) {
+          const counts: Record<string, number> = {}
+          data.forEach((r: { item_id: string }) => { counts[r.item_id] = (counts[r.item_id] ?? 0) + 1 })
+          setCommentCounts(counts)
+        }
+      })
   }, [])
 
   useEffect(() => {
@@ -141,10 +156,13 @@ export default function CoordinationPage() {
     e.preventDefault()
     if (!selected || !commentBody.trim()) return
     setCommentSaving(true)
-    const payload = { item_id: selected.id, body: commentBody.trim(), author: commentAuthor.trim() || null, feasibility: commentFeasibility || null }
+    const payload = { item_id: selected.id, body: commentBody.trim(), author: commentAuthor || null }
     const { data } = await supabase.from('coordination_comments').insert(payload).select().single()
-    if (data) setComments(prev => [...prev, data as CoordComment])
-    setCommentBody(''); setCommentAuthor(''); setCommentFeasibility('')
+    if (data) {
+      setComments(prev => [...prev, data as CoordComment])
+      setCommentCounts(prev => ({ ...prev, [selected.id]: (prev[selected.id] ?? 0) + 1 }))
+    }
+    setCommentBody('')
     setCommentSaving(false)
   }
 
@@ -258,9 +276,17 @@ export default function CoordinationPage() {
                           <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>{item.area}</p>
                           <p className="text-sm font-medium text-stone-800 leading-snug">{item.need}</p>
                         </div>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 mt-0.5 ${STATUS_STYLES[item.status]}`}>
-                          {STATUS_LABELS[item.status]}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                          {(commentCounts[item.id] ?? 0) > 0 && (
+                            <span className="flex items-center gap-0.5 text-[10px] text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-full">
+                              <MessageSquare size={9} />
+                              {commentCounts[item.id]}
+                            </span>
+                          )}
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[item.status]}`}>
+                            {STATUS_LABELS[item.status]}
+                          </span>
+                        </div>
                       </div>
                       {item.suggested_actions && (
                         <p className="text-xs text-stone-400 mt-1.5 line-clamp-2 leading-relaxed">{item.suggested_actions}</p>
@@ -353,52 +379,44 @@ export default function CoordinationPage() {
 
                     {comments.length > 0 && (
                       <div className="space-y-3 mb-4">
-                        {comments.map(c => (
-                          <div key={c.id} className="group bg-stone-50 rounded-lg p-3 relative">
-                            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                              {c.author && <span className="text-xs font-semibold text-stone-700">{c.author}</span>}
-                              {c.feasibility && (
-                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${FEASIBILITY_STYLES[c.feasibility] ?? 'bg-stone-100 text-stone-500 border-stone-200'}`}>
-                                  {c.feasibility}
-                                </span>
-                              )}
-                              <span className="text-[10px] text-stone-300 ml-auto">
-                                {new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                              </span>
+                        {comments.map(c => {
+                          const authorColor = c.author ? (AUTHOR_COLORS[c.author] ?? '#a8a29e') : '#a8a29e'
+                          const initials = c.author ? c.author.slice(0, 2).toUpperCase() : '??'
+                          return (
+                            <div key={c.id} className="group flex gap-2.5">
+                              <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-white text-[9px] font-bold mt-0.5"
+                                style={{ background: authorColor }}>
+                                {initials}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-baseline gap-2 mb-0.5">
+                                  <span className="text-xs font-semibold text-stone-700">{c.author ?? 'Anonymous'}</span>
+                                  <span className="text-[10px] text-stone-300">{fmtRelative(c.created_at)}</span>
+                                  <button onClick={() => deleteComment(c.id)}
+                                    className="ml-auto p-0.5 text-stone-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded">
+                                    <X size={11} />
+                                  </button>
+                                </div>
+                                <p className="text-xs text-stone-600 leading-relaxed whitespace-pre-wrap">{c.body}</p>
+                              </div>
                             </div>
-                            <p className="text-xs text-stone-600 leading-relaxed whitespace-pre-wrap">{c.body}</p>
-                            <button onClick={() => deleteComment(c.id)}
-                              className="absolute top-2 right-2 p-1 text-stone-200 hover:text-red-400 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-all">
-                              <X size={11} />
-                            </button>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
 
                     <form onSubmit={submitComment} className="space-y-2">
                       <textarea className={inputCls + ' resize-none bg-stone-50'} rows={3} placeholder="Add a comment..."
                         value={commentBody} onChange={e => setCommentBody(e.target.value)} />
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Your Name</label>
-                          <input className={inputCls} placeholder="Optional" value={commentAuthor} onChange={e => setCommentAuthor(e.target.value)} />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Feasibility</label>
-                          <select className={inputCls} value={commentFeasibility} onChange={e => setCommentFeasibility(e.target.value)}>
-                            <option value="">- none -</option>
-                            <option value="Do-able">Do-able</option>
-                            <option value="Not feasible">Not feasible</option>
-                            <option value="Needs discussion">Needs discussion</option>
-                            <option value="In progress">In progress</option>
-                          </select>
-                        </div>
+                      <div className="flex gap-2">
+                        <select className={inputCls} value={commentAuthor} onChange={e => setCommentAuthor(e.target.value)}>
+                          {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                        <button type="submit" disabled={commentSaving || !commentBody.trim()}
+                          className="px-4 py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium whitespace-nowrap" style={goldBtn}>
+                          {commentSaving ? 'Posting...' : 'Post'}
+                        </button>
                       </div>
-                      <button type="submit" disabled={commentSaving || !commentBody.trim()}
-                        className="w-full py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
-                        {commentSaving ? 'Posting...' : 'Post Comment'}
-                      </button>
                     </form>
                   </div>
                 </div>

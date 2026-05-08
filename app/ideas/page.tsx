@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Lightbulb, Plus, X, Trash2 } from 'lucide-react'
+import { Lightbulb, Plus, X, Trash2, MessageSquare } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
@@ -20,6 +20,14 @@ interface Idea {
   blockers: string | null
   gaps: string | null
   updates: string | null
+  created_at: string
+}
+
+interface IdeaComment {
+  id: string
+  idea_id: number
+  author: string | null
+  content: string
   created_at: string
 }
 
@@ -47,6 +55,21 @@ const ALL_STATUSES: IdeaStatus[]          = ['Exploring', 'Active', 'On Hold', '
 const INITIATIVES_STATUSES: IdeaStatus[]  = ['Active', 'On Hold', 'Completed', 'Declined']
 const IDEA_STATUSES: IdeaStatus[]         = ['Exploring']
 const INITIATIVE_FILTERS: FilterStatus[]  = ['Active', 'On Hold', 'Completed', 'All']
+
+const TEAM_MEMBERS = ['Kaelen', 'Haley', 'Derek']
+const AUTHOR_COLORS: Record<string, string> = { Kaelen: '#886c44', Haley: '#5a7a8a', Derek: '#6b7c5a' }
+
+function fmtRelative(ts: string): string {
+  const diff = Date.now() - new Date(ts).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  const d = Math.floor(h / 24)
+  if (d < 7) return `${d}d ago`
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
 
 /* -- Helpers ------------------------------------------------- */
 const inputCls = 'w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 text-stone-700 bg-white'
@@ -78,6 +101,7 @@ export default function IdeasPage() {
   const [editForm, setEditForm] = useState<EditIdeaForm>({})
   const [editSaving, setEditSaving] = useState(false)
 
+  const [commentCounts, setCommentCounts] = useState<Record<number, number>>({})
   const [showUpdates, setShowUpdates] = useState(false)
 
   const [budgetItems, setBudgetItems] = useState<BudgetItem[]>([])
@@ -92,6 +116,14 @@ export default function IdeasPage() {
     if (cached) setIdeas(cached)
     supabase.from('Ideas').select('*').order('created_at', { ascending: false })
       .then(({ data }) => { if (data) { setIdeas(data as Idea[]); cacheWrite('ideas', data, TTL_SHORT) } })
+    supabase.from('idea_comments').select('idea_id')
+      .then(({ data }) => {
+        if (data) {
+          const counts: Record<number, number> = {}
+          data.forEach((r: { idea_id: number }) => { counts[r.idea_id] = (counts[r.idea_id] ?? 0) + 1 })
+          setCommentCounts(counts)
+        }
+      })
   }, [])
 
   useEffect(() => {
@@ -370,13 +402,19 @@ export default function IdeasPage() {
                       borderLeft: `3px solid ${isSel ? sc.color : 'transparent'}`,
                     }}>
                     <p className="text-xs font-semibold text-stone-800 leading-snug mb-1">{idea.title}</p>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5"
                         style={{ background: sc.bg, color: sc.color, border: `0.5px solid ${sc.color}44` }}>
                         {idea.status}
                       </span>
                       {idea.submitted_by && (
                         <span className="text-[11px] text-stone-400 truncate">{idea.submitted_by}</span>
+                      )}
+                      {(commentCounts[idea.id] ?? 0) > 0 && (
+                        <span className="flex items-center gap-0.5 text-[10px] text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-full ml-auto">
+                          <MessageSquare size={9} />
+                          {commentCounts[idea.id]}
+                        </span>
                       )}
                     </div>
                   </button>
@@ -417,6 +455,7 @@ export default function IdeasPage() {
                 onBudgetFormChange={setBudgetForm}
                 onSubmitBudget={submitBudget}
                 onDeleteBudgetItem={deleteBudgetItem}
+                onCommentAdded={(ideaId) => setCommentCounts(prev => ({ ...prev, [ideaId]: (prev[ideaId] ?? 0) + 1 }))}
               />
             )}
           </div>
@@ -453,12 +492,44 @@ interface DetailPanelProps {
   onBudgetFormChange: (fn: (prev: { description: string; amount: string; date: string; expense_type: string }) => { description: string; amount: string; date: string; expense_type: string }) => void
   onSubmitBudget: (e: React.FormEvent) => void
   onDeleteBudgetItem: (id: number) => void
+  onCommentAdded: (ideaId: number) => void
 }
 
 function DetailPanel(p: DetailPanelProps) {
   const { selected } = p
   const sc = STATUS_COLORS[selected.status]
   const inputCls = 'w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 text-stone-700 bg-white'
+
+  const [comments, setComments] = useState<IdeaComment[]>([])
+  const [commentBody, setCommentBody] = useState('')
+  const [commentAuthor, setCommentAuthor] = useState(TEAM_MEMBERS[0])
+  const [commentSaving, setCommentSaving] = useState(false)
+
+  useEffect(() => {
+    setComments([])
+    supabase.from('idea_comments').select('*').eq('idea_id', selected.id).order('created_at', { ascending: true })
+      .then(({ data }) => { if (data) setComments(data as IdeaComment[]) })
+  }, [selected.id])
+
+  async function submitComment(e: React.FormEvent) {
+    e.preventDefault()
+    if (!commentBody.trim()) return
+    setCommentSaving(true)
+    const { data } = await supabase.from('idea_comments').insert({
+      idea_id: selected.id, author: commentAuthor || null, content: commentBody.trim(),
+    }).select().single()
+    if (data) {
+      setComments(prev => [...prev, data as IdeaComment])
+      p.onCommentAdded(selected.id)
+    }
+    setCommentBody('')
+    setCommentSaving(false)
+  }
+
+  async function deleteComment(id: string) {
+    await supabase.from('idea_comments').delete().eq('id', id)
+    setComments(prev => prev.filter(c => c.id !== id))
+  }
 
   return (
     <div className="space-y-4 pb-4">
@@ -621,6 +692,63 @@ function DetailPanel(p: DetailPanelProps) {
           )}
         </div>
       </div>
+
+      {/* Comments card */}
+      {!p.editing && (
+        <div className="bg-white rounded-xl overflow-hidden" style={{ border: '0.5px solid #e8e0d5' }}>
+          <div className="px-5 py-3 flex items-center gap-2"
+            style={{ borderBottom: '0.5px solid #f0ece6', background: '#fdfcfb' }}>
+            <MessageSquare size={13} className="text-stone-400" />
+            <p className="text-sm font-bold text-stone-700">Comments</p>
+            {comments.length > 0 && (
+              <span className="text-[10px] text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-full">{comments.length}</span>
+            )}
+          </div>
+          <div className="px-5 py-4 space-y-4">
+            {comments.length > 0 && (
+              <div className="space-y-3">
+                {comments.map(c => {
+                  const authorColor = c.author ? (AUTHOR_COLORS[c.author] ?? '#a8a29e') : '#a8a29e'
+                  const initials = c.author ? c.author.slice(0, 2).toUpperCase() : '??'
+                  return (
+                    <div key={c.id} className="group flex gap-2.5">
+                      <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-white text-[9px] font-bold mt-0.5"
+                        style={{ background: authorColor }}>
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2 mb-0.5">
+                          <span className="text-xs font-semibold text-stone-700">{c.author ?? 'Anonymous'}</span>
+                          <span className="text-[10px] text-stone-300">{fmtRelative(c.created_at)}</span>
+                          <button onClick={() => deleteComment(c.id)}
+                            className="ml-auto p-0.5 text-stone-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all rounded">
+                            <X size={11} />
+                          </button>
+                        </div>
+                        <p className="text-xs text-stone-600 leading-relaxed whitespace-pre-wrap">{c.content}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            <form onSubmit={submitComment} className="space-y-2">
+              <textarea className={inputCls + ' resize-none bg-stone-50'} rows={3} placeholder="Add a comment..."
+                value={commentBody} onChange={e => setCommentBody(e.target.value)} />
+              <div className="flex gap-2">
+                <select className={inputCls} value={commentAuthor} onChange={e => setCommentAuthor(e.target.value)}>
+                  {TEAM_MEMBERS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+                <button type="submit" disabled={commentSaving || !commentBody.trim()}
+                  className="px-4 py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium whitespace-nowrap"
+                  style={{ background: 'var(--gold)' }}>
+                  {commentSaving ? 'Posting...' : 'Post'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Budget card — Active only */}
       {selected.status === 'Active' && !p.editing && (

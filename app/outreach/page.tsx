@@ -1,6 +1,6 @@
 ﻿'use client'
 import { useState, useEffect } from 'react'
-import { Megaphone, Plus, X, Pencil, Trash2, ChevronDown } from 'lucide-react'
+import { Megaphone, Plus, X, Pencil, Trash2, ChevronDown, MessageSquare } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
@@ -29,6 +29,23 @@ const goldBtn = { background: 'var(--gold)' }
 
 const EMPTY_FORM = { area: '', title: '', contact: '', linked_donor_id: null as string | null, date: '', status: 'planned' as OutreachStatus, notes: '', submitted_by: '' }
 
+interface OutreachComment {
+  id: string; entry_id: string; author: string; content: string; created_at: string
+}
+const TEAM_MEMBERS = ['Kaelen', 'Haley', 'Derek']
+const AUTHOR_COLORS: Record<string, string> = { Kaelen: '#886c44', Haley: '#5a7a8a', Derek: '#6b7c5a' }
+function fmtRelative(ts: string): string {
+  const diff = Date.now() - new Date(ts).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24) return `${hrs}h ago`
+  const days = Math.floor(hrs / 24)
+  if (days < 7) return `${days}d ago`
+  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
 /* â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 export default function OutreachPage() {
   const [contacts, setContacts] = useState<MentionItem[]>([])
@@ -46,6 +63,12 @@ export default function OutreachPage() {
 
   const [filterArea, setFilterArea] = useState<string>('all')
   const [filterStatus, setFilterStatus] = useState<OutreachStatus | 'all'>('all')
+  const [comments, setComments] = useState<OutreachComment[]>([])
+  const [commentsLoaded, setCommentsLoaded] = useState(false)
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({})
+  const [newComment, setNewComment] = useState('')
+  const [commentAuthor, setCommentAuthor] = useState(TEAM_MEMBERS[0])
+  const [savingComment, setSavingComment] = useState(false)
 
   /* â”€â”€ Load â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   useEffect(() => {
@@ -53,6 +76,12 @@ export default function OutreachPage() {
     if (cached) setEntries(cached)
     supabase.from('outreach_entries').select('*').order('area').order('created_at', { ascending: false })
       .then(({ data }) => { if (data) { setEntries(data as OutreachEntry[]); cacheWrite('outreach', data, TTL_SHORT) } })
+    supabase.from('outreach_comments').select('entry_id')
+      .then(({ data }) => {
+        const counts: Record<string, number> = {}
+        for (const row of (data ?? []) as { entry_id: string }[]) counts[row.entry_id] = (counts[row.entry_id] ?? 0) + 1
+        setCommentCounts(counts)
+      })
 
     Promise.all([
       supabase.from('donors').select('id, formal_name').order('formal_name'),
@@ -70,6 +99,14 @@ export default function OutreachPage() {
       setContacts([...donorItems, ...sponsorItems])
     })
   }, [])
+
+  useEffect(() => {
+    if (!selected) { setComments([]); setCommentsLoaded(false); return }
+    setCommentsLoaded(false)
+    supabase.from('outreach_comments').select('*').eq('entry_id', selected.id)
+      .order('created_at', { ascending: true })
+      .then(({ data }) => { setComments((data as OutreachComment[]) ?? []); setCommentsLoaded(true) })
+  }, [selected?.id])
 
   /* â”€â”€ Actions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   async function submitAdd(e: React.FormEvent) {
@@ -123,6 +160,20 @@ export default function OutreachPage() {
     await supabase.from('outreach_entries').delete().eq('id', id)
     setEntries(prev => prev?.filter(e => e.id !== id) ?? null)
     if (selected?.id === id) setSelected(null)
+  }
+
+  async function addComment() {
+    if (!newComment.trim() || !selected) return
+    setSavingComment(true)
+    const { data } = await supabase.from('outreach_comments')
+      .insert({ entry_id: selected.id, author: commentAuthor, content: newComment.trim() })
+      .select().single()
+    if (data) {
+      setComments(prev => [...prev, data as OutreachComment])
+      setCommentCounts(prev => ({ ...prev, [selected.id]: (prev[selected.id] ?? 0) + 1 }))
+    }
+    setNewComment('')
+    setSavingComment(false)
   }
 
   function toggleArea(area: string) {
@@ -321,6 +372,11 @@ export default function OutreachPage() {
                                         {new Date(entry.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                       </span>
                                     )}
+                                    {(commentCounts[entry.id] ?? 0) > 0 && (
+                                      <span className="flex items-center gap-0.5 text-[10px] font-medium text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded-full">
+                                        <MessageSquare size={9} /> {commentCounts[entry.id]}
+                                      </span>
+                                    )}
                                     <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[entry.status]}`}>
                                       {STATUS_LABELS[entry.status]}
                                     </span>
@@ -463,6 +519,49 @@ export default function OutreachPage() {
                       )}
                     </div>
                   )}
+
+                  {/* Comments */}
+                  <div className="border-t border-stone-100 pt-4 mt-4 space-y-3">
+                    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider">Comments</p>
+                    {comments.map(c => (
+                      <div key={c.id} className="flex gap-2.5">
+                        <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
+                          style={{ background: AUTHOR_COLORS[c.author] ?? 'var(--gold)' }}>
+                          {c.author[0]}
+                        </div>
+                        <div className="flex-1 bg-stone-50 rounded-lg px-3 py-2 border border-stone-100">
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-xs font-semibold text-stone-700">{c.author}</span>
+                            <span className="text-[10px] text-stone-400">{fmtRelative(c.created_at)}</span>
+                          </div>
+                          <p className="text-xs text-stone-600 leading-relaxed whitespace-pre-wrap">{c.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                    {commentsLoaded && comments.length === 0 && (
+                      <p className="text-[11px] text-stone-300 italic">No comments yet.</p>
+                    )}
+                    <div className="flex gap-2 items-start pt-1">
+                      <select value={commentAuthor} onChange={e => setCommentAuthor(e.target.value)}
+                        className="border border-stone-200 rounded-lg px-2 py-1.5 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-600 flex-shrink-0">
+                        {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
+                      </select>
+                      <div className="flex-1">
+                        <textarea
+                          className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 bg-stone-50"
+                          rows={2} placeholder="Leave a comment..."
+                          value={newComment} onChange={e => setNewComment(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment() } }}
+                        />
+                        <div className="flex justify-end mt-1">
+                          <button onClick={addComment} disabled={!newComment.trim() || savingComment}
+                            className="px-3 py-1 text-white text-xs rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>
+                            {savingComment ? 'Posting…' : 'Comment'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : null}
             </div>
