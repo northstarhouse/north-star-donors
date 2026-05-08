@@ -25,6 +25,10 @@ export interface Donor {
   employer: string | null
   address: string | null
   donor_notes: string | null
+  interests: string | null
+  background: string | null
+  nsh_contact: string | null
+  first_connected: string | null
   historical_lifetime_giving: number
   historical_donation_count: number
   starred: boolean

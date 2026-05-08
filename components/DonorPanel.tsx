@@ -66,6 +66,10 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
     phone: donor.phone ?? '',
     employer: donor.employer ?? '',
     address: donor.address ?? '',
+    interests: donor.interests ?? '',
+    background: donor.background ?? '',
+    nsh_contact: donor.nsh_contact ?? '',
+    first_connected: donor.first_connected ?? '',
   })
   const [editingDonationId, setEditingDonationId] = useState<string | null>(null)
   const [donationEdit, setDonationEdit] = useState<DonationEdit>({ amount: '', date: '', type: 'one-time', donation_notes: '' })
@@ -349,6 +353,61 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
                   </div>
                 )
               })}
+            </div>
+          </div>
+
+          {/* Profile */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Profile</h3>
+              <span className="text-[10px] text-stone-300 italic">Click any field to edit</span>
+            </div>
+            <div className="space-y-3">
+              {([
+                { field: 'nsh_contact', label: 'NSH Contact', type: 'select' },
+                { field: 'first_connected', label: 'How They First Connected', type: 'textarea' },
+                { field: 'interests', label: 'Interests', type: 'textarea' },
+                { field: 'background', label: 'Background', type: 'textarea' },
+              ] as { field: 'nsh_contact' | 'first_connected' | 'interests' | 'background'; label: string; type: string }[]).map(({ field, label, type }) => (
+                <div key={field}>
+                  <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">{label}</p>
+                  {editField === field ? (
+                    <div className="flex gap-1 mt-0.5">
+                      {type === 'select' ? (
+                        <select
+                          autoFocus
+                          className="flex-1 text-sm border border-stone-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white text-stone-700"
+                          value={editValues[field]}
+                          onChange={e => setEditValues(v => ({ ...v, [field]: e.target.value }))}
+                        >
+                          <option value="">— unassigned —</option>
+                          {['Kaelen', 'Haley', 'Derek'].map(m => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      ) : (
+                        <textarea
+                          autoFocus
+                          className="flex-1 text-sm border border-stone-200 rounded-lg px-2 py-1 resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
+                          rows={3}
+                          value={editValues[field]}
+                          onChange={e => setEditValues(v => ({ ...v, [field]: e.target.value }))}
+                        />
+                      )}
+                      <div className="flex flex-col gap-1">
+                        <button onClick={() => saveField(field)} className="px-2 py-1 text-white text-xs rounded-lg" style={goldBtn}>Save</button>
+                        <button onClick={() => setEditField(null)} className="px-2 py-1 bg-stone-100 text-stone-600 text-xs rounded-lg hover:bg-stone-200">✕</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p
+                      className="text-sm text-stone-700 cursor-pointer hover:bg-stone-50 rounded px-1 -mx-1 min-h-[1.5rem] py-0.5 group flex items-start gap-1 whitespace-pre-wrap"
+                      onClick={() => setEditField(field)}
+                    >
+                      <span className="flex-1">{editValues[field] || <span className="text-stone-300 italic text-xs">—</span>}</span>
+                      <Pencil size={10} className="text-stone-300 opacity-0 group-hover:opacity-100 flex-shrink-0 mt-1" />
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 

@@ -1,0 +1,5 @@
+ALTER TABLE donors
+  ADD COLUMN IF NOT EXISTS interests TEXT,
+  ADD COLUMN IF NOT EXISTS background TEXT,
+  ADD COLUMN IF NOT EXISTS nsh_contact TEXT,
+  ADD COLUMN IF NOT EXISTS first_connected TEXT;
