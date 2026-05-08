@@ -88,7 +88,10 @@ export default function TeamMemberClient({ member }: { member: string }) {
           .order('created_at', { ascending: true }),
       ])
       if (tasksRes.data) setTasks(tasksRes.data as Task[])
-      if (entriesRes.data) setEntries(entriesRes.data as FocusEntry[])
+      if (entriesRes.data) setEntries((entriesRes.data as FocusEntry[]).map(entry => ({
+        ...entry,
+        section: entry.section || (entry.completed ? 'completed' : 'current')
+      })))
       setLoading(false)
     }
     load()
@@ -122,7 +125,7 @@ export default function TeamMemberClient({ member }: { member: string }) {
     setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updates } : e))
   }
 
-  const currentTasks    = tasks.filter(t => t.status === 'in_progress')
+  const currentTasks    = tasks.filter(t => t.status === 'todo' || t.status === 'in_progress')
   const completedTasks  = tasks.filter(t => t.status === 'done')
   const currentEntries  = entries.filter(e => e.section === 'current')
   const completedEntries = entries.filter(e => e.section === 'completed')
