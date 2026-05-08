@@ -16,6 +16,7 @@ function CoordIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; strokeWid
 
 const MAIN_NAV = [
   { id: 'dashboard', label: 'Development', icon: LayoutDashboard, href: '/' },
+  { id: 'meetings', label: 'Meetings', icon: ClipboardList, href: '/meetings/' },
   { id: 'outreach', label: 'Outreach', icon: Megaphone, href: '/outreach/' },
   { id: 'data', label: 'Data', icon: BarChart2, href: '/data/' },
   { id: 'donations', label: 'Donations', icon: Heart, href: '/donations/' },
@@ -88,35 +89,10 @@ export default function Sidebar({ activePage }: Props) {
         <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)' }} />
         <nav style={{ flex: 1, padding: '8px 8px 0' }}>
           {MAIN_NAV.map(({ id, label, icon: Icon, href }) => (
-            <div key={id}>
-              <NavLink href={href} label={label} active={activePage === id}>
-                <Icon size={15} strokeWidth={1.75} />
-                {label}
-              </NavLink>
-              {id === 'dashboard' && (
-                <Link
-                  href="/meetings/"
-                  aria-label="Meetings"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 9,
-                    padding: '7px 12px 7px 28px',
-                    borderRadius: 7,
-                    marginBottom: 2,
-                    fontSize: 11,
-                    fontWeight: activePage === 'meetings' ? 600 : 400,
-                    background: activePage === 'meetings' ? 'rgba(181,161,133,0.15)' : 'transparent',
-                    color: activePage === 'meetings' ? '#f0ebe3' : 'rgba(255,255,255,0.35)',
-                    textDecoration: 'none',
-                    transition: 'background 0.15s, color 0.15s',
-                  }}
-                >
-                  <ClipboardList size={12} strokeWidth={1.75} />
-                  Meetings
-                </Link>
-              )}
-            </div>
+            <NavLink key={id} href={href} label={label} active={activePage === id}>
+              <Icon size={15} strokeWidth={1.75} />
+              {label}
+            </NavLink>
           ))}
 
           <button
