@@ -10,11 +10,19 @@ interface MeetingFile {
   type: 'agenda' | 'notes' | 'other'
 }
 
+interface AgendaSuggestion {
+  id: string
+  author: string
+  content: string
+  created_at: string
+}
+
 interface Meeting {
   id: number
   meeting_date: string
   meeting_time: string | null
   files: MeetingFile[]
+  suggestions: AgendaSuggestion[]
   created_at: string
 }
 
@@ -46,6 +54,9 @@ export default function MeetingsPage() {
   const [creating, setCreating] = useState(false)
   const [uploading, setUploading] = useState<'agenda' | 'notes' | 'other' | null>(null)
   const [preview, setPreview] = useState<{ name: string; url: string } | null>(null)
+  const [suggestionText, setSuggestionText] = useState('')
+  const [suggestionAuthor, setSuggestionAuthor] = useState('Kaelen')
+  const [savingSuggestion, setSavingSuggestion] = useState(false)
 
   const agendaRef = useRef<HTMLInputElement>(null)
   const notesRef = useRef<HTMLInputElement>(null)
@@ -62,7 +73,7 @@ export default function MeetingsPage() {
   }
 
   function select(m: Meeting) {
-    setSelected({ ...m, files: m.files ?? [] })
+    setSelected({ ...m, files: m.files ?? [], suggestions: m.suggestions ?? [] })
   }
 
   async function createMeeting() {
@@ -119,6 +130,33 @@ export default function MeetingsPage() {
     setMeetings(prev => prev?.map(m => m.id === selected.id ? updated : m) ?? null)
   }
 
+  async function addSuggestion() {
+    if (!selected || !suggestionText.trim()) return
+    setSavingSuggestion(true)
+    const suggestion: AgendaSuggestion = {
+      id: crypto.randomUUID(),
+      author: suggestionAuthor,
+      content: suggestionText.trim(),
+      created_at: new Date().toISOString(),
+    }
+    const newSuggestions = [...(selected.suggestions ?? []), suggestion]
+    await supabase.from('development_meetings').update({ suggestions: newSuggestions }).eq('id', selected.id)
+    const updated = { ...selected, suggestions: newSuggestions }
+    setSelected(updated)
+    setMeetings(prev => prev?.map(m => m.id === selected.id ? updated : m) ?? null)
+    setSuggestionText('')
+    setSavingSuggestion(false)
+  }
+
+  async function deleteSuggestion(id: string) {
+    if (!selected) return
+    const newSuggestions = selected.suggestions.filter(s => s.id !== id)
+    await supabase.from('development_meetings').update({ suggestions: newSuggestions }).eq('id', selected.id)
+    const updated = { ...selected, suggestions: newSuggestions }
+    setSelected(updated)
+    setMeetings(prev => prev?.map(m => m.id === selected.id ? updated : m) ?? null)
+  }
+
   async function deleteMeeting() {
     if (!selected || !confirm('Delete this meeting and all its files?')) return
     if (selected.files?.length) {
@@ -161,42 +199,6 @@ export default function MeetingsPage() {
             <Plus size={14} /> New Meeting
           </button>
         </div>
-
-        {/* Suggestions strip */}
-        {meetings !== null && (() => {
-          const suggestions: { m: Meeting; label: string; color: string }[] = []
-          const todayStr = new Date().toISOString().slice(0, 10)
-          // Next upcoming meeting(s)
-          const nextThree = [...upcoming].sort((a, b) => a.meeting_date.localeCompare(b.meeting_date)).slice(0, 3)
-          for (const m of nextThree) {
-            const files = m.files ?? []
-            const hasAgenda = files.some(f => f.type === 'agenda')
-            const daysAway = Math.round((new Date(m.meeting_date + 'T12:00:00').getTime() - new Date(todayStr + 'T12:00:00').getTime()) / 86400000)
-            const when = daysAway === 0 ? 'Today' : daysAway === 1 ? 'Tomorrow' : `In ${daysAway}d`
-            suggestions.push({ m, color: hasAgenda ? '#d1fae5' : '#fef3c7', label: `${when}${hasAgenda ? '' : ' · No agenda'}` })
-          }
-          // Most recent past meeting missing notes
-          const lastPast = [...past].sort((a, b) => b.meeting_date.localeCompare(a.meeting_date)).find(m => !(m.files ?? []).some(f => f.type === 'notes'))
-          if (lastPast) suggestions.push({ m: lastPast, color: '#f1f5f9', label: 'Notes missing' })
-          if (!suggestions.length) return null
-          return (
-            <div className="px-8 pb-4">
-              <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">Suggestions</p>
-              <div className="flex gap-2 flex-wrap">
-                {suggestions.map(({ m, label, color }) => (
-                  <button key={`${m.id}-${label}`} onClick={() => select(m)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl border border-stone-200 text-left transition-colors hover:border-amber-300"
-                    style={{ background: color }}>
-                    <span className="text-xs font-semibold text-stone-700">
-                      {new Date(m.meeting_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-                    <span className="text-[11px] text-stone-500">{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )
-        })()}
 
         <div className="px-8 pb-8 flex gap-5 flex-1 min-h-0">
           {/* Meeting list */}
@@ -264,6 +266,52 @@ export default function MeetingsPage() {
                   onPreview={f => setPreview({ name: f.name, url: publicUrl(f.path) })}
                   inputRef={notesRef}
                 />
+
+                {/* Agenda Suggestions */}
+                <div>
+                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-3 block">
+                    Agenda Suggestions {selected.suggestions?.length > 0 && `(${selected.suggestions.length})`}
+                  </label>
+                  {(selected.suggestions ?? []).length > 0 && (
+                    <div className="space-y-2 mb-3">
+                      {(selected.suggestions ?? []).map(s => (
+                        <div key={s.id} className="flex items-start gap-2 px-3 py-2.5 bg-stone-50 rounded-xl border border-stone-100">
+                          <div className="w-5 h-5 rounded-full flex-shrink-0 flex items-center justify-center text-[9px] font-bold text-white mt-0.5"
+                            style={{ background: s.author === 'Kaelen' ? '#886c44' : s.author === 'Haley' ? '#5a7a8a' : '#6b7c5a' }}>
+                            {s.author[0]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-baseline gap-1.5 mb-0.5">
+                              <span className="text-[11px] font-semibold text-stone-600">{s.author}</span>
+                              <span className="text-[10px] text-stone-300">{fmtDate(s.created_at.slice(0, 10))}</span>
+                            </div>
+                            <p className="text-sm text-stone-700 leading-snug">{s.content}</p>
+                          </div>
+                          <button onClick={() => deleteSuggestion(s.id)} className="p-1 text-stone-300 hover:text-red-400 flex-shrink-0 transition-colors">
+                            <X size={11} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <select className="border border-stone-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-200 text-stone-600 bg-white flex-shrink-0"
+                      value={suggestionAuthor} onChange={e => setSuggestionAuthor(e.target.value)}>
+                      {['Kaelen', 'Haley', 'Derek'].map(m => <option key={m}>{m}</option>)}
+                    </select>
+                    <input className="flex-1 border border-stone-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 text-stone-700 bg-white"
+                      placeholder="Suggest an agenda item…"
+                      value={suggestionText}
+                      onChange={e => setSuggestionText(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && suggestionText.trim()) addSuggestion() }}
+                    />
+                    <button onClick={addSuggestion} disabled={!suggestionText.trim() || savingSuggestion}
+                      className="px-3 py-1.5 text-white text-xs rounded-lg font-medium disabled:opacity-40 flex-shrink-0"
+                      style={{ background: 'var(--gold)' }}>
+                      {savingSuggestion ? '…' : 'Add'}
+                    </button>
+                  </div>
+                </div>
 
                 {/* Other attachments */}
                 <div>
