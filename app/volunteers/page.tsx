@@ -111,16 +111,18 @@ export default function VolunteersPage() {
   function buildMailto() {
     if (!modal) return '#'
     const bcc = modal.members.map(v => v.Email!.trim()).join(',')
-    const params = new URLSearchParams()
-    if (bcc) params.set('bcc', bcc)
-    if (subject) params.set('subject', subject)
-    if (body) params.set('body', body)
-    return `mailto:?${params.toString()}`
+    const parts: string[] = []
+    if (bcc) parts.push('bcc=' + encodeURIComponent(bcc))
+    if (subject) parts.push('subject=' + encodeURIComponent(subject))
+    if (body) parts.push('body=' + encodeURIComponent(body))
+    return 'mailto:?' + parts.join('&')
   }
 
   async function handleSend() {
     if (!modal) return
-    window.location.href = buildMailto()
+    const a = document.createElement('a')
+    a.href = buildMailto()
+    a.click()
     setSent(true)
     try {
       await supabase.from('volunteer_email_logs').insert({
