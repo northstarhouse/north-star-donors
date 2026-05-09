@@ -1,0 +1,2295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Post-meeting brief — North Star House · Development &amp; Outreach · May 7, 2026</title>
+<style>
+  :root {
+    /* Surface */
+    --paper:        #f1ede2;          /* parchment, slightly aged */
+    --paper-2:      #ebe5d3;
+    --ivory:        #fbf8ee;
+    --ivory-2:      #f7f1de;
+
+    /* Ink */
+    --ink:          #1a1815;
+    --ink-2:        #3a352f;
+    --ink-3:        #5e564b;
+    --ink-4:        #7d7466;
+
+    /* Heritage palette */
+    --green:        #1f3b2f;          /* hunter / heritage green */
+    --green-deep:   #16291f;
+    --green-2:      #2d5240;
+    --green-soft:   #c5cdc1;
+
+    --brick:        #a4382a;          /* brick red — accent */
+    --brick-deep:   #8a2d22;
+    --brick-soft:   #f1ddd5;
+
+    --brass:        #b58a3a;          /* muted brass — civic detail */
+    --brass-soft:   #e6d2a3;
+
+    --rule:         #d8cfb6;
+    --rule-soft:    #e7e0c9;
+
+    /* Tag fills (solid hex, never rgba) */
+    --tag-paper:    #ece4cf;
+    --tag-brick:    #f1ddd5;
+    --tag-green:    #d3dccf;
+    --tag-brass:    #ecdfba;
+
+    --serif: 'Iowan Old Style', Charter, 'Tiempos Headline', Georgia, Palatino, "Times New Roman", serif;
+    --sans:  'Iowan Old Style', Charter, Georgia, "Times New Roman", serif;
+    --mono:  "JetBrains Mono", "SF Mono", Consolas, Monaco, ui-monospace, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  strong { font-weight: 500; }
+  em { font-style: normal; color: var(--brick); }
+
+  a { color: var(--brick); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 0.5px; }
+  a:hover { color: var(--brick-deep); }
+  a:focus-visible { outline: 2px solid var(--brick); outline-offset: 2px; border-radius: 2px; }
+
+  button, select { font-family: var(--sans); font-size: 12px; cursor: pointer; }
+  button:focus-visible, select:focus-visible { outline: 2px solid var(--brick); outline-offset: 2px; }
+
+  /* ===== Layout ===== */
+  .shell {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 56px 96px;
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 56px;
+  }
+  main { min-width: 0; padding-top: 36px; }
+
+  /* ===== Sticky table of contents (desktop) ===== */
+  aside.toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    padding: 36px 24px 0 0;
+    border-right: 1px solid var(--rule);
+    height: calc(100vh - 24px);
+    overflow-y: auto;
+  }
+  .toc-eyebrow {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--ink-3);
+    margin: 0 0 16px;
+  }
+  .toc nav { display: flex; flex-direction: column; gap: 2px; }
+  .toc a {
+    display: grid;
+    grid-template-columns: 22px 1fr;
+    align-items: baseline;
+    gap: 4px;
+    color: var(--ink-2);
+    text-decoration: none;
+    font-size: 13.5px;
+    line-height: 1.4;
+    padding: 6px 8px 6px 10px;
+    border-left: 2px solid transparent;
+    margin-left: -10px;
+    transition: color .15s, border-color .15s;
+  }
+  .toc a:hover { color: var(--ink); border-left-color: var(--rule); }
+  .toc a.is-active { color: var(--brick); border-left-color: var(--brick); }
+  .toc-num {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-4);
+    letter-spacing: 0.4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .toc a.is-active .toc-num { color: var(--brick); }
+  .toc-tag {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--rule-soft);
+    font-family: var(--sans);
+    font-size: 10.5px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    line-height: 1.6;
+  }
+  .toc-tag b { color: var(--brick); font-weight: 500; letter-spacing: 1.4px; }
+  .toc-tag .dot { display: inline-block; width: 4px; height: 4px; margin: 0 6px 2px; border-radius: 50%; background: var(--brass); vertical-align: middle; }
+
+  /* ===== Masthead ===== */
+  .masthead {
+    border-bottom: 3px solid var(--green);
+    padding: 28px 0 24px;
+    margin-bottom: 36px;
+    position: relative;
+  }
+  .masthead::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 1px;
+    background: var(--brass);
+  }
+  .mast-grid {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: stretch;
+    gap: 24px;
+  }
+  .crest {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 110px;
+  }
+  .crest-block {
+    width: 110px;
+    height: 96px;
+    background: var(--green);
+    color: var(--ivory);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 8px;
+    border: 1px solid var(--green-deep);
+  }
+  .crest-block svg { display: block; }
+  .crest-block .crest-rule {
+    width: 56px;
+    height: 1px;
+    background: var(--brass-soft);
+    opacity: 0.85;
+  }
+  .crest-foot {
+    background: var(--green-deep);
+    color: var(--ivory-2);
+    font-family: var(--sans);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    font-size: 9.5px;
+    line-height: 1.35;
+    padding: 6px 4px 7px;
+  }
+  .crest-foot .yr { color: var(--brass-soft); display: block; letter-spacing: 1.6px; margin-top: 1px; }
+
+  .mast-title {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 4px 0 2px;
+    min-width: 0;
+  }
+  .mast-eyebrow {
+    font-family: var(--sans);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--ink-3);
+    margin: 0 0 2px;
+  }
+  .mast-eyebrow .mast-eyebrow-bar {
+    display: inline-block;
+    width: 22px; height: 1px;
+    background: var(--brass);
+    vertical-align: middle;
+    margin: 0 10px 3px 0;
+  }
+  h1.mast-title-text {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 56px;
+    line-height: 0.98;
+    letter-spacing: -0.6px;
+    margin: 4px 0 8px;
+    color: var(--ink);
+    text-transform: uppercase;
+    text-wrap: balance;
+  }
+  .mast-sub {
+    font-family: var(--serif);
+    font-size: 16px;
+    color: var(--ink-2);
+    margin: 0;
+    line-height: 1.4;
+  }
+  .mast-sub .sep {
+    display: inline-block;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--brass);
+    vertical-align: middle;
+    margin: 0 9px 3px;
+  }
+  .mast-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 22px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule-soft);
+    font-family: var(--sans);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    line-height: 1.4;
+    font-variant-numeric: tabular-nums;
+  }
+  .mast-meta .label { color: var(--ink-4); margin-right: 6px; letter-spacing: 1.2px; }
+  .mast-meta .val { color: var(--ink-2); letter-spacing: 0.6px; text-transform: none; font-size: 13px; font-family: var(--serif); }
+  .mast-meta .val .v-mono { font-variant-numeric: tabular-nums; }
+
+  .mast-tag {
+    width: 130px;
+    border-left: 1px solid var(--rule-soft);
+    padding-left: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-start;
+  }
+  .mast-tag svg { display: block; margin-bottom: 14px; }
+  .civic {
+    font-family: var(--sans);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2.2px;
+    color: var(--ink-3);
+    text-align: right;
+    line-height: 2.1;
+  }
+  .civic .word { display: block; }
+  .civic .word + .word::before {
+    content: "·";
+    display: block;
+    color: var(--brass);
+    margin: -4px 0;
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  /* ===== Sections ===== */
+  section { margin-top: 56px; scroll-margin-top: 24px; }
+  .section-head { margin-bottom: 22px; }
+  .section-num {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    color: var(--brick);
+    letter-spacing: 2px;
+    margin: 0 0 8px;
+    text-transform: uppercase;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-num::before {
+    content: "";
+    display: inline-block;
+    width: 22px; height: 1px;
+    background: var(--brick);
+  }
+  h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 30px;
+    line-height: 1.15;
+    margin: 0 0 6px;
+    color: var(--ink);
+    letter-spacing: -0.2px;
+  }
+  .section-lede {
+    font-size: 14.5px;
+    color: var(--ink-3);
+    margin: 6px 0 0;
+    max-width: 720px;
+    line-height: 1.55;
+  }
+
+  /* ===== Executive read ===== */
+  .exec {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    gap: 36px;
+    align-items: start;
+    margin-bottom: 28px;
+  }
+  .exec-lead {
+    font-family: var(--serif);
+    font-size: 19px;
+    line-height: 1.45;
+    color: var(--ink);
+    margin: 0;
+    text-wrap: pretty;
+  }
+  .exec-lead .pivot { color: var(--brick); }
+  .exec-lead p { margin: 0; }
+  .exec-lead p + p { margin-top: 12px; font-size: 16px; color: var(--ink-2); line-height: 1.55; }
+  .exec-aside {
+    border-left: 1px solid var(--rule);
+    padding-left: 22px;
+  }
+  .exec-aside h4 {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--ink-4);
+    margin: 0 0 10px;
+  }
+  .exec-aside ul { list-style: none; padding: 0; margin: 0; }
+  .exec-aside li {
+    position: relative;
+    padding-left: 16px;
+    margin-bottom: 8px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.45;
+  }
+  .exec-aside li::before {
+    content: "\2013";
+    position: absolute;
+    left: 0;
+    color: var(--brick);
+  }
+  .exec-aside li:last-child { margin-bottom: 0; }
+
+  /* ===== Status strip (signal cards) ===== */
+  .strip {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 6px;
+  }
+  .signal {
+    background: var(--ivory);
+    border: 1px solid var(--rule);
+    border-top: 3px solid var(--green);
+    border-radius: 4px;
+    padding: 16px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+  .signal.s-blocked { border-top-color: var(--brick); }
+  .signal.s-go      { border-top-color: var(--green); }
+  .signal.s-watch   { border-top-color: var(--brass); }
+  .signal.s-locked  { border-top-color: var(--green-2); }
+  .signal-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .signal-icon {
+    flex-shrink: 0;
+    width: 22px; height: 22px;
+    color: var(--green);
+  }
+  .signal.s-blocked .signal-icon { color: var(--brick); }
+  .signal.s-watch .signal-icon { color: var(--brass); }
+  .signal-title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 14.5px;
+    color: var(--ink);
+    line-height: 1.2;
+    margin: 0;
+  }
+  .signal-status {
+    font-family: var(--sans);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--green);
+    font-variant-numeric: tabular-nums;
+    margin: 0;
+  }
+  .signal.s-blocked .signal-status { color: var(--brick); }
+  .signal.s-watch   .signal-status { color: var(--brass); }
+  .signal.s-locked  .signal-status { color: var(--green-2); }
+  .signal-body {
+    font-size: 12.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin: 0;
+  }
+  .signal-body b { color: var(--ink); font-weight: 500; }
+
+  /* ===== This week — priority cards ===== */
+  .priority {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 18px;
+    counter-reset: pri;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .pri-card {
+    counter-increment: pri;
+    background: var(--ivory);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 18px 18px 14px 60px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .pri-card::before {
+    content: counter(pri, decimal-leading-zero);
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--brick);
+    color: var(--ivory);
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.4px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .pri-card h4 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 16.5px;
+    color: var(--ink);
+    line-height: 1.3;
+    margin: 0;
+  }
+  .pri-card p {
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin: 0;
+  }
+  .pri-meta {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 14px;
+    margin: 8px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--rule-soft);
+  }
+  .pri-meta > div { min-width: 0; }
+  .pri-meta dt {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--ink-4);
+    margin: 0 0 2px;
+  }
+  .pri-meta dd {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: var(--ink-2);
+  }
+  .pri-meta dd.wait   { color: var(--ink-2); }
+
+  /* ===== Waiting for an answer (block lane) ===== */
+  .blockers {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .bcard {
+    background: var(--ivory);
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--brick);
+    border-radius: 4px;
+    padding: 16px 18px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .bcard .bkicker {
+    font-family: var(--sans);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--brick);
+    margin: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .bcard h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 16px;
+    color: var(--ink);
+    line-height: 1.3;
+    margin: 0;
+  }
+  .bcard .bbody {
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+    margin: 0;
+  }
+  .bcard .bfoot {
+    margin: 6px 0 0;
+    padding-top: 10px;
+    border-top: 1px solid var(--rule-soft);
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .bcard .bfoot .row {
+    font-family: var(--sans);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--ink-4);
+    line-height: 1.4;
+  }
+  .bcard .bfoot .row b {
+    color: var(--ink-3);
+    font-weight: 500;
+    margin-right: 6px;
+  }
+  .bcard .bfoot .row.risk b { color: var(--brick); }
+  .bcard .bfoot .row .v {
+    font-family: var(--serif);
+    font-size: 12px;
+    color: var(--ink-2);
+    text-transform: none;
+    letter-spacing: 0.2px;
+  }
+
+  /* ===== Decisions / signals card grid ===== */
+  .signals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+  }
+  .dcard {
+    background: var(--ivory);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 18px 18px 16px;
+    position: relative;
+  }
+  .dcard.is-decision { border-top: 2px solid var(--green); }
+  .dcard.is-signal   { border-top: 2px solid var(--brass); }
+  .dcard.is-flag     { border-top: 2px solid var(--brick); }
+  .dcard .kicker {
+    font-family: var(--sans);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--green);
+    margin: 0 0 8px;
+  }
+  .dcard.is-signal   .kicker { color: var(--brass); }
+  .dcard.is-flag     .kicker { color: var(--brick); }
+  .dcard h3 {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 16px;
+    margin: 0 0 8px;
+    color: var(--ink);
+    line-height: 1.25;
+  }
+  .dcard p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+
+  /* ===== Tags ===== */
+  .tag {
+    display: inline-block;
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 10.5px;
+    line-height: 1;
+    padding: 3px 8px;
+    border-radius: 3px;
+    color: var(--ink-2);
+    background: var(--tag-paper);
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+  }
+  .tag.brick { background: var(--tag-brick); color: var(--brick-deep); }
+  .tag.green { background: var(--tag-green); color: var(--green-deep); }
+  .tag.brass { background: var(--tag-brass); color: var(--ink-2); }
+
+  /* ===== Document control bar ===== */
+  .doc-control {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+    align-items: baseline;
+    margin: 14px 0 18px;
+    padding: 12px 16px;
+    background: var(--paper-2);
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+  }
+  .doc-control-label {
+    font-family: var(--sans);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--ink-3);
+  }
+  .doc-control select {
+    appearance: none;
+    -webkit-appearance: none;
+    background: var(--ivory) url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%235e564b' stroke-width='1.2'%3E%3Cpath d='M3 4.5 L6 7.5 L9 4.5'/%3E%3C/svg%3E") no-repeat right 8px center;
+    background-size: 10px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    padding: 5px 26px 5px 10px;
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .doc-control select:hover { background-color: var(--ivory-2); }
+  .doc-control .ctl-spacer { flex: 1; min-width: 8px; }
+  .ctl-link {
+    background: transparent;
+    border: 1px solid var(--rule);
+    color: var(--ink-2);
+    border-radius: 3px;
+    padding: 5px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    font-weight: 500;
+    transition: border-color .15s, color .15s;
+  }
+  .ctl-link:hover { border-color: var(--brick); color: var(--brick); }
+
+  /* ===== Workstreams (details/summary) ===== */
+  details.cat {
+    border-top: 1px solid var(--rule);
+    padding: 0;
+    transition: opacity 0.15s;
+  }
+  details.cat:last-of-type { border-bottom: 1px solid var(--rule); }
+  details.cat[hidden] { display: none; }
+
+  details.cat > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 18px 0 18px;
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 14px;
+  }
+  details.cat > summary::-webkit-details-marker { display: none; }
+  details.cat > summary:focus-visible {
+    outline: 2px solid var(--brick);
+    outline-offset: 4px;
+    border-radius: 3px;
+  }
+  .ws-icon {
+    width: 22px; height: 22px;
+    color: var(--green);
+    flex-shrink: 0;
+  }
+  .ws-title {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 19px;
+    line-height: 1.25;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+  }
+  .ws-num {
+    font-family: var(--mono);
+    color: var(--brick);
+    font-size: 11.5px;
+    letter-spacing: 0.4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .ws-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ws-count {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    color: var(--brick);
+    background: var(--tag-brick);
+    padding: 3px 9px;
+    border-radius: 999px;
+    letter-spacing: 0.4px;
+    font-variant-numeric: tabular-nums;
+    min-width: 26px;
+    text-align: center;
+  }
+  .ws-caret {
+    width: 10px;
+    height: 10px;
+    border-right: 1.5px solid var(--ink-3);
+    border-bottom: 1.5px solid var(--ink-3);
+    transform: rotate(45deg) translate(-2px, -2px);
+    transition: transform .15s;
+    margin-left: 0;
+  }
+  details.cat[open] > summary .ws-caret {
+    transform: rotate(-135deg) translate(-2px, -2px);
+  }
+
+  .cat-body {
+    padding: 4px 0 28px 36px;
+  }
+  .ws-brief {
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.45;
+    color: var(--ink-2);
+    margin: 0 0 22px;
+    padding: 0 0 18px;
+    border-bottom: 1px solid var(--rule-soft);
+    max-width: 760px;
+    text-wrap: pretty;
+  }
+  .ws-brief b { color: var(--ink); font-weight: 500; }
+  .cat-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+    gap: 36px;
+  }
+  .ws-block { margin-bottom: 20px; }
+  .ws-block:last-child { margin-bottom: 0; }
+  .ws-label {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--brick);
+    margin: 0 0 8px;
+    display: block;
+  }
+  .ws-block ul.dash {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .ws-block ul.dash li {
+    position: relative;
+    padding-left: 16px;
+    margin-bottom: 6px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-2);
+    text-wrap: pretty;
+  }
+  .ws-block ul.dash li::before {
+    content: "\2013";
+    position: absolute;
+    left: 0;
+    color: var(--brick);
+  }
+  .ws-next p, .ws-open p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--ink-2);
+  }
+  .ws-next p {
+    padding: 10px 14px;
+    background: var(--paper-2);
+    border-left: 2px solid var(--green);
+    border-radius: 0 3px 3px 0;
+  }
+  .ws-next p .who {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--green-deep);
+    margin-right: 8px;
+    font-weight: 500;
+  }
+  .ws-next p .when {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+    color: var(--brick);
+    margin-left: 6px;
+    font-weight: 500;
+  }
+  .ws-open p {
+    padding: 10px 14px;
+    background: var(--paper);
+    border-left: 2px solid var(--brick);
+    border-radius: 0 3px 3px 0;
+  }
+  .cat-aside {
+    border-left: 1px solid var(--rule-soft);
+    padding-left: 22px;
+  }
+  .cat-aside .stat { margin-bottom: 20px; }
+  .cat-aside .stat:last-child { margin-bottom: 0; }
+  .cat-aside .stat .v {
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 22px;
+    color: var(--brick);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+  .cat-aside .stat .l {
+    font-family: var(--sans);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--ink-3);
+    margin-top: 4px;
+    line-height: 1.45;
+  }
+
+  /* ===== Action register (secondary, table-only) ===== */
+  .actions-wrap {
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+    background: var(--ivory);
+    overflow: hidden;
+  }
+  table.actions {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  table.actions th, table.actions td {
+    text-align: left;
+    padding: 9px 12px;
+    border-bottom: 1px solid var(--rule-soft);
+    vertical-align: top;
+  }
+  table.actions thead th {
+    font-family: var(--sans);
+    font-size: 9.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--ink-4);
+    font-weight: 500;
+    background: var(--paper-2);
+    border-bottom: 1px solid var(--rule);
+  }
+  table.actions tbody tr:last-child td { border-bottom: none; }
+  table.actions td.action { color: var(--ink-2); line-height: 1.45; }`n  table.actions td.cat { font-family: var(--sans); font-size: 9.5px; text-transform: uppercase; letter-spacing: 1px; }
+  .pill {
+    display: inline-block;
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 9.5px;
+    line-height: 1;
+    padding: 3px 7px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: var(--tag-paper);
+    color: var(--ink-2);
+  }
+  .pill.now    { background: var(--tag-brick); color: var(--brick-deep); }
+  .pill.month  { background: var(--tag-brass); color: var(--ink-2); }
+  .pill.later  { background: var(--tag-paper); color: var(--ink-3); }
+  .pill.go     { background: var(--tag-green); color: var(--green-deep); }
+  .pill.unknown{ background: var(--paper-2); color: var(--ink-4); }
+
+  /* ===== Open questions (residual) ===== */
+  .questions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  .qcard {
+    background: var(--ivory);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 16px 18px 14px;
+  }
+  .qcard h4 {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--brick);
+    margin: 0 0 10px;
+  }
+  .qcard ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .qcard li {
+    position: relative;
+    padding-left: 18px;
+    margin-bottom: 8px;
+    font-size: 13.5px;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .qcard li::before {
+    content: "?";
+    position: absolute;
+    left: 0;
+    top: -1px;
+    color: var(--brick);
+    font-family: var(--serif);
+    font-weight: 500;
+  }
+  .qcard li:last-child { margin-bottom: 0; }
+
+  /* ===== Supporting detail (appendix) ===== */
+  details.app {
+    border-top: 1px solid var(--rule);
+    padding: 0;
+  }
+  details.app:last-of-type { border-bottom: 1px solid var(--rule); }
+  details.app > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 16px 0;
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 17px;
+    color: var(--ink);
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    gap: 14px;
+    align-items: baseline;
+  }
+  details.app > summary::-webkit-details-marker { display: none; }
+  details.app > summary:focus-visible { outline: 2px solid var(--brick); outline-offset: 4px; border-radius: 3px; }
+  .app-num {
+    font-family: var(--mono);
+    color: var(--brick);
+    font-size: 11px;
+    letter-spacing: 0.4px;
+    font-variant-numeric: tabular-nums;
+  }
+  details.app .app-time {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-4);
+    letter-spacing: 0.4px;
+    font-variant-numeric: tabular-nums;
+  }
+  .app-body {
+    padding: 0 0 22px 36px;
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.55;
+  }
+  .app-body h5 {
+    font-family: var(--sans);
+    font-weight: 500;
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.6px;
+    color: var(--brick);
+    margin: 16px 0 8px;
+  }
+  .app-body h5:first-child { margin-top: 0; }
+  .app-body p { margin: 0 0 10px; max-width: 760px; }
+  .app-body ul {
+    list-style: none;
+    margin: 0 0 14px;
+    padding: 0;
+  }
+  .app-body ul li {
+    position: relative;
+    padding-left: 16px;
+    margin-bottom: 6px;
+  }
+  .app-body ul li::before {
+    content: "\2013";
+    position: absolute;
+    left: 0;
+    color: var(--brick);
+  }
+
+  /* ===== Footer ===== */
+  footer.foot {
+    margin-top: 80px;
+    padding: 18px 56px;
+    background: var(--green);
+    color: var(--ivory-2);
+    font-family: var(--sans);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: center;
+    line-height: 1.6;
+  }
+  footer.foot .sep {
+    display: inline-block;
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--brass-soft);
+    vertical-align: middle;
+    margin: 0 12px 3px;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 1180px) {
+    .strip { grid-template-columns: 1fr 1fr 1fr; }
+  }
+  @media (max-width: 1100px) {
+    .signals-grid { grid-template-columns: 1fr 1fr; }
+    .blockers { grid-template-columns: 1fr 1fr; }
+    .exec { grid-template-columns: 1fr; gap: 22px; }
+    .exec-aside { border-left: none; border-top: 1px solid var(--rule); padding: 18px 0 0; }
+  }
+  @media (max-width: 980px) {
+    .shell { grid-template-columns: 1fr; gap: 24px; padding: 0 24px 64px; }
+    main { padding-top: 0; }
+    aside.toc {
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--rule);
+      padding: 18px 0 18px;
+    }
+    .toc nav {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+    }
+    .toc a {
+      padding: 4px 8px;
+      border-left: none;
+      margin-left: 0;
+      font-size: 12.5px;
+      grid-template-columns: 18px 1fr;
+    }
+    .toc a.is-active { border-left: none; border-bottom: 2px solid var(--brick); }
+    .toc-tag { display: none; }
+    .mast-grid {
+      grid-template-columns: auto 1fr;
+      gap: 18px;
+    }
+    .mast-tag {
+      grid-column: 1 / -1;
+      width: auto;
+      border-left: none;
+      border-top: 1px solid var(--rule-soft);
+      padding: 14px 0 0;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 6px;
+    }
+    .mast-tag svg { margin: 0; }
+    .civic { line-height: 1.4; }
+    h1.mast-title-text { font-size: 40px; }
+    .mast-meta { font-size: 11px; gap: 4px 16px; }
+    .strip { grid-template-columns: 1fr 1fr; }
+    .priority { grid-template-columns: 1fr; }
+    .blockers { grid-template-columns: 1fr; }
+    .signals-grid, .questions, .cat-cols { grid-template-columns: 1fr; gap: 14px; }
+    .cat-aside { border-left: none; border-top: 1px solid var(--rule-soft); padding: 14px 0 0; }
+    .cat-body { padding-left: 0; }
+    .app-body { padding-left: 0; }
+    table.actions { font-size: 12px; }
+    table.actions th, table.actions td { padding: 8px 9px; }
+    h2 { font-size: 24px; }
+    .exec-lead { font-size: 17px; }
+    footer.foot { padding: 16px 24px; }
+  }
+  @media (max-width: 600px) {
+    .shell { padding: 0 18px 48px; }
+    .mast-grid { grid-template-columns: 1fr; }
+    .crest { flex-direction: row; width: auto; align-items: stretch; }
+    .crest-block { width: 80px; height: 70px; }
+    .crest-foot { flex: 1; padding: 8px 12px; text-align: left; }
+    h1.mast-title-text { font-size: 32px; letter-spacing: -0.4px; }
+    .mast-meta { gap: 4px 12px; padding-top: 12px; }
+    .doc-control { padding: 10px 12px; }
+    .strip { grid-template-columns: 1fr; }
+    .pri-meta { grid-template-columns: 1fr 1fr; }
+    table.actions thead { display: none; }
+    table.actions tbody, table.actions tr, table.actions td { display: block; width: 100%; }
+    table.actions tr {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--rule-soft);
+    }
+    table.actions td { padding: 4px 0; border: none; }
+    table.actions td.action { font-size: 14px; margin-bottom: 6px; }
+    table.actions td::before {
+      content: attr(data-label) " ";
+      font-family: var(--sans);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--ink-4);
+      margin-right: 6px;
+    }
+    table.actions td.action::before { display: none; }
+  }
+
+  /* ===== Print ===== */
+  @media print {
+    @page { size: Letter; margin: 14mm 16mm; }
+    body { background: var(--paper); }
+    .shell { display: block; padding: 0; max-width: none; }
+    aside.toc, .doc-control { display: none; }
+    main { padding-top: 0; }
+    .masthead { padding-top: 0; margin-bottom: 24px; }
+    details.cat, details.app { break-inside: avoid; }
+    details.cat[hidden] { display: block !important; }
+    details.cat > summary, details.app > summary { cursor: default; }
+    details > summary ~ * { display: revert !important; }
+    details { display: block; }
+    .ws-caret { display: none; }
+    section, .strip, .priority, .signals-grid, .blockers, .actions-wrap, .qcard, .cat-cols, .pri-card, .bcard { break-inside: avoid; }
+    h1, h2 { break-after: avoid; }
+    a { color: var(--ink); text-decoration: none; }
+    footer.foot { background: transparent; color: var(--ink-3); border-top: 1px solid var(--rule); margin-top: 40px; padding: 16px 0; }
+    footer.foot .sep { background: var(--brass); }
+  }
+
+  .vh {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <aside class="toc" aria-label="Section navigation">
+    <p class="toc-eyebrow">On this page</p>
+    <nav id="toc">
+      <a href="#read"><span class="toc-num">01</span><span>Executive read</span></a>
+      <a href="#week"><span class="toc-num">02</span><span>Immediate work</span></a>
+      <a href="#waiting"><span class="toc-num">03</span><span>Waiting for an answer</span></a>
+      <a href="#decisions"><span class="toc-num">04</span><span>Decisions and signals</span></a>
+      <a href="#workstreams"><span class="toc-num">05</span><span>Workstreams</span></a>
+      <a href="#actions"><span class="toc-num">06</span><span>Action register</span></a>
+      <a href="#questions"><span class="toc-num">07</span><span>Open questions</span></a>
+      <a href="#detail"><span class="toc-num">08</span><span>Supporting detail</span></a>
+    </nav>
+    <p class="toc-tag">
+      <b>Preserve</b><span class="dot"></span>
+      <b>Educate</b><span class="dot"></span>
+      <b>Inspire</b>
+    </p>
+  </aside>
+
+  <main>
+
+    <!-- ===== Masthead ===== -->
+    <header class="masthead">
+      <div class="mast-grid">
+
+        <div class="crest" aria-label="North Star House crest">
+          <div class="crest-block">
+            <svg width="56" height="48" viewBox="0 0 56 48" fill="none" stroke="#fbf8ee" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">
+              <path d="M28 2 L29.4 6 L33.5 7.4 L29.4 8.8 L28 12.8 L26.6 8.8 L22.5 7.4 L26.6 6 Z" fill="#e6d2a3" stroke="#e6d2a3" stroke-width="0.6"/>
+              <path d="M10 46 L10 24 L28 14 L46 24 L46 46 Z"/>
+              <path d="M22 46 L22 30 L34 30 L34 46"/>
+              <path d="M40 23 L40 16 L43 16 L43 24"/>
+              <path d="M26 46 L26 38 L30 38 L30 46"/>
+              <rect x="14" y="32" width="5" height="6"/>
+              <rect x="37" y="32" width="5" height="6"/>
+              <path d="M6 46 L50 46" stroke-width="1.6"/>
+            </svg>
+            <span class="crest-rule" aria-hidden="true"></span>
+          </div>
+          <div class="crest-foot">
+            North Star House
+            <span class="yr">Built 1905</span>
+          </div>
+        </div>
+
+        <div class="mast-title">
+          <div>
+            <p class="mast-eyebrow"><span class="mast-eyebrow-bar"></span>Historic Conservancy &middot; Grass Valley, California</p>
+            <h1 class="mast-title-text">Post-meeting brief</h1>
+            <p class="mast-sub">May 7, 2026<span class="sep" aria-hidden="true"></span>Development &amp; Outreach Committee</p>
+          </div>
+          <dl class="mast-meta">
+            <div><span class="label">Time</span><span class="val v-mono">10:00 AM &ndash; 12:15 PM PDT</span></div>
+            <div><span class="label">Duration</span><span class="val v-mono">2h 15m</span></div>
+            <div><span class="label">Attendees</span><span class="val">Kaelen, Haley, Derek (volunteer onboarding)</span></div>
+            <div><span class="label">Mentioned, not present</span><span class="val">Wynn, Ken, Jen, Barb, Cliff, Win, Tony, Zoe, Susan, Fred</span></div>
+          </dl>
+        </div>
+
+        <div class="mast-tag" aria-hidden="true">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="#b58a3a" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="32" cy="32" r="26" stroke-width="0.8"/>
+            <circle cx="32" cy="32" r="18" stroke-width="0.5"/>
+            <path d="M32 4 L36 30 L32 32 L28 30 Z" fill="#b58a3a"/>
+            <path d="M32 60 L28 34 L32 32 L36 34 Z" fill="#1f3b2f"/>
+            <path d="M4 32 L30 28 L32 32 L30 36 Z" fill="#b58a3a" opacity="0.8"/>
+            <path d="M60 32 L34 36 L32 32 L34 28 Z" fill="#1f3b2f" opacity="0.85"/>
+            <circle cx="32" cy="32" r="2" fill="#a4382a"/>
+            <text x="32" y="13" text-anchor="middle" font-family="Georgia, serif" font-size="6" fill="#1a1815" letter-spacing="0.5">N</text>
+          </svg>
+          <p class="civic">
+            <span class="word">Preserve</span>
+            <span class="word">Educate</span>
+            <span class="word">Inspire</span>
+          </p>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- ===== 01 Executive read ===== -->
+    <section id="read" aria-labelledby="read-h">
+      <div class="section-head">
+        <p class="section-num">01 &middot; Executive read</p>
+        <h2 id="read-h">What changed, what matters this week</h2>
+      </div>
+
+      <div class="exec">
+        <div class="exec-lead">
+          <p>Derek joined the development committee with sponsor outreach as his first lane and a working mailbox in place. <span class="pivot">Three threads interlock this week</span> &mdash; the sponsor packet, the membership push, and a new outreach mailbox: the email half of the campaign cannot ship until the mailbox is verified at Constant Contact and the tier ladder is fixed.</p>
+          <p>Tooling is in good shape; the donor list, the outreach app, and the website funnel are all running. The bottlenecks that remain are small, specific, and clustered.</p>
+        </div>
+        <div class="exec-aside" aria-label="At a glance">
+          <h4>At a glance</h4>
+          <ul>
+            <li><b>68</b> membership letters mailed; remainder pivots to email</li>
+            <li><b>$33k</b> in Google-attributed wedding revenue, Jan&ndash;Apr</li>
+            <li><b>5 + 5</b> sponsor outreach &mdash; past this month, new next</li>
+            <li><b>1</b> new committee member (Derek) onboarded</li>
+            <li><b>40</b> Mother&rsquo;s Day attendees &mdash; sold out (May 10)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="strip" role="list" aria-label="Status of major workstreams">
+
+        <div class="signal s-blocked" role="listitem">
+          <div class="signal-head">
+            <svg class="signal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3.5" y="6" width="17" height="13" rx="1"/>
+              <path d="M9 6 V4.5 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 V6"/>
+              <path d="M3.5 11 H20.5"/>
+            </svg>
+            <h3 class="signal-title">Sponsor packet</h3>
+          </div>
+          <p class="signal-status">Tier ladder pending</p>
+          <p class="signal-body">Four tiers drafted; <b>Presenting at $1,000</b> too generous. Add lower tiers, stretch upward, then bespoke cover letters can ship.</p>
+        </div>
+
+        <div class="signal s-blocked" role="listitem">
+          <div class="signal-head">
+            <svg class="signal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="5.5" width="18" height="13" rx="1"/>
+              <path d="M3.5 6 L12 13.5 L20.5 6"/>
+            </svg>
+            <h3 class="signal-title">Membership mailing</h3>
+          </div>
+          <p class="signal-status">68 mailed &middot; rest on hold</p>
+          <p class="signal-body"><b>68 letters out</b>; remainder converts to email at Wynn&rsquo;s request on postage cost. Email half is blocked by the mailbox.</p>
+        </div>
+
+        <div class="signal s-blocked" role="listitem">
+          <div class="signal-head">
+            <svg class="signal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="8"/>
+              <path d="M12 8 v4 l2.5 2.5"/>
+              <path d="M16 4.5 L19.5 4.5 L19.5 8"/>
+            </svg>
+            <h3 class="signal-title">Email infrastructure</h3>
+          </div>
+          <p class="signal-status">Split needed</p>
+          <p class="signal-body">Wynn currently catches all <b>admin@</b> traffic &mdash; bills mixed with forms and outreach. Stand up <b>info@</b> or <b>development@</b>, verify at Constant Contact.</p>
+        </div>
+
+        <div class="signal s-go" role="listitem">
+          <div class="signal-head">
+            <svg class="signal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="8" cy="9" r="3"/>
+              <circle cx="16" cy="9" r="3"/>
+              <path d="M3 19 c1-3.3 3.5-5 5-5 s4 1.7 5 5"/>
+              <path d="M11 19 c1-3.3 3.5-5 5-5 s4 1.7 5 5"/>
+            </svg>
+            <h3 class="signal-title">Partnerships</h3>
+          </div>
+          <p class="signal-status">Two doors opening</p>
+          <p class="signal-body"><b>Empire Mine</b> school-lunch wedge (Wednesday tour day) and <b>Nisenan Arts Gallery</b> via Arts Council intro &mdash; both ready to be opened.</p>
+        </div>
+
+        <div class="signal s-locked" role="listitem">
+          <div class="signal-head">
+            <svg class="signal-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 19 c0-3.5 3-6 7-6 s7 2.5 7 6"/>
+              <circle cx="12" cy="9" r="3"/>
+              <path d="M12 4 L12 6"/>
+              <path d="M16 5 L15 6.5"/>
+              <path d="M8 5 L9 6.5"/>
+            </svg>
+            <h3 class="signal-title">Mother&rsquo;s Day</h3>
+          </div>
+          <p class="signal-status">Sold out &middot; May 10</p>
+          <p class="signal-body">40 attendees, <b>sold out</b>. Cake replaced by half-price macarons via Jen. Post-event survey to be tested with permissions caveat.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ===== 02 This week ===== -->
+    <section id="week" aria-labelledby="week-h">
+      <div class="section-head">
+        <p class="section-num">02 &middot; Immediate work</p>
+        <h2 id="week-h">Immediate work</h2>
+        <p class="section-lede">The main moves surfaced by the meeting. Assignments, dates, and task status live in the task board.</p>
+      </div>
+
+      <ol class="priority" aria-label="Priority actions surfaced by the meeting">
+
+        <li class="pri-card">
+          <h4>Finalize the membership push</h4>
+          <p>Ship the email half of the campaign to everyone outside the 68 already mailed. Track replies and bounces closely.</p>
+          <dl class="pri-meta">
+            <div><dt>Waiting on</dt><dd class="wait">Mailbox + Constant Contact</dd></div>
+          </dl>
+        </li>
+
+        <li class="pri-card">
+          <h4>Finish the sponsor packet</h4>
+          <p>Add lower tiers, stretch upward, and recalibrate Presenting away from the $1,000 mark before any packet leaves the building.</p>
+          <dl class="pri-meta">
+            <div><dt>Risk</dt><dd class="wait">Underpriced packet ships to past sponsors</dd></div>
+          </dl>
+        </li>
+
+        <li class="pri-card">
+          <h4>Stand up the new outreach mailbox</h4>
+          <p>Create info@ or development@, register it as a Constant Contact verified sender, split it from Wynn&rsquo;s admin@ stream.</p>
+          <dl class="pri-meta">
+            <div><dt>Blocks</dt><dd class="wait">Email half of membership push</dd></div>
+          </dl>
+        </li>
+
+        <li class="pri-card">
+          <h4>Close out Derek&rsquo;s onboarding</h4>
+          <p>Confirm Derek has logged in to his mailbox and add him as a Workspace admin (or the appropriate role). Sponsor outreach is his first lane.</p>
+          <dl class="pri-meta">
+            <div><dt>Status</dt><dd class="wait">Mailbox issued; admin role pending</dd></div>
+          </dl>
+        </li>
+
+        <li class="pri-card">
+          <h4>Post the grant update</h4>
+          <p>Public-facing grant status update on the website &mdash; legibility for donors, board, and partners ahead of the next meeting.</p>
+          <dl class="pri-meta">
+            <div><dt>Workstream</dt><dd class="wait">Grants</dd></div>
+          </dl>
+        </li>
+
+      </ol>
+    </section>
+
+    <!-- ===== 03 Waiting for an answer ===== -->
+    <section id="waiting" aria-labelledby="waiting-h">
+      <div class="section-head">
+        <p class="section-num">03 &middot; Five questions before the work moves</p>
+        <h2 id="waiting-h">Waiting for an answer</h2>
+        <p class="section-lede">Decisions or facts not yet in hand. Each one gates a real next move. Surfaced here, then mirrored into open questions and workstreams below.</p>
+      </div>
+
+      <div class="blockers" role="list" aria-label="Blockers needing an answer">
+
+        <article class="bcard" role="listitem">
+          <p class="bkicker">01 &middot; Operations</p>
+          <h3>Which outreach address do we standardize on?</h3>
+          <p class="bbody">Pick one of <b>info@</b>, <b>development@</b>, or <b>media@</b>, and split it from Wynn&rsquo;s <b>admin@</b> stream. Constant Contact verification rides on this.</p>
+          <div class="bfoot">
+            <p class="row risk"><b>Risk</b><span class="v">Email half of the membership push stays blocked</span></p>
+          </div>
+        </article>
+
+        <article class="bcard" role="listitem">
+          <p class="bkicker">02 &middot; Membership</p>
+          <h3>Who told Maury Horn no &mdash; and why?</h3>
+          <p class="bbody">He had previously offered to fund a team to clear the upstairs and was turned down. Nobody on the call knew who said it. He is an <b>$8,000-history donor</b> who just re-emerged at Celtic Festival.</p>
+          <div class="bfoot">
+            <p class="row risk"><b>Risk</b><span class="v">Re-engaging without context reopens the wound</span></p>
+          </div>
+        </article>
+
+        <article class="bcard" role="listitem">
+          <p class="bkicker">03 &middot; Partnerships</p>
+          <h3>What is the respectful way into Nisenan?</h3>
+          <p class="bbody">Tribe-led classes and a possible Nisenan Arts Gallery (Ubaseo) collaboration via an Arts Council introduction. The <b>how</b> matters more than the <b>what</b>.</p>
+          <div class="bfoot">
+            <p class="row risk"><b>Risk</b><span class="v">A wrong-footed approach burns a long-form opportunity</span></p>
+          </div>
+        </article>
+
+        <article class="bcard" role="listitem">
+          <p class="bkicker">04 &middot; Marketing</p>
+          <h3>Mid-summer festival &mdash; go or defer?</h3>
+          <p class="bbody">Two months out, the magician partner is hard to reach, prep is thin. The decision shapes whether to book vendors now or print a flyer for next year.</p>
+          <div class="bfoot">
+            <p class="row risk"><b>Risk</b><span class="v">Late commitment = a thin event; early defer = strong one next year</span></p>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ===== 04 Decisions and signals ===== -->
+    <section id="decisions" aria-labelledby="decisions-h">
+      <div class="section-head">
+        <p class="section-num">04 &middot; What changed</p>
+        <h2 id="decisions-h">Decisions and signals</h2>
+        <p class="section-lede">What was agreed in the room, what shifted in the world, and what was flagged for attention before the next meeting.</p>
+      </div>
+
+      <div class="signals-grid">
+
+        <article class="dcard is-decision">
+          <p class="kicker">Decision &middot; committee</p>
+          <h3>Derek joins the development committee</h3>
+          <p>Volunteer role confirmed with sponsor outreach as the first lane. Mailbox issued via Gmail admin; access granted to the internal site. Workspace admin role still pending.</p>
+        </article>
+
+        <article class="dcard is-decision">
+          <p class="kicker">Decision &middot; sponsorship</p>
+          <h3>Five-and-five outreach cadence</h3>
+          <p>Five past sponsors this month, five new prospects next month. Bespoke cover letter on top of the packet referencing each past sponsor&rsquo;s history. Last year&rsquo;s board-assignment model produced almost no movement &mdash; this is a deliberate reset.</p>
+        </article>
+
+        <article class="dcard is-decision">
+          <p class="kicker">Decision &middot; sponsor packet</p>
+          <h3>Tier ladder needs widening</h3>
+          <p>Presenting sponsor at $1,000 too generous for the offering as drafted. Add lower tiers and stretch upward before the packet ships to anyone.</p>
+        </article>
+
+        <article class="dcard is-decision">
+          <p class="kicker">Decision &middot; membership</p>
+          <h3>Switch the unmailed list to email</h3>
+          <p>68 letters went out last week. Wynn pushed back on a full mailing on postage cost &mdash; the rest converts to email, tracked closely. Makes the new mailbox plus Constant Contact verification a blocker for the rest of the campaign.</p>
+        </article>
+
+        <article class="dcard is-signal">
+          <p class="kicker">Signal &middot; partnership lane opens</p>
+          <h3>Empire Mine has stopped doing weddings</h3>
+          <p>State park licensing took them out of the wedding market. The only nearby venue overlap is gone &mdash; the relationship reframes as cleanly complementary: schools program and educational programming.</p>
+        </article>
+
+        <article class="dcard is-signal">
+          <p class="kicker">Signal &middot; dormant donor surfaced</p>
+          <h3>Maury Horn re-emerged at Celtic Festival</h3>
+          <p>Long-time donor, $8,000 previous gift, no follow-up since. Said he had previously offered to fund hiring a team to clear the upstairs and was told no. Who said no, and why, is currently unknown.</p>
+        </article>
+
+        <article class="dcard is-signal">
+          <p class="kicker">Signal &middot; website transparency</p>
+          <h3>Quarterly funnel is now legible</h3>
+          <p>January through April: 275 wedding inquiries, 54 toured, ~30 booked, $33,000 in Google-attributed revenue. Wedding pricing now public to filter event-versus-wedding inquiries before they hit the inbox.</p>
+        </article>
+
+        <article class="dcard is-flag">
+          <p class="kicker">Flag &middot; calendar</p>
+          <h3>Mid-summer festival likely defers</h3>
+          <p>Two months out, the magician partner is hard to reach, prep is thin. Plan: defer to next year and have a flyer ready early.</p>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- ===== 05 Workstreams ===== -->
+    <section id="workstreams" aria-labelledby="workstreams-h">
+      <div class="section-head">
+        <p class="section-num">05 &middot; By area of work</p>
+        <h2 id="workstreams-h">Workstreams</h2>
+        <p class="section-lede">Each area: a one-line read, the key facts, the immediate next move, and the open question if any. Filter, expand individually, or open them all.</p>
+      </div>
+
+      <div class="doc-control" role="region" aria-label="Workstream filter and bulk controls">
+        <span class="doc-control-label">Filter by workstream</span>
+        <select id="cat-filter" aria-label="Filter workstreams">
+          <option value="all">All workstreams</option>
+          <option value="grants">Grants &amp; funding</option>
+          <option value="sponsorship">Sponsorship</option>
+          <option value="membership">Membership &amp; donors</option>
+          <option value="partnerships">Partnerships</option>
+          <option value="marketing">Marketing &amp; events</option>
+          <option value="ops">Operations &amp; admin</option>
+          <option value="website">Website &amp; systems</option>
+          <option value="facilities">Facilities &amp; property</option>
+        </select>
+        <span class="ctl-spacer"></span>
+        <button class="ctl-link" id="expand-all" type="button">Expand all</button>
+        <button class="ctl-link" id="collapse-all" type="button">Collapse all</button>
+      </div>
+
+      <details class="cat" data-cat="grants">
+        <summary>
+          <svg class="ws-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 5 H20 V19 H4 Z"/>
+            <path d="M4 9 H20"/>
+            <path d="M9 14 L11 16 L15 12"/>
+          </svg>
+          <span class="ws-title"><span class="ws-num">01</span>Grants and funding</span>
+          <span class="ws-meta">
+            <span class="ws-count">5</span>
+            <span class="ws-caret" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="cat-body">
+          <p class="ws-brief">Multiple submissions are out and acknowledged. The <b>next door</b> requires Arts Council fiscal sponsorship &mdash; Giona has already said yes. Bat netting and the twelve doors upstairs are a paired grant-and-sponsorship angle worth pursuing together.</p>
+          <div class="cat-cols">
+            <div>
+              <div class="ws-block">
+                <span class="ws-label">Key facts</span>
+                <ul class="dash">
+                  <li>Current grant submitted &mdash; likely Institute of Museum and Library Services. Multiple submissions out, all acknowledged.</li>
+                  <li>Next grant requires fiscal sponsorship from Arts Council; Giona has confirmed willingness.</li>
+                  <li>Grant Facebook page surfaces Walmart-funded grants worth investigating.</li>
+                  <li>Government databases already scraped thoroughly for additional opportunities.</li>
+                  <li>&ldquo;Bats are dangerous&rdquo;, framed correctly, is the unlock for pest-extermination grants &mdash; and the same project surfaces a sponsorship angle on the twelve basic doors needed up there.</li>
+                  <li>Air conditioning is parked as a future big-grant project.</li>
+                </ul>
+              </div>
+              <div class="ws-block ws-next">
+                <span class="ws-label">Next move</span>
+                <p>Post the grant update on the website.</p>
+              </div>
+            </div>
+            <div class="cat-aside">
+              <div class="stat"><div class="v">Multiple</div><div class="l">Submissions out, all acknowledged</div></div>
+              <div class="stat"><div class="v">Arts Council</div><div class="l">Fiscal sponsor &mdash; confirmed by Giona</div></div>
+              <div class="stat"><div class="v">12</div><div class="l">Basic doors needed &mdash; sponsorship-worthy</div></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="cat" data-cat="sponsorship">
+        <summary>
+          <svg class="ws-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 7 H20 V19 H4 Z"/>
+            <path d="M9 7 V5 a1 1 0 0 1 1-1 h4 a1 1 0 0 1 1 1 V7"/>
+            <path d="M4 12 H20"/>
+            <path d="M11 12 V14 H13 V12"/>
+          </svg>
+          <span class="ws-title"><span class="ws-num">02</span>Sponsorship</span>
+          <span class="ws-meta">
+            <span class="ws-count">7</span>
+            <span class="ws-caret" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="cat-body">
+          <p class="ws-brief">A four-tier packet is drafted, but Presenting at $1,000 reads as too generous for the current offering. The cadence is <b>five past sponsors this month, five new next month</b> &mdash; concentrate effort, then scale. Last year&rsquo;s board-assignment model produced almost nothing, which is why this resets it.</p>
+          <div class="cat-cols">
+            <div>
+              <div class="ws-block">
+                <span class="ws-label">Key facts</span>
+                <ul class="dash">
+                  <li>Four tiers drafted &mdash; Heritage Front and others.</li>
+                  <li>Past sponsors to reach this month: Mike Bratton, Hill Flat Lumber, BNC, Ace, possibly New Wave.</li>
+                  <li>Bespoke cover letter on top of the packet for each, referencing the specific giving history.</li>
+                  <li>Phone call with Mike Bratton specifically &mdash; what kept him giving over the years.</li>
+                  <li>Last year&rsquo;s outreach: Ken was the only board member who did meaningful work.</li>
+                  <li>In-kind: history mill tracked automatically; State Farm $1,000 a year; roofing was a one-off; Cake (and similar) need to be tracked.</li>
+                  <li>Communicate value back to in-kind sponsors via the newsletter.</li>
+                </ul>
+              </div>
+              <div class="ws-block ws-next">
+                <span class="ws-label">Next move</span>
+                <p>Finalize tier ladder (lower tiers added, Presenting recalibrated) so packets can ship.</p>
+              </div>
+            </div>
+            <div class="cat-aside">
+              <div class="stat"><div class="v">5 + 5</div><div class="l">Past this month, new next month</div></div>
+              <div class="stat"><div class="v">$1,000</div><div class="l">State Farm in-kind, annual</div></div>
+              <div class="stat"><div class="v">Ken</div><div class="l">Only board member with real outreach last year</div></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="cat" data-cat="membership">
+        <summary>
+          <svg class="ws-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="9" cy="9" r="3.2"/>
+            <path d="M3 19 c0.6-3.4 3-5 6-5 s5.4 1.6 6 5"/>
+            <path d="M16 6 a3 3 0 0 1 0 6"/>
+            <path d="M16 14 c2.5 0 5 1.4 5 5"/>
+          </svg>
+          <span class="ws-title"><span class="ws-num">03</span>Membership and donors</span>
+          <span class="ws-meta">
+            <span class="ws-count">6</span>
+            <span class="ws-caret" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="cat-body">
+          <p class="ws-brief"><b>68 letters out</b>; the remainder converts to email pending the mailbox split. Two donor surprises landed: Susan Dunn followed the mailer with a $100 gift, and Maury Horn re-emerged after years of silence with a story about being told no.</p>
+          <div class="cat-cols">
+            <div>
+              <div class="ws-block">
+                <span class="ws-label">Key facts</span>
+                <ul class="dash">
+                  <li>68 letters mailed last week by Kaelen and Haley.</li>
+                  <li>Wynn pushed back on a full mailing on postage cost; remainder converts to an email campaign, tracked closely.</li>
+                  <li>Susan Dunn donated $100 via the website after receiving the mailer.</li>
+                  <li>Maury Horn met by chance at the Celtic Festival &mdash; long-time $8,000 donor, no follow-up since. Said he had wanted to fund a team to clear the upstairs and was told no.</li>
+                  <li>Tags now in place on donors: snail-mail sent, do-not-solicit, no-address, deceased (grayed out), board member, current volunteer.</li>
+                  <li>Address-incomplete list flagged for manual fixes &mdash; some Grass Valley residents missing the state on file.</li>
+                </ul>
+              </div>
+              <div class="ws-block ws-next">
+                <span class="ws-label">Next move</span>
+                <p>Finalize the email half of the campaign once the mailbox is verified.</p>
+              </div>
+              <div class="ws-block ws-open">
+                <span class="ws-label">Open question</span>
+                <p>Why was Maury Horn told no on funding the upstairs clearing &mdash; and who said it? Needed before any re-engagement.</p>
+              </div>
+            </div>
+            <div class="cat-aside">
+              <div class="stat"><div class="v">68</div><div class="l">Membership letters mailed</div></div>
+              <div class="stat"><div class="v">$100</div><div class="l">Susan Dunn &mdash; via website mailer</div></div>
+              <div class="stat"><div class="v">$8,000</div><div class="l">Maury Horn &mdash; previous gift, dormant since</div></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="cat" data-cat="partnerships">
+        <summary>
+          <svg class="ws-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 12 L8 7 L12 11 L8 15 Z"/>
+            <path d="M21 12 L16 7 L12 11 L16 15 Z"/>
+            <path d="M11 11 L13 11"/>
+          </svg>
+          <span class="ws-title"><span class="ws-num">04</span>Partnerships</span>
+          <span class="ws-meta">
+            <span class="ws-count">3</span>
+            <span class="ws-caret" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="cat-body">
+          <p class="ws-brief">Two cleanly complementary doors are opening. <b>Empire Mine</b> has dropped weddings &mdash; the field is clear for educational programming. <b>Nisenan</b> is the long-form bet, contingent on a respectful approach.</p>
+          <div class="cat-cols">
+            <div>
+              <div class="ws-block">
+                <span class="ws-label">Key facts</span>
+                <ul class="dash">
+                  <li>Empire Mine schools program: kids visit Empire Mine, school bus brings them to North Star House for lunch (Empire Mine doesn&rsquo;t allow eating in the park). Wednesday tour day is the candidate slot.</li>
+                  <li>Empire Mine has stopped doing weddings due to state park licensing &mdash; the venue overlap is gone.</li>
+                  <li>Nisenan: tribe-led classes and programming as the long-form opportunity.</li>
+                  <li>Possible Nisenan Arts Gallery (Ubaseo) collaboration via an Arts Council introduction.</li>
+                  <li>Pursue the Ethanon class space partnership separately.</li>
+                </ul>
+              </div>
+              <div class="ws-block ws-next">
+                <span class="ws-label">Next move</span>
+                <p>Open the Empire Mine conversation; request the Arts Council intro to Nisenan Arts Gallery.</p>
+              </div>
+              <div class="ws-block ws-open">
+                <span class="ws-label">Open question</span>
+                <p>What is the respectful way into the Nisenan partnership? The how matters more than the what.</p>
+              </div>
+            </div>
+            <div class="cat-aside">
+              <div class="stat"><div class="v">Wednesday</div><div class="l">Candidate tour-day for school lunches</div></div>
+              <div class="stat"><div class="v">Arts Council</div><div class="l">Intro path to Nisenan Arts Gallery</div></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="cat" data-cat="marketing">
+        <summary>
+          <svg class="ws-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 10 V14 H8 L17 19 V5 L8 10 Z"/>
+            <path d="M19 9 a3 3 0 0 1 0 6"/>
+          </svg>
+          <span class="ws-title"><span class="ws-num">05</span>Marketing and events</span>
+          <span class="ws-meta">
+            <span class="ws-count">8</span>
+            <span class="ws-caret" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="cat-body">
+          <p class="ws-brief"><b>Mother&rsquo;s Day sold out</b> at 40 attendees. Local-placement signs and KVMR pitches are the active levers. The mid-summer festival is probably a defer; the Creative Exchange Program is finally cleared to promote.</p>
+          <div class="cat-cols">
+            <div>
+              <div class="ws-block">
+                <span class="ws-label">Key facts</span>
+                <ul class="dash">
+                  <li>Mother&rsquo;s Day: 40 attendees, sold out. No cake on the day &mdash; sponsor relationship miscommunication plus an environmental health licensing issue. Half-price macarons via Jen replaced it.</li>
+                  <li>Mother&rsquo;s Day already promoted on KVMR ahead of the day. Test a feedback survey approach after the event, with the Wix versus Constant Contact email-permissions caveat in mind.</li>
+                  <li>Nevada County Gold trades ad space for photos via Andy Wright.</li>
+                  <li>Google Ads currently only running for weddings and not performing well &mdash; plan: try the Claude browser tool to fix.</li>
+                  <li>KVMR Story Idea / Interview pitch &mdash; use more strategically rather than ad hoc.</li>
+                  <li>Order 5 yard signs and set a placement system around town and at the RV park, with pickup at the end of tour day.</li>
+                  <li>Research the cost of escape-room-style banner space around town for a possible buy.</li>
+                  <li>Mid-summer festival: two months out, magician partner hard to reach, prep is thin.</li>
+                  <li>Creative Exchange Program: yoga regular slot moved to weekly programs page; Jen as artist-in-residence (mosaic, basket work); pricing sheet finally approved late 2025; safe to promote now.</li>
+                </ul>
+              </div>
+              <div class="ws-block ws-next">
+                <span class="ws-label">Next move</span>
+                <p>Order 5 yard signs and set the placement system; post-Mother&rsquo;s Day, test the survey.</p>
+              </div>
+              <div class="ws-block ws-open">
+                <span class="ws-label">Open question</span>
+                <p>Mid-summer festival: feasible this year, or push to next? Pricing model for commercial photo shoots and licensing for photography permits also open.</p>
+              </div>
+            </div>
+            <div class="cat-aside">
+              <div class="stat"><div class="v">40</div><div class="l">Mother&rsquo;s Day attendees &mdash; sold out</div></div>
+              <div class="stat"><div class="v">5</div><div class="l">Yard signs to place around town</div></div>
+              <div class="stat"><div class="v">Defer</div><div class="l">Mid-summer festival &rarr; next year</div></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="cat" data-cat="ops">
+        <summary>
+          <svg class="ws-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 4 V6"/>
+            <path d="M12 18 V20"/>
+            <path d="M4 12 H6"/>
+            <path d="M18 12 H20"/>
+            <path d="M6 6 L7.5 7.5"/>
+            <path d="M16.5 16.5 L18 18"/>
+            <path d="M6 18 L7.5 16.5"/>
+            <path d="M16.5 7.5 L18 6"/>
+          </svg>
+          <span class="ws-title"><span class="ws-num">06</span>Operations and administration</span>
+          <span class="ws-meta">
+            <span class="ws-count">5</span>
+            <span class="ws-caret" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="cat-body">
+          <p class="ws-brief">One mailbox catches everything; that has to change before email outreach scales. <b>Derek is provisioned</b> but not yet a Workspace admin. Docent capacity is the quieter long-term concern &mdash; the roster is shrinking.</p>
+          <div class="cat-cols">
+            <div>
+              <div class="ws-block">
+                <span class="ws-label">Key facts</span>
+                <ul class="dash">
+                  <li>Wynn currently receives all <span style="font-family: var(--mono); font-size: 13.5px;">admin@</span> traffic &mdash; bills mixed with website forms and outreach.</li>
+                  <li>Split needed: <span style="font-family: var(--mono); font-size: 13.5px;">info@</span> for forms and the website; <span style="font-family: var(--mono); font-size: 13.5px;">development@</span> or <span style="font-family: var(--mono); font-size: 13.5px;">media@</span> for outreach.</li>
+                  <li>The new mailbox needs to be added as a Constant Contact verified sender before the membership email campaign goes out.</li>
+                  <li>Derek mailbox provisioned via Gmail admin and credentials handed off in the room. Confirm he has logged in. Add as Workspace admin or appropriate role.</li>
+                  <li>Docent roster shrinking &mdash; Zoe gone, Susan unresponsive, Tony retired and moved, Barb maybe stepping back, Fred (with PH) status unconfirmed.</li>
+                  <li>Tooling notes: Canva is free for nonprofits; Snagit screen recorder useful for documentation.</li>
+                </ul>
+              </div>
+              <div class="ws-block ws-next">
+                <span class="ws-label">Next move</span>
+                <p>Stand up the new mailbox, verify it at Constant Contact, finish Derek&rsquo;s admin role.</p>
+              </div>
+              <div class="ws-block ws-open">
+                <span class="ws-label">Open question</span>
+                <p>Which address do we standardize on for outreach &mdash; <span style="font-family: var(--mono); font-size: 13px;">info@</span>, <span style="font-family: var(--mono); font-size: 13px;">development@</span>, or <span style="font-family: var(--mono); font-size: 13px;">media@</span>?</p>
+              </div>
+            </div>
+            <div class="cat-aside">
+              <div class="stat"><div class="v">admin@</div><div class="l">Currently catches everything via Wynn</div></div>
+              <div class="stat"><div class="v">5+</div><div class="l">Docents lost, stepping back, or unconfirmed</div></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="cat" data-cat="website">
+        <summary>
+          <svg class="ws-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="13" rx="1"/>
+            <path d="M3 9 H21"/>
+            <circle cx="6" cy="7" r="0.6" fill="currentColor"/>
+            <circle cx="8" cy="7" r="0.6" fill="currentColor"/>
+            <circle cx="10" cy="7" r="0.6" fill="currentColor"/>
+          </svg>
+          <span class="ws-title"><span class="ws-num">07</span>Website and internal systems</span>
+          <span class="ws-meta">
+            <span class="ws-count">6</span>
+            <span class="ws-caret" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="cat-body">
+          <p class="ws-brief">The wedding funnel is now legible: <b>275 inquiries Jan&ndash;Apr, ~30 booked, $33,000 attributed</b>. Wedding pricing is public to filter inquiries before they hit the inbox.</p>
+          <div class="cat-cols">
+            <div>
+              <div class="ws-block">
+                <span class="ws-label">Key facts</span>
+                <ul class="dash">
+                  <li>Wedding pricing now public to filter event-versus-wedding inquiries before they reach the inbox.</li>
+                  <li>Data tab shows quarterly funnel &mdash; 275 inquiries Jan&ndash;Apr, 54 toured, ~30 booked, $33,000 in Google-attributed revenue.</li>
+                  <li>Weekday-only family photo bookings need to be added to the availability calendar &mdash; weekends are booked solid for weddings for the next ten weeks.</li>
+                  <li>HoneyBook quarterly export is the cadence; Facebook stats sync once a month via the MetaGraph API (kept slow on purpose to protect site speed).</li>
+                  <li>Internal outreach app: donor and contact tracker working well; tags now in place; Ideas &amp; Initiatives platform running for Haley, Kaelen, Derek &mdash; push notifications next. Custom build preferred over Slack or Notion.</li>
+                </ul>
+              </div>
+              <div class="ws-block ws-next">
+                <span class="ws-label">Next move</span>
+                <p>Add weekday-only family photo bookings to the availability calendar.</p>
+              </div>
+              <div class="ws-block ws-open">
+                <span class="ws-label">Open question</span>
+                <p>How to implement comment notifications on the Ideas page.</p>
+              </div>
+            </div>
+            <div class="cat-aside">
+              <div class="stat"><div class="v">275</div><div class="l">Wedding inquiries Jan&ndash;Apr</div></div>
+              <div class="stat"><div class="v">54</div><div class="l">Toured</div></div>
+              <div class="stat"><div class="v">~30</div><div class="l">Booked</div></div>
+              <div class="stat"><div class="v">$33,000</div><div class="l">Google-attributed revenue</div></div>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details class="cat" data-cat="facilities">
+        <summary>
+          <svg class="ws-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 19 V11 L12 5 L20 11 V19 Z"/>
+            <path d="M10 19 V14 H14 V19"/>
+          </svg>
+          <span class="ws-title"><span class="ws-num">08</span>Facilities and property</span>
+          <span class="ws-meta">
+            <span class="ws-count">4</span>
+            <span class="ws-caret" aria-hidden="true"></span>
+          </span>
+        </summary>
+        <div class="cat-body">
+          <p class="ws-brief">The upstairs is the centre of gravity &mdash; bat netting, twelve doors, and a rejected donor offer no one can explain. The garden gate could open later through summer if Cliff&rsquo;s schedule shifts.</p>
+          <div class="cat-cols">
+            <div>
+              <div class="ws-block">
+                <span class="ws-label">Key facts</span>
+                <ul class="dash">
+                  <li>Bat netting on the second floor needs to come down. Twelve basic doors needed up there &mdash; separate sponsorship angle.</li>
+                  <li>Maury Horn previously offered to fund a team to clear the upstairs and was told no &mdash; who and why is currently unknown.</li>
+                  <li>Garden gate is locked for deer, not security. The promoter who got the code did promotional content with it.</li>
+                  <li>Could be opened more during summer golden hour around 9pm &mdash; needs Cliff&rsquo;s schedule to shift.</li>
+                  <li>Building wishlist (big initiatives): air conditioning, finish upstairs, redo the courtyard, pathways around the property. The house has heat but no air conditioning.</li>
+                </ul>
+              </div>
+              <div class="ws-block ws-next">
+                <span class="ws-label">Next move</span>
+                <p>Decide on Cliff&rsquo;s summer hours; pursue bat-netting + 12-doors as a paired grant + sponsorship.</p>
+              </div>
+              <div class="ws-block ws-open">
+                <span class="ws-label">Open question</span>
+                <p>Security or access concerns for the garden beyond locking the gate. Air conditioning funding &mdash; likely a future big-grant project.</p>
+              </div>
+            </div>
+            <div class="cat-aside">
+              <div class="stat"><div class="v">12</div><div class="l">Basic doors needed upstairs</div></div>
+              <div class="stat"><div class="v">9pm</div><div class="l">Summer golden-hour garden target</div></div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ===== 06 Action register ===== -->
+    <section id="actions" aria-labelledby="actions-h">
+      <div class="section-head">
+        <p class="section-num">06 &middot; Action ledger</p>
+        <h2 id="actions-h">Action register</h2>
+        <p class="section-lede">The full ledger for filing and cross-reference. Assignments, dates, and task status live in the task board.</p>
+      </div>
+
+      <div class="actions-wrap">
+        <table class="actions" aria-label="Full action register">
+          <thead>
+            <tr>
+              <th scope="col">Action</th>
+              <th scope="col">Workstream</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="action" data-label="Action">Tie up membership finalization (email half of the campaign)</td>
+              <td class="cat" data-label="Workstream">Membership</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Finish sponsor packet &mdash; add lower tiers, stretch upward, recalibrate Presenting tier</td>
+              <td class="cat" data-label="Workstream">Sponsorship</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Stand up info@ or development@ mailbox; register as Constant Contact verified sender</td>
+              <td class="cat" data-label="Workstream">Operations</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Add Derek as Workspace admin (or appropriate role)</td>
+              <td class="cat" data-label="Workstream">Operations</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Confirm Derek has logged in to his mailbox</td>
+              <td class="cat" data-label="Workstream">Operations</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Post the grant update on the website</td>
+              <td class="cat" data-label="Workstream">Grants</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Mother&rsquo;s Day final logistics with Jen (was email returned?)</td>
+              <td class="cat" data-label="Workstream">Marketing</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Reach 5 past sponsors &mdash; Mike Bratton, Hill Flat Lumber, BNC, Ace, possibly New Wave</td>
+              <td class="cat" data-label="Workstream">Sponsorship</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Phone Mike Bratton &mdash; learn what has kept him giving</td>
+              <td class="cat" data-label="Workstream">Sponsorship</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Draft bespoke cover letters referencing each past sponsor&rsquo;s giving history</td>
+              <td class="cat" data-label="Workstream">Sponsorship</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Track Cake (and similar in-kind contributors) in the sponsorship dashboard</td>
+              <td class="cat" data-label="Workstream">Sponsorship</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Reach out to Empire Mine on the school-program lunch partnership</td>
+              <td class="cat" data-label="Workstream">Partnerships</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Reach out to Arts Council on the Nisenan Arts Gallery (Ubaseo) collaboration</td>
+              <td class="cat" data-label="Workstream">Partnerships</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Order 5 yard signs and set placement system around town plus RV park</td>
+              <td class="cat" data-label="Workstream">Marketing</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Reach out to local banner-space operators for cost data</td>
+              <td class="cat" data-label="Workstream">Marketing</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Try the Claude browser tool on Google Ads</td>
+              <td class="cat" data-label="Workstream">Marketing</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Test feedback survey approach for Mother&rsquo;s Day attendees (Wix vs Constant Contact)</td>
+              <td class="cat" data-label="Workstream">Marketing</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Reach 5 new sponsor prospects</td>
+              <td class="cat" data-label="Workstream">Sponsorship</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Research weekday-only family photo pricing</td>
+              <td class="cat" data-label="Workstream">Marketing</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Adjust Cliff&rsquo;s summer hours so the garden stays accessible into golden hour</td>
+              <td class="cat" data-label="Workstream">Facilities</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Pursue Creative Exchange artist outreach &mdash; Rory at Grass Valley museum, others</td>
+              <td class="cat" data-label="Workstream">Marketing</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Pursue Ethanon class space partnership</td>
+              <td class="cat" data-label="Workstream">Partnerships</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Backfill physical addresses for Grass-Valley-incomplete donors</td>
+              <td class="cat" data-label="Workstream">Membership</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Continue building the Ideas &amp; Initiatives platform</td>
+              <td class="cat" data-label="Workstream">Website</td>
+            </tr>
+            <tr>
+              <td class="action" data-label="Action">Add notifications when new comments land on Ideas &amp; Initiatives</td>
+              <td class="cat" data-label="Workstream">Website</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===== 07 Open questions ===== -->
+    <section id="questions" aria-labelledby="questions-h">
+      <div class="section-head">
+        <p class="section-num">07 &middot; Still unresolved</p>
+        <h2 id="questions-h">Open questions</h2>
+        <p class="section-lede">The remainder of the unresolved &mdash; minor or non-blocking. The five sharpest are surfaced in <a href="#waiting">Waiting for an answer</a> above.</p>
+      </div>
+
+      <div class="questions">
+        <div class="qcard">
+          <h4>Membership and donors</h4>
+          <ul>
+            <li>How to ethically collect attendee email permissions for follow-up &mdash; Wix versus Constant Contact mechanics.</li>
+          </ul>
+        </div>
+
+        <div class="qcard">
+          <h4>Sponsorship and marketing</h4>
+          <ul>
+            <li>Pricing model for commercial photo shoots.</li>
+            <li>How to handle photography and event permits given the licensing posture.</li>
+          </ul>
+        </div>
+
+        <div class="qcard">
+          <h4>Marketing and events</h4>
+          <ul>
+            <li>Inside versus outside event setup for Mother&rsquo;s Day.</li>
+          </ul>
+        </div>
+
+        <div class="qcard">
+          <h4>Website and systems</h4>
+          <ul>
+            <li>How to implement comment notifications on the Ideas page.</li>
+          </ul>
+        </div>
+
+        <div class="qcard">
+          <h4>Facilities</h4>
+          <ul>
+            <li>Security or access concerns for the garden beyond locking the gate.</li>
+            <li>Air conditioning funding &mdash; likely a future big-grant project.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 08 Supporting detail ===== -->
+    <section id="detail" aria-labelledby="detail-h">
+      <div class="section-head">
+        <p class="section-num">08 &middot; Supporting detail</p>
+        <h2 id="detail-h">Supporting detail</h2>
+        <p class="section-lede">The original meeting structure, kept intact for cross-reference. Collapsed by default; opens in place. Cross-cutting themes summarised at the end.</p>
+      </div>
+
+      <details class="app">
+        <summary>
+          <span class="app-num">A</span>
+          <span>Pre-meeting context</span>
+          <span class="app-time">10:00 &ndash; 10:05 AM</span>
+        </summary>
+        <div class="app-body">
+          <h5>Overall</h5>
+          <p>Casual setup chatter about docent volunteers and event attendance before the formal agenda started.</p>
+          <h5>Key points</h5>
+          <ul>
+            <li>Docent roster shrinking &mdash; Zoe gone, Susan unresponsive, Tony retired and moved, Barb maybe stepping back, Fred (with PH) status unconfirmed.</li>
+            <li>Concern about presentation quality if the docent base keeps shrinking.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="app">
+        <summary>
+          <span class="app-num">B</span>
+          <span>Development &amp; outreach &mdash; full thread</span>
+          <span class="app-time">10:05 &ndash; 11:43 AM</span>
+        </summary>
+        <div class="app-body">
+          <h5>Overall</h5>
+          <p>Agenda-driven walkthrough of North Star House development priorities with Derek. Covered grants, sponsorships, membership, donors, partnerships, marketing, and events. Derek onboarded as committee volunteer with mailbox, sponsor outreach role, and access to the internal site.</p>
+          <h5>Key points</h5>
+          <ul>
+            <li><strong>Grants.</strong> Current grant submitted (likely Institute of Museum and Library Services). Multiple submissions out, all acknowledged received. Next grant requires fiscal sponsorship from Arts Council &mdash; Giona confirmed willingness. Grant Facebook page surfaces Walmart grants worth investigating. Government databases scraped thoroughly.</li>
+            <li><strong>Bat netting + 12 basic doors.</strong> Second floor needs bat netting removal. &ldquo;Bats are dangerous&rdquo; is the grant angle for pest-extermination companies. The 12 basic doors needed separately = sponsorship angle (name on door, tucked away).</li>
+            <li><strong>Sponsor packet.</strong> Four tiers drafted (Heritage Front, etc.). Presenting sponsor at $1,000 felt too generous given the current low offering. Need lower tiers and stretch upward.</li>
+            <li><strong>Past sponsors to reach this month.</strong> Mike Bratton, Hill Flat Lumber, BNC, Ace, possibly New Wave (5 total). Bespoke cover letter on top of the packet referencing their giving history.</li>
+            <li><strong>Sponsor tracking spreadsheet (last year).</strong> Board members were assigned sponsors. Most never started. Ken was the only one who did meaningful outreach.</li>
+            <li><strong>In-kind sponsorship.</strong> History mill in-kind work tracked automatically now. State Farm $1,000 a year. Roofing was a one-off in-kind. Need to communicate value back to in-kind sponsors via newsletter.</li>
+            <li><strong>Membership letters.</strong> 68 mailed last week (Kaelen + Haley). Wynn pushed back on full mailing due to postage cost. Email campaign for the rest planned, tracked closely.</li>
+            <li><strong>Donor wins.</strong> Susan Dunn donated $100 after receiving the mailer (via website). Maury Horn met by chance at Celtic Festival &mdash; long-time donor ($8,000 previous), no follow-up since. Said he had wanted to fund hiring a team to clear upstairs but was told no, no one knew why.</li>
+            <li><strong>Outreach app.</strong> Internal donation/contact tracker working well. Outreach tab links to donor profiles via dropdown. Tags now on donors &mdash; do not solicit, deceased, board member, current volunteer, snail mail sent.</li>
+            <li><strong>Empire Mine partnership.</strong> Kids visit Empire Mine, school bus brings them to North Star House for lunch (Empire Mine doesn&rsquo;t allow eating in park). Wednesday tour day candidate. Not in competition; both educational.</li>
+            <li><strong>Nisenan partnership.</strong> Tribe-led classes/programming. Possible Nisenan Arts Gallery (Ubaseo) collaboration through Arts Council intro.</li>
+            <li><strong>Website transparency.</strong> Wedding pricing now public to filter event-versus-wedding inquiries. Data tab shows quarterly funnel &mdash; 275 inquiries Jan &ndash; Apr, 54 toured, ~30 booked, $33,000 Google revenue.</li>
+            <li><strong>HoneyBook + MetaGraph API.</strong> Quarterly export from HoneyBook. Facebook stats sync once a month via MetaGraph (kept slow on purpose for site speed).</li>
+            <li><strong>Marketing.</strong> Nevada County Gold trades ad space for photos (Andy Wright). Google Ads only running for weddings, not performing well &mdash; Kaelen wants to try the Claude browser tool to fix. KVMR Story Idea / Interview pitch to be used more strategically. Mother&rsquo;s Day already on KVMR.</li>
+            <li><strong>Mother&rsquo;s Day event.</strong> Sold out, 40 attendees. No cake (sponsor relationship miscommunication, environmental health licensing issue, half-price macarons via Jen instead).</li>
+            <li><strong>Yard signs.</strong> 5 signs to be placed around town and at the RV park, picked up at end of tour day.</li>
+            <li><strong>Banner spaces.</strong> Research costs of escape-room-style banners around town (one persistent operator everywhere).</li>
+            <li><strong>Mid-summer festival.</strong> Two months out, partner (magicians) hard to reach. Probably defer to next year with flyer ready early.</li>
+            <li><strong>Creative Exchange Program.</strong> Yoga regular slot moved to weekly programs page. Jen as artist-in-residence (mosaic, basket work). Pricing sheet finally approved late 2025; can promote now.</li>
+            <li><strong>Family photo bookings.</strong> Weekends booked for weddings next 10 weeks. Weekday-only photo bookings to be added to availability calendar.</li>
+            <li><strong>Empire Mine vs North Star House wedding pivot.</strong> Empire Mine stopped doing weddings (state park licensing).</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="app">
+        <summary>
+          <span class="app-num">C</span>
+          <span>Garden &amp; committee operations &mdash; full thread</span>
+          <span class="app-time">11:43 AM &ndash; 12:02 PM</span>
+        </summary>
+        <div class="app-body">
+          <h5>Overall</h5>
+          <p>Tactical chat about garden access logistics and the long-term shape of the development committee. Walked through the Ideas &amp; Initiatives web platform Kaelen built and onboarded Derek to the email and Constant Contact stack.</p>
+          <h5>Key points</h5>
+          <ul>
+            <li><strong>Garden gate locked for deer, not security.</strong> Promoter who got code did promo content. Could be opened more during summer golden hour (9pm) &mdash; Cliff&rsquo;s schedule changes needed.</li>
+            <li><strong>Web platform.</strong> Ideas &amp; Initiatives page with comments by user (Haley, Kaelen, Derek can each post and reply). Working on push notifications next. Custom build preferred over Slack or Notion.</li>
+            <li><strong>Donor list cleanup.</strong> 68 mailers actually sent. Tags &mdash; snail-mail sent, do-not-solicit, no-address, deceased (grayed out), board member, current volunteer. Address-incomplete list flagged for manual fixes (some Grass Valley residents missing state).</li>
+            <li><strong>Email infrastructure.</strong> Wynn currently receives all admin@ traffic &mdash; bills mixed with website forms and outreach. Need to split &mdash; info@ for forms/website, development@ or media@ for outreach. Constant Contact verified sender required.</li>
+            <li><strong>Derek email setup.</strong> Mailbox provisioned via Gmail admin and credentials handed off in the room.</li>
+            <li><strong>Canva is free for nonprofits.</strong></li>
+            <li><strong>Snagit screen recorder mentioned</strong> for documentation.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="app">
+        <summary>
+          <span class="app-num">D</span>
+          <span>Onboarding wrap-up</span>
+          <span class="app-time">12:02 &ndash; 12:15 PM</span>
+        </summary>
+        <div class="app-body">
+          <h5>Overall</h5>
+          <p>Setup of Derek&rsquo;s mailbox, casual chat about air conditioning, the building wishlist, and Mother&rsquo;s Day prep concerns.</p>
+          <h5>Key points</h5>
+          <ul>
+            <li>Mailbox credentials follow a memorable convention referencing the architect and year built.</li>
+            <li>House has heat but no air conditioning &mdash; building has heat-but-no-air-conditioning complaint.</li>
+            <li>Big-initiative wishlist &mdash; air conditioning, finish upstairs, redo courtyard, pathways around the property.</li>
+            <li>Mother&rsquo;s Day &mdash; 40 sold out. Cake sponsor confusion. Bringing mom and grandma personally creates &ldquo;no time to enjoy tea&rdquo; stress.</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="app">
+        <summary>
+          <span class="app-num">E</span>
+          <span>Cross-cutting themes</span>
+          <span class="app-time">Across the meeting</span>
+        </summary>
+        <div class="app-body">
+          <ul>
+            <li><strong>Tracking everything in one app.</strong> The internal North Star House dashboard is the through-line. Sponsorship, donors, outreach notes, ideas, tasks all converging &mdash; stops document sprawl.</li>
+            <li><strong>Five-and-five sponsor outreach cadence.</strong> 5 past sponsors this month, 5 new next month. Rinse, don&rsquo;t overwhelm.</li>
+            <li><strong>Empire Mine and Nisenan as the two big partnership bets.</strong> Schools program (Empire Mine) and cultural programming (Nisenan).</li>
+            <li><strong>Wynn&rsquo;s cost concerns</strong> as ongoing constraint &mdash; pushed back on full membership mailing, will likely push back on bigger spends.</li>
+            <li><strong>&ldquo;Bats are dangerous&rdquo;</strong> is the unlock for pest-extermination grants and a related sponsorship angle on the 12 basic doors.</li>
+          </ul>
+        </div>
+      </details>
+    </section>
+
+  </main>
+</div>
+
+<footer class="foot">
+  <span>North Star House Historic Conservancy</span><span class="sep" aria-hidden="true"></span>
+  <span>Grass Valley, California</span><span class="sep" aria-hidden="true"></span>
+  <span>Preserve &middot; Educate &middot; Inspire</span>
+</footer>
+
+<script>
+(function () {
+  // Workstream filter
+  var sel = document.getElementById('cat-filter');
+  var cats = document.querySelectorAll('details.cat');
+  function applyFilter(filter) {
+    cats.forEach(function (c) {
+      var cat = c.getAttribute('data-cat');
+      c.hidden = !(filter === 'all' || cat === filter);
+    });
+  }
+  sel && sel.addEventListener('change', function () { applyFilter(sel.value); });
+
+  // Expand all / Collapse all
+  var expandAll = document.getElementById('expand-all');
+  var collapseAll = document.getElementById('collapse-all');
+  expandAll && expandAll.addEventListener('click', function () {
+    document.querySelectorAll('details.cat:not([hidden]), details.app').forEach(function (d) { d.open = true; });
+  });
+  collapseAll && collapseAll.addEventListener('click', function () {
+    document.querySelectorAll('details.cat, details.app').forEach(function (d) { d.open = false; });
+  });
+
+  // Sticky TOC active state
+  var tocLinks = document.querySelectorAll('#toc a');
+  var sectionIds = Array.prototype.map.call(tocLinks, function (a) { return a.getAttribute('href').slice(1); });
+  var sections = sectionIds.map(function (id) { return document.getElementById(id); }).filter(Boolean);
+  function setActive(id) {
+    tocLinks.forEach(function (a) {
+      a.classList.toggle('is-active', a.getAttribute('href') === '#' + id);
+    });
+  }
+  if ('IntersectionObserver' in window) {
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) setActive(entry.target.id);
+      });
+    }, { rootMargin: '-30% 0px -60% 0px', threshold: 0 });
+    sections.forEach(function (s) { observer.observe(s); });
+  }
+
+  // Print: open all details before print, restore after
+  var prevOpen = [];
+  window.addEventListener('beforeprint', function () {
+    prevOpen = [];
+    document.querySelectorAll('details').forEach(function (d) {
+      prevOpen.push({ el: d, open: d.open, hidden: d.hidden });
+      d.open = true;
+      if (d.hidden) d.hidden = false;
+    });
+  });
+  window.addEventListener('afterprint', function () {
+    prevOpen.forEach(function (entry) {
+      entry.el.open = entry.open;
+      entry.el.hidden = entry.hidden;
+    });
+  });
+})();
+</script>
+</body>
+</html>
