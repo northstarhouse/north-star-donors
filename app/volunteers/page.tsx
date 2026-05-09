@@ -27,13 +27,14 @@ interface EmailLog {
 
 const GROUPS = [
   { tag: 'Board Member',  label: 'Board Members' },
-  { tag: 'Restoration',   label: 'Construction' },
+  { tag: 'Construction',  label: 'Construction' },
   { tag: 'Events Team',   label: 'Events Team' },
   { tag: 'Landscaping',   label: 'Grounds' },
   { tag: 'Interiors',     label: 'Interiors' },
   { tag: 'Event Support', label: 'Event Support' },
-  { tag: 'Development',   label: 'Fundraising' },
-  { tag: 'Staff',         label: 'Venue' },
+  { tag: 'Fundraising',   label: 'Fundraising' },
+  { tag: 'Staff',         label: 'Staff' },
+  { tag: 'Venue',         label: 'Venue' },
 ] as const
 
 function parseTeams(t: string | null | string[]): string[] {
