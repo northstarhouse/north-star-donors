@@ -1,7 +1,7 @@
 ﻿'use client'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
-import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Paperclip, FileText, User, Camera, MessageSquare } from 'lucide-react'
+import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Paperclip, FileText, User, Camera, MessageSquare, ExternalLink } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
@@ -390,25 +390,44 @@ function TaskRow({
 function TaskAttachment({ url, onReplace, uploading }: { url: string; onReplace: () => void; uploading: boolean }) {
   const filename = decodeURIComponent(url.split('/').pop() ?? 'attachment').replace(/^\d+-/, '')
   const isImage = /\.(png|jpe?g|gif|webp|svg)$/i.test(filename)
+  const isHtml = /\.html?($|\?)/i.test(filename) || /\.html?($|\?)/i.test(url)
   return (
-    <div className="flex items-center gap-2 p-2 rounded-lg border border-stone-200 bg-stone-50 group">
-      {isImage ? (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0">
-          <img src={url} alt={filename} className="h-10 w-10 object-cover rounded border border-stone-200 flex-shrink-0" />
-          <span className="text-xs text-stone-600 truncate hover:underline">{filename}</span>
-        </a>
-      ) : (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="h-8 w-8 rounded border border-stone-200 bg-white flex items-center justify-center flex-shrink-0">
-            <FileText size={14} className="text-stone-400" />
-          </div>
-          <span className="text-xs text-stone-600 truncate hover:underline">{filename}</span>
-        </a>
+    <div className="rounded-lg border border-stone-200 bg-stone-50 group overflow-hidden">
+      <div className="flex items-center gap-2 p-2">
+        {isImage ? (
+          <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0">
+            <img src={url} alt={filename} className="h-10 w-10 object-cover rounded border border-stone-200 flex-shrink-0" />
+            <span className="text-xs text-stone-600 truncate hover:underline">{filename}</span>
+          </a>
+        ) : (
+          <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 flex-1 min-w-0">
+            <div className="h-8 w-8 rounded border border-stone-200 bg-white flex items-center justify-center flex-shrink-0">
+              <FileText size={14} className="text-stone-400" />
+            </div>
+            <span className="text-xs text-stone-600 truncate hover:underline">{filename}</span>
+          </a>
+        )}
+        {isHtml && (
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-[10px] text-amber-700 hover:text-amber-800 px-2 py-1 rounded border border-amber-200 bg-amber-50 flex-shrink-0">
+            <ExternalLink size={10} /> Open full view
+          </a>
+        )}
+        <button onClick={onReplace} disabled={uploading}
+          className="opacity-0 group-hover:opacity-100 text-[10px] text-stone-400 hover:text-amber-600 px-2 py-1 rounded border border-stone-200 hover:border-amber-300 transition-all flex-shrink-0 disabled:opacity-40">
+          {uploading ? 'Uploading...' : 'Replace'}
+        </button>
+      </div>
+      {isHtml && (
+        <div className="border-t border-stone-200 bg-white">
+          <iframe
+            src={url}
+            title={filename}
+            className="w-full h-96 bg-white"
+            loading="lazy"
+          />
+        </div>
       )}
-      <button onClick={onReplace} disabled={uploading}
-        className="opacity-0 group-hover:opacity-100 text-[10px] text-stone-400 hover:text-amber-600 px-2 py-1 rounded border border-stone-200 hover:border-amber-300 transition-all flex-shrink-0 disabled:opacity-40">
-        {uploading ? 'Uploading...' : 'Replace'}
-      </button>
     </div>
   )
 }

@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sponsor Packet V2 Board Structure</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&display=swap');
+
+:root {
+  --paper: #f4f0e6;
+  --paper-soft: #faf7f2;
+  --ink: #1a1a1a;
+  --muted: #5a5347;
+  --rule: #d8cfb8;
+  --accent: #a0633a;
+  --accent-dark: #6e432b;
+}
+
+* { box-sizing: border-box; }
+
+html,
+body {
+  margin: 0;
+  background: #2a2520;
+  color: var(--ink);
+  font-family: "Source Serif 4", Georgia, serif;
+  font-feature-settings: "lnum" 1, "kern" 1, "liga" 1;
+}
+
+.deck {
+  display: grid;
+  gap: 32px;
+  justify-items: center;
+  padding: 40px 20px;
+}
+
+.page {
+  width: 816px;
+  height: 1056px;
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+  padding: 76px 84px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+  page-break-after: always;
+}
+
+.page::after {
+  content: "";
+  position: absolute;
+  left: 84px;
+  right: 84px;
+  bottom: 58px;
+  border-top: 1px solid var(--rule);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 58px;
+  line-height: 1.02;
+  font-weight: 410;
+  letter-spacing: 0;
+}
+
+h2 {
+  margin-top: 18px;
+  font-size: 36px;
+  line-height: 1.12;
+  font-weight: 420;
+}
+
+h3 {
+  font-size: 23px;
+  line-height: 1.2;
+  font-weight: 520;
+}
+
+.lede {
+  font-size: 22px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.body {
+  font-size: 17px;
+  line-height: 1.58;
+  color: var(--ink);
+}
+
+.small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.folio {
+  position: absolute;
+  left: 84px;
+  right: 84px;
+  bottom: 28px;
+  display: flex;
+  justify-content: space-between;
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+.cover {
+  padding: 0;
+  display: grid;
+  grid-template-rows: 432px 1fr;
+}
+
+.cover::after { display: none; }
+
+.cover-image {
+  background:
+    linear-gradient(180deg, rgba(26, 26, 26, 0.08), rgba(26, 26, 26, 0.26)),
+    url("./nsh-house-hero.png") center 42% / cover;
+}
+
+.cover-content {
+  padding: 72px 84px 80px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cover h1 {
+  max-width: 620px;
+  margin-top: 18px;
+}
+
+.cover .year {
+  color: var(--accent);
+  font-size: 30px;
+  margin-top: 24px;
+}
+
+.cover-foot {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid var(--rule);
+  padding-top: 18px;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.purpose-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 44px;
+  margin-top: 58px;
+}
+
+.rule-block {
+  border-top: 1px solid var(--accent);
+  padding-top: 18px;
+}
+
+.rule-block strong {
+  display: block;
+  color: var(--accent-dark);
+  font-size: 30px;
+  font-weight: 430;
+  line-height: 1.12;
+  margin-bottom: 14px;
+}
+
+.note-stack {
+  display: grid;
+  gap: 22px;
+}
+
+.note {
+  border-top: 1px solid var(--rule);
+  padding-top: 16px;
+}
+
+.note .label {
+  color: var(--accent-dark);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.tier-list {
+  margin-top: 42px;
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.tier-row {
+  display: grid;
+  grid-template-columns: 170px 156px 1fr;
+  gap: 24px;
+  align-items: start;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.tier-row h3 {
+  color: var(--ink);
+}
+
+.amount {
+  color: var(--accent-dark);
+  font-size: 20px;
+  line-height: 1.18;
+}
+
+.tag {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.logic-grid {
+  margin-top: 50px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+}
+
+.logic-cell {
+  min-height: 176px;
+  padding: 24px;
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.logic-cell h3 {
+  color: var(--accent-dark);
+  font-size: 26px;
+  font-weight: 430;
+  margin-bottom: 12px;
+}
+
+.approval {
+  margin-top: 46px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.approval-item {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 16px;
+  border-top: 1px solid var(--rule);
+  padding-top: 16px;
+}
+
+.check {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--accent);
+  color: var(--accent-dark);
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+}
+
+.decision-box {
+  margin-top: 36px;
+  padding: 24px 28px;
+  border: 1px solid var(--accent);
+  background: rgba(160, 99, 58, 0.06);
+}
+
+.decision-box h3 {
+  margin-bottom: 10px;
+  color: var(--accent-dark);
+}
+
+@media print {
+  html,
+  body {
+    background: var(--paper);
+  }
+
+  .deck {
+    display: block;
+    padding: 0;
+  }
+
+  .page {
+    box-shadow: none;
+    margin: 0;
+  }
+}
+</style>
+</head>
+<body>
+  <main class="deck">
+    <section class="page cover">
+      <div class="cover-image" role="img" aria-label="North Star House exterior"></div>
+      <div class="cover-content">
+        <p class="eyebrow">Board review draft</p>
+        <h1>Sponsor Packet V2<br>Tier Structure</h1>
+        <p class="year">May 2026</p>
+        <p class="cover-foot"><span>North Star Historic Conservancy</span><span>Not sponsor-facing copy</span></p>
+      </div>
+    </section>
+
+    <section class="page">
+      <p class="eyebrow">Why this rebalance exists</p>
+      <h2>Make the sponsor ladder match the real work.</h2>
+      <div class="purpose-grid">
+        <div class="note-stack">
+          <p class="lede">Packet v1 was a first pitch artifact. It has not been circulated as a promise to sponsors.</p>
+          <p class="body">The v2 structure reconciles that draft with Haley's sponsor tracker, the May 7 development discussion, and the reality that meaningful sponsorship begins above casual support.</p>
+          <p class="body">The goal is not more tiers for their own sake. The goal is a ladder where each level has a clear role, lower tiers are still valuable, and the top tier retains benefits that are genuinely special.</p>
+        </div>
+        <div class="rule-block">
+          <strong>$1,000</strong>
+          <p class="body">Recommended formal sponsorship floor, counted as cash, approved in-kind value, or a combination of both.</p>
+        </div>
+      </div>
+      <div class="folio"><span>North Star House · Sponsor Packet V2</span><span>01</span></div>
+    </section>
+
+    <section class="page">
+      <p class="eyebrow">Proposed structure</p>
+      <h2>Five lanes, four formal sponsor tiers.</h2>
+      <div class="tier-list">
+        <div class="tier-row">
+          <div>
+            <h3>Friend of North Star</h3>
+            <span class="tag">Working assumption</span>
+          </div>
+          <p class="amount">$150 or under $1,000</p>
+          <p class="body">Supporter lane outside the formal sponsor ladder. Light recognition may be appropriate, but sponsor-package benefits remain an open approval question.</p>
+        </div>
+        <div class="tier-row">
+          <h3>Heritage Partner</h3>
+          <p class="amount">$1,000-$2,499</p>
+          <p class="body">First formal sponsor tier. Real sponsor recognition and basic event access, without naming or lead-sponsor control perks.</p>
+        </div>
+        <div class="tier-row">
+          <h3>Preservation Leader</h3>
+          <p class="amount">$2,500-$4,999</p>
+          <p class="body">Middle sponsor tier. Stronger recognition and more event access than Heritage, but still no event-level control.</p>
+        </div>
+        <div class="tier-row">
+          <h3>Keystone</h3>
+          <p class="amount">$5,000-$9,999</p>
+          <p class="body">Major sponsor tier. Prominent recognition and limited association, filling the gap before Presenting.</p>
+        </div>
+        <div class="tier-row">
+          <h3>Presenting Sponsor</h3>
+          <p class="amount">$10,000+ or signature event</p>
+          <p class="body">Lead sponsor tier. The only tier that should carry event-level control benefits, pending final approval.</p>
+        </div>
+      </div>
+      <div class="folio"><span>North Star House · Sponsor Packet V2</span><span>02</span></div>
+    </section>
+
+    <section class="page">
+      <p class="eyebrow">Benefit logic</p>
+      <h2>Separate recognition, access, association, and control.</h2>
+      <div class="logic-grid">
+        <div class="logic-cell">
+          <h3>Recognition</h3>
+          <p class="body">Public thanks, name/logo visibility, program listing, website recognition.</p>
+        </div>
+        <div class="logic-cell">
+          <h3>Access</h3>
+          <p class="body">Tickets, invitations, or sponsor attendance opportunities. Final counts remain bracketed.</p>
+        </div>
+        <div class="logic-cell">
+          <h3>Association</h3>
+          <p class="body">Sponsor name connected to a program, event, season, or visible body of work.</p>
+        </div>
+        <div class="logic-cell">
+          <h3>Control</h3>
+          <p class="body">Naming, remarks, press inclusion, banner placement, and event-level prominence.</p>
+        </div>
+      </div>
+      <div class="decision-box">
+        <h3>Recommended rule</h3>
+        <p class="body">Lower tiers may receive recognition, access, and limited association. Presenting Sponsor is reserved for control benefits unless the board explicitly approves an exception.</p>
+      </div>
+      <div class="folio"><span>North Star House · Sponsor Packet V2</span><span>03</span></div>
+    </section>
+
+    <section class="page">
+      <p class="eyebrow">Board action</p>
+      <h2>Approve the architecture, keep exact benefits bracketed.</h2>
+      <div class="approval">
+        <div class="approval-item">
+          <span class="check">1</span>
+          <p class="body">Approve Friend of North Star as a supporter lane below formal sponsorship, with final recognition boundaries still open.</p>
+        </div>
+        <div class="approval-item">
+          <span class="check">2</span>
+          <p class="body">Approve $1,000 cash or approved in-kind value as the formal sponsorship floor.</p>
+        </div>
+        <div class="approval-item">
+          <span class="check">3</span>
+          <p class="body">Approve Heritage, Preservation, Keystone, and Presenting as the formal sponsor ladder.</p>
+        </div>
+        <div class="approval-item">
+          <span class="check">4</span>
+          <p class="body">Reserve control benefits for Presenting Sponsor unless an exception is explicitly approved.</p>
+        </div>
+        <div class="approval-item">
+          <span class="check">5</span>
+          <p class="body">Allow sponsor-facing packet drafting to continue while final ticket counts and exact perk language remain bracketed.</p>
+        </div>
+      </div>
+      <div class="decision-box">
+        <h3>Still pending</h3>
+        <p class="body">Final ticket counts, Friend recognition boundaries, exact benefit menu by tier, and deliverability review of v1 draft perks.</p>
+      </div>
+      <div class="folio"><span>North Star House · Sponsor Packet V2</span><span>04</span></div>
+    </section>
+  </main>
+</body>
+</html>
