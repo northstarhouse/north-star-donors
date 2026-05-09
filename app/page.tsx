@@ -94,6 +94,11 @@ function fmtMeeting(d: Date): string {
   return `${dateStr} at 10am · ${days} days away`
 }
 
+function navigateToArchiveEntry(path: string) {
+  const basePath = window.location.pathname.startsWith('/north-star-donors') ? '/north-star-donors' : ''
+  window.location.assign(`${basePath}${path}`)
+}
+
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
 
@@ -750,15 +755,19 @@ export default function Dashboard() {
                   </div>
                   <div className="p-1.5">
                     {MEETING_ARCHIVE.map(meeting => (
-                      <Link
+                      <a
                         key={meeting.href}
                         href={meeting.href}
                         className="block rounded-lg px-3 py-2.5 hover:bg-amber-50"
-                        onClick={() => setArchiveOpen(false)}
+                        onClick={event => {
+                          event.preventDefault()
+                          setArchiveOpen(false)
+                          navigateToArchiveEntry(meeting.href)
+                        }}
                       >
                         <p className="text-xs font-semibold text-stone-800">{meeting.date}</p>
                         <p className="mt-1 text-[11px] leading-snug text-stone-500">{meeting.summary}</p>
-                      </Link>
+                      </a>
                     ))}
                   </div>
                 </div>
