@@ -15,8 +15,9 @@ interface Volunteer {
   'Overview Notes': string | null
 }
 
-function parseTeams(t: string | null): string[] {
-  return (t ?? '').split(',').map(s => s.replace(/\bNEW\b/g, '').trim()).filter(Boolean)
+function parseTeams(t: string | null | string[]): string[] {
+  if (Array.isArray(t)) return t.map(s => s.replace(/\bNEW\b/g, '').trim()).filter(Boolean)
+  return (t ?? '').split(/[,|]/).map(s => s.replace(/\bNEW\b/g, '').trim()).filter(Boolean)
 }
 
 interface Props {
@@ -202,7 +203,7 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
                     Cancel
                   </button>
                 </div>
-                <p className="text-[10px] text-stone-300 text-center">Opens your email client with recipients pre-filled in BCC</p>
+                <p className="text-[10px] text-stone-300 text-center">Sends from info@thenorthstarhouse.org · all recipients in BCC</p>
               </div>
             )}
           </div>

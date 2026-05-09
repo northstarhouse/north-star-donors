@@ -36,8 +36,9 @@ const GROUPS = [
   { tag: 'Staff',         label: 'Venue' },
 ] as const
 
-function parseTeams(t: string | null): string[] {
-  return (t ?? '').split(',').map(s => s.replace(/\bNEW\b/g, '').trim()).filter(Boolean)
+function parseTeams(t: string | null | string[]): string[] {
+  if (Array.isArray(t)) return t.map(s => s.replace(/\bNEW\b/g, '').trim()).filter(Boolean)
+  return (t ?? '').split(/[,|]/).map(s => s.replace(/\bNEW\b/g, '').trim()).filter(Boolean)
 }
 
 function isActive(v: Volunteer) {
@@ -45,7 +46,8 @@ function isActive(v: Volunteer) {
 }
 
 function membersForTag(volunteers: Volunteer[], tag: string): Volunteer[] {
-  return volunteers.filter(v => parseTeams(v.Team).some(t => t === tag))
+  const tagLower = tag.toLowerCase()
+  return volunteers.filter(v => parseTeams(v.Team).some(t => t.toLowerCase() === tagLower))
 }
 
 function displayName(tag: string): string {
@@ -69,10 +71,20 @@ export default function VolunteersPage() {
   const [sent, setSent] = useState(false)
 
   useEffect(() => {
-    supabase.from('2026 Volunteers').select('*')
-      .then(({ data }) => { if (data) setVolunteers(data as Volunteer[]) })
+    function fetchVolunteers() {
+      supabase.from('2026 Volunteers').select('*')
+        .then(({ data }) => { if (data) setVolunteers(data as Volunteer[]) })
+    }
+    fetchVolunteers()
     supabase.from('volunteer_email_logs').select('*').order('sent_at', { ascending: false }).limit(20)
       .then(({ data }) => { if (data) setLogs(data as EmailLog[]) })
+
+    const channel = supabase
+      .channel('volunteers-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: '2026 Volunteers' }, fetchVolunteers)
+      .subscribe()
+
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
   const displayed = useMemo(() => {
