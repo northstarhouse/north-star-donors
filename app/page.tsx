@@ -224,7 +224,7 @@ function TaskRow({
           <StatusIcon status={task.status} />
         </button>
 
-        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onToggleExpand(task)}>
+        <div className="flex-1 min-w-0">
           {editing ? (
             <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
               <input autoFocus className="flex-1 border border-stone-200 rounded-lg px-2 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
@@ -234,7 +234,12 @@ function TaskRow({
               <button onClick={onCancelEdit} className="px-2 py-0.5 bg-stone-100 text-stone-500 text-xs rounded-lg">X</button>
             </div>
           ) : (
-            <p className="text-sm text-stone-800">{task.title}</p>
+            <Link
+              href={`/task?taskId=${task.id}`}
+              className="block text-sm text-stone-800 hover:text-amber-700"
+            >
+              {task.title}
+            </Link>
           )}
 
           <div className="flex items-center gap-2 mt-1 flex-wrap">
