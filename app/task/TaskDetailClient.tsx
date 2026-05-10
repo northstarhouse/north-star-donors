@@ -183,7 +183,7 @@ export default function TaskDetailClient({ taskId }: { taskId: string }) {
                     <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 mb-1">
                       Task Detail
                     </p>
-                    <h1 className="text-2xl leading-tight text-stone-900" style={{ fontFamily: 'var(--font-serif)' }}>
+                    <h1 className="text-2xl font-semibold leading-tight text-stone-900">
                       {task.title}
                     </h1>
                     <div className="flex items-center gap-2 mt-3 flex-wrap">
@@ -252,7 +252,7 @@ export default function TaskDetailClient({ taskId }: { taskId: string }) {
                   </div>
                 </div>
                 <textarea
-                  className="w-full min-h-[320px] rounded-lg border border-stone-200 bg-stone-50 px-3 py-3 text-sm leading-relaxed text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-y font-mono"
+                  className="w-full min-h-[320px] rounded-lg border border-stone-200 bg-stone-50 px-3 py-3 text-sm leading-relaxed text-stone-700 focus:outline-none focus:ring-2 focus:ring-amber-300 resize-y"
                   placeholder={DEFAULT_NOTES}
                   value={notes}
                   onChange={e => { setNotes(e.target.value); setNotesDirty(true) }}
