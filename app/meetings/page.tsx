@@ -29,6 +29,12 @@ interface Meeting {
 const inputCls = 'w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 text-stone-700 bg-white'
 const SUPABASE_URL = 'https://uvzwhhwzelaelfhfkvdb.supabase.co'
 const BUCKET = 'meeting-files'
+const APP_BASE = '/north-star-donors'
+const MAY_7_POST_MEETING_BRIEF: MeetingFile = {
+  name: 'Post-meeting brief - May 7, 2026',
+  path: '/meeting-briefs/post-meeting-brief-2026-05-07/',
+  type: 'notes',
+}
 
 function fmtDate(d: string) {
   return new Date(d + 'T12:00:00').toLocaleDateString('en-US', {
@@ -41,8 +47,21 @@ function fmtTime(t: string | null) {
   const ampm = h >= 12 ? 'PM' : 'AM'
   return `${((h % 12) || 12)}:${String(m).padStart(2, '0')} ${ampm}`
 }
-function publicUrl(path: string) {
+function isAppRoute(path: string) {
+  return path.startsWith('/')
+}
+
+function fileUrl(path: string) {
+  if (isAppRoute(path)) return `${APP_BASE}${path}`
   return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`
+}
+
+function filesWithBuiltInNotes(meeting: Meeting) {
+  const files = meeting.files ?? []
+  if (meeting.meeting_date === '2026-05-07' && !files.some(f => f.type === 'notes')) {
+    return [...files, MAY_7_POST_MEETING_BRIEF]
+  }
+  return files
 }
 
 export default function MeetingsPage() {
@@ -171,9 +190,10 @@ export default function MeetingsPage() {
   const upcoming = meetings?.filter(m => m.meeting_date >= today) ?? []
   const past = meetings?.filter(m => m.meeting_date < today) ?? []
 
-  const agendaFile = selected?.files.find(f => f.type === 'agenda') ?? null
-  const notesFile = selected?.files.find(f => f.type === 'notes') ?? null
-  const otherFiles = selected?.files.filter(f => f.type === 'other') ?? []
+  const selectedFiles = selected ? filesWithBuiltInNotes(selected) : []
+  const agendaFile = selectedFiles.find(f => f.type === 'agenda') ?? null
+  const notesFile = selectedFiles.find(f => f.type === 'notes') ?? null
+  const otherFiles = selectedFiles.filter(f => f.type === 'other')
 
   return (
     <div className="flex min-h-screen flex-1">
@@ -252,7 +272,7 @@ export default function MeetingsPage() {
                   uploading={uploading === 'agenda'}
                   onUpload={e => uploadFile('agenda', e)}
                   onDelete={() => agendaFile && deleteFile(agendaFile)}
-                  onPreview={f => setPreview({ name: f.name, url: publicUrl(f.path) })}
+                  onPreview={f => setPreview({ name: f.name, url: fileUrl(f.path) })}
                   inputRef={agendaRef}
                 />
 
@@ -262,9 +282,10 @@ export default function MeetingsPage() {
                   file={notesFile}
                   uploading={uploading === 'notes'}
                   onUpload={e => uploadFile('notes', e)}
-                  onDelete={() => notesFile && deleteFile(notesFile)}
-                  onPreview={f => setPreview({ name: f.name, url: publicUrl(f.path) })}
+                  onDelete={() => notesFile && !isAppRoute(notesFile.path) && deleteFile(notesFile)}
+                  onPreview={f => setPreview({ name: f.name, url: fileUrl(f.path) })}
                   inputRef={notesRef}
+                  canDelete={notesFile ? !isAppRoute(notesFile.path) : true}
                 />
 
                 {/* Agenda Suggestions */}
@@ -328,7 +349,7 @@ export default function MeetingsPage() {
                   {otherFiles.length > 0 ? (
                     <div className="space-y-1">
                       {otherFiles.map(f => (
-                        <FileRow key={f.path} f={f} onDelete={() => deleteFile(f)} onPreview={() => setPreview({ name: f.name, url: publicUrl(f.path) })} />
+                        <FileRow key={f.path} f={f} onDelete={() => deleteFile(f)} onPreview={() => setPreview({ name: f.name, url: fileUrl(f.path) })} />
                       ))}
                     </div>
                   ) : (
@@ -405,7 +426,7 @@ export default function MeetingsPage() {
 }
 
 function FileSlot({
-  label, file, uploading, onUpload, onDelete, onPreview, inputRef,
+  label, file, uploading, onUpload, onDelete, onPreview, inputRef, canDelete = true,
 }: {
   label: string
   file: MeetingFile | null
@@ -414,6 +435,7 @@ function FileSlot({
   onDelete: () => void
   onPreview: (f: MeetingFile) => void
   inputRef: React.RefObject<HTMLInputElement>
+  canDelete?: boolean
 }) {
   return (
     <div>
@@ -425,14 +447,16 @@ function FileSlot({
             className="text-sm text-stone-700 flex-1 truncate text-left hover:text-amber-600 transition-colors">
             {file.name}
           </button>
-          <a href={publicUrl(file.path)} download target="_blank" rel="noreferrer"
+          <a href={fileUrl(file.path)} download={!isAppRoute(file.path)} target="_blank" rel="noreferrer"
             className="p-1.5 text-stone-300 hover:text-amber-600 transition-colors" title="Download">
             <Download size={13} />
           </a>
-          <button onClick={onDelete}
-            className="p-1.5 text-stone-300 hover:text-red-400 transition-colors" title="Remove">
-            <X size={13} />
-          </button>
+          {canDelete && (
+            <button onClick={onDelete}
+              className="p-1.5 text-stone-300 hover:text-red-400 transition-colors" title="Remove">
+              <X size={13} />
+            </button>
+          )}
           <button onClick={() => inputRef.current?.click()} disabled={uploading}
             className="p-1.5 text-stone-300 hover:text-amber-600 transition-colors disabled:opacity-40" title="Replace">
             <Upload size={13} />
@@ -457,7 +481,7 @@ function FileRow({ f, onDelete, onPreview }: { f: MeetingFile; onDelete: () => v
       <button onClick={onPreview} className="text-sm text-stone-700 flex-1 truncate text-left hover:text-amber-600 transition-colors">
         {f.name}
       </button>
-      <a href={publicUrl(f.path)} download target="_blank" rel="noreferrer"
+      <a href={fileUrl(f.path)} download={!isAppRoute(f.path)} target="_blank" rel="noreferrer"
         className="p-1 text-stone-300 hover:text-amber-600 transition-colors">
         <Download size={12} />
       </a>
@@ -469,7 +493,7 @@ function FileRow({ f, onDelete, onPreview }: { f: MeetingFile; onDelete: () => v
 }
 
 function MeetingRow({ m, active, onClick }: { m: Meeting; active: boolean; onClick: () => void }) {
-  const files = m.files ?? []
+  const files = filesWithBuiltInNotes(m)
   const hasAgenda = files.some(f => f.type === 'agenda')
   const hasNotes = files.some(f => f.type === 'notes')
   return (
