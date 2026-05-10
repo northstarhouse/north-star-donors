@@ -293,6 +293,15 @@ function TaskRow({
             </span>
           )}
 
+          <Link
+            href={`/task?taskId=${task.id}`}
+            onClick={e => e.stopPropagation()}
+            title="Open task detail"
+            className="p-1 text-stone-300 hover:text-amber-600 hover:bg-amber-50 rounded"
+          >
+            <ExternalLink size={12} />
+          </Link>
+
           {/* Edit / delete */}
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button onClick={e => { e.stopPropagation(); onStartEdit(task.id, task.title) }} className="p-1 text-stone-300 hover:text-stone-600 hover:bg-stone-100 rounded"><Pencil size={11} /></button>

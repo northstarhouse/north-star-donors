@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { FileText, Paperclip, Plus, X, Check, Circle, CalendarDays } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -400,9 +401,9 @@ function ManualEntry({ entry, onDelete, onUpdate }: {
 function TaskCard({ task }: { task: Task }) {
   return (
     <div className="px-5 py-3.5 border-b border-stone-50 last:border-0">
-      <p className={`text-sm leading-snug ${task.status === 'done' ? 'line-through text-stone-400' : 'text-stone-800'}`}>
+      <Link href={`/task?taskId=${task.id}`} className={`block text-sm leading-snug hover:text-amber-700 ${task.status === 'done' ? 'line-through text-stone-400' : 'text-stone-800'}`}>
         {task.title}
-      </p>
+      </Link>
       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
         {task.label && (
           <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-medium ${LABEL_COLORS[task.label as TaskLabel]}`}>
