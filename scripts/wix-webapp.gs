@@ -21,16 +21,18 @@ var FORM_NAMES = {
 };
 
 function doGet() {
-  var analytics = fetchAnalytics();
-  var forms     = fetchForms();
-  var pages     = fetchTopPages();
-  var cities    = fetchTopCities();
-  var sources   = fetchTopSources();
-  var events    = fetchWixEvents();
-  var orders    = fetchOrders();
+  function safe(fn, fallback) { try { return fn(); } catch(e) { Logger.log('doGet error in ' + fn.name + ': ' + e); return fallback; } }
 
   return ContentService
-    .createTextOutput(JSON.stringify({ analytics: analytics, forms: forms, pages: pages, cities: cities, sources: sources, events: events, orders: orders }))
+    .createTextOutput(JSON.stringify({
+      analytics: safe(fetchAnalytics,    { data: [] }),
+      forms:     safe(fetchForms,        { submissions: [] }),
+      pages:     safe(fetchTopPages,     { rows: [] }),
+      cities:    safe(fetchTopCities,    { rows: [] }),
+      sources:   safe(fetchTopSources,   { rows: [] }),
+      events:    safe(fetchWixEvents,    { events: [] }),
+      orders:    safe(fetchOrders,       { orders: [] }),
+    }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
