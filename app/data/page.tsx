@@ -12,7 +12,6 @@ const HONEYBOOK_URL = 'https://script.google.com/macros/s/AKfycbw968UYNRchd6-Nm8
 // Deploy wix-webapp.gs and paste the URL here
 const WIX_URL = 'https://script.google.com/macros/s/AKfycbyW83_MeX_mOxTnIrmGNMZZTRhdUi5gBgzj01uOdvYkShR55ZiK18dFoFrR4n6_JFzEhQ/exec'
 // Deploy wix-forms-webapp.gs and paste the URL here.
-const FORMS_URL = 'https://script.google.com/macros/s/AKfycbyn9AOM9U8iF-jZ_sVr7QpHpxn7nPr1UvRh-5Jov6F2-ife84cltgVsvv5xATyx98Xu/exec'
 const WIX_CLIENT_ID = '46191fb3-0113-44a7-9bd2-031200714fea'
 const HONEYBOOK_CACHE_KEY = 'north-star-donors:honeybook:v1'
 const HONEYBOOK_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7
@@ -207,30 +206,25 @@ function usePrefetchAll() {
       if (social.data && fb.data) cacheWrite(CK.social, { social: social.data, fb: fb.data }, TTL_DB)
     })
 
-    // Forms â€” slow external call, skip if already cached
-    if (FORMS_URL && !cacheRead(CK.forms)) {
-      fetch(FORMS_URL).then(r => r.json()).then(async json => {
-        const submissions: WixSubmission[] = json.submissions ?? json.forms?.submissions ?? []
-        const ids = submissions.map(s => s.id)
-        let overrides: Record<string, { notes: string | null; status: string | null }> = {}
-        if (ids.length > 0) {
-          const { data: or } = await supabase.from('data_wix_forms').select('id, internal_notes, status').in('id', ids)
-          overrides = Object.fromEntries((or ?? []).map(r => [r.id as string, { notes: (r.internal_notes as string | null) ?? null, status: (r.status as string | null) ?? null }]))
-        }
-        const merged = submissions.map(s => ({ ...s, internal_notes: overrides[s.id]?.notes ?? null, status: overrides[s.id]?.status ?? s.status }))
-        cacheWrite(CK.forms, merged, TTL_SCRIPT)
-      }).catch(() => { })
-    }
-
-    // Wix analytics + orders — skip if already cached
-    if (WIX_URL && (!cacheRead(CK.wix) || !cacheRead(CK.orders))) {
-      fetch(WIX_URL).then(r => r.json()).then(json => {
+    // Wix analytics + forms + orders — one fetch, skip if all already cached
+    if (WIX_URL && (!cacheRead(CK.wix) || !cacheRead(CK.orders) || !cacheRead(CK.forms))) {
+      fetch(WIX_URL).then(r => r.json()).then(async json => {
         cacheWrite(CK.wix, {
           pages: json.pages ?? { rows: [] },
           cities: json.cities ?? { rows: [] },
           sources: json.sources ?? { rows: [] },
         }, TTL_SCRIPT)
         if (json.orders?.orders) cacheWrite(CK.orders, json.orders.orders, TTL_SCRIPT)
+        const submissions: WixSubmission[] = json.forms?.submissions ?? []
+        if (submissions.length) {
+          const ids = submissions.map(s => s.id)
+          let overrides: Record<string, { notes: string | null; status: string | null }> = {}
+          if (ids.length > 0) {
+            const { data: or } = await supabase.from('data_wix_forms').select('id, internal_notes, status').in('id', ids)
+            overrides = Object.fromEntries((or ?? []).map(r => [r.id as string, { notes: (r.internal_notes as string | null) ?? null, status: (r.status as string | null) ?? null }]))
+          }
+          cacheWrite(CK.forms, submissions.map(s => ({ ...s, internal_notes: overrides[s.id]?.notes ?? null, status: overrides[s.id]?.status ?? s.status })), TTL_SCRIPT)
+        }
       }).catch(() => { })
     }
   }, [])
@@ -554,16 +548,15 @@ function FormsSection() {
     let cancelled = false
 
     async function loadForms() {
-      if (FORMS_URL) {
+      if (WIX_URL) {
         // Show cached immediately
         const cached = cacheRead<WixSubmission[]>(CK.forms)
         if (cached && !cancelled) { setSource('wix'); setData({ submissions: cached }) }
 
         try {
-          const response = await fetch(FORMS_URL)
-          const json = await response.json()
+          const json = await fetch(WIX_URL).then(r => r.json())
           if (!cancelled) {
-            const submissions = (json.submissions ? json.submissions as WixSubmission[] : (json.forms?.submissions ?? [])) as WixSubmission[]
+            const submissions = (json.forms?.submissions ?? []) as WixSubmission[]
             const ids = submissions.map(sub => sub.id)
             let overrides: Record<string, { notes: string | null; status: string | null }> = {}
 
@@ -593,7 +586,7 @@ function FormsSection() {
         return
       }
 
-      // Fallback: Supabase only (when FORMS_URL not configured)
+      // Fallback: Supabase only
       const { data: supabaseRows, error } = await supabase
         .from('data_wix_forms')
         .select('id, form_id, form_name, status, created_at, fields, internal_notes')
@@ -692,7 +685,7 @@ function FormsSection() {
           {rows.length === 0 && (
             <div className="bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col items-center justify-center py-16 gap-2 text-stone-400">
               <p className="text-sm">No form submissions found.</p>
-              <p className="text-xs text-center max-w-xs">{FORMS_URL ? 'Sync Wix forms into Supabase for faster loads.' : 'Deploy wix-forms-webapp.gs and paste the URL as FORMS_URL in page.tsx.'}</p>
+              <p className="text-xs text-center max-w-xs">{'No form submissions found.'}</p>
             </div>
           )}
           {grouped.length > 0 && (
