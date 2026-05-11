@@ -4,7 +4,6 @@ import { Mail, Copy, Check, ChevronDown, ChevronUp, Users, AlertCircle, X } from
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
-const TEAM_MEMBERS = ['Kaelen', 'Haley', 'Derek', 'Gerrie', 'Jen']
 
 interface Volunteer {
   id: number
@@ -68,7 +67,6 @@ export default function VolunteersPage() {
   const [modal, setModal] = useState<{ team: string; members: Volunteer[] } | null>(null)
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
-  const [sender, setSender] = useState(TEAM_MEMBERS[0])
   const [sent, setSent] = useState(false)
 
   useEffect(() => {
@@ -138,10 +136,9 @@ export default function VolunteersPage() {
             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({
-            bcc: modal.members.map(v => v.Email!.trim()),
+            to: modal.members.map(v => v.Email!.trim()),
             subject,
             body,
-            sender,
           }),
         }
       )
@@ -154,7 +151,6 @@ export default function VolunteersPage() {
         recipient_count: modal.members.length,
         recipients: modal.members.map(v => `${v['First Name']} ${v['Last Name']} <${v.Email}>`),
         subject,
-        sender,
       }).then(async () => {
         const { data } = await supabase.from('volunteer_email_logs').select('*').order('sent_at', { ascending: false }).limit(20)
         if (data) setLogs(data as EmailLog[])
@@ -359,13 +355,6 @@ export default function VolunteersPage() {
                   <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1 block">Message</label>
                   <textarea className={inputCls + ' resize-none bg-stone-50'} rows={4}
                     value={body} onChange={e => setBody(e.target.value)} placeholder="Email body..." />
-                </div>
-
-                <div>
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1 block">Sent by</label>
-                  <select className={inputCls} value={sender} onChange={e => setSender(e.target.value)}>
-                    {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                  </select>
                 </div>
 
                 {sendError && (

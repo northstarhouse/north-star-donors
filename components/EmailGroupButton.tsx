@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { Mail, X, AlertCircle, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
-const TEAM_MEMBERS = ['Kaelen', 'Haley', 'Derek', 'Gerrie', 'Jen']
 
 interface Volunteer {
   id: number
@@ -34,7 +33,6 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
   const [loading, setLoading] = useState(false)
   const [subject, setSubject] = useState(defaultSubject ?? '')
   const [body, setBody] = useState(defaultBody ?? '')
-  const [sender, setSender] = useState(TEAM_MEMBERS[0])
   const [sent, setSent] = useState(false)
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
@@ -69,10 +67,9 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
             'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({
-            bcc: volunteers.map(v => v.Email!.trim()),
+            to: volunteers.map(v => v.Email!.trim()),
             subject,
             body,
-            sender,
           }),
         }
       )
@@ -85,7 +82,6 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
         recipient_count: volunteers.length,
         recipients: volunteers.map(v => `${v['First Name']} ${v['Last Name']} <${v.Email}>`),
         subject,
-        sender,
       }).catch(() => {})
     } catch (err) {
       setSendError(err instanceof Error ? err.message : 'Unknown error')
@@ -179,16 +175,6 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
                     onChange={e => setBody(e.target.value)}
                     placeholder="Email body..."
                   />
-                </div>
-
-                {/* Sender */}
-                <div>
-                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1 block">Sent by</label>
-                  <select
-                    className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
-                    value={sender} onChange={e => setSender(e.target.value)}>
-                    {TEAM_MEMBERS.map(m => <option key={m}>{m}</option>)}
-                  </select>
                 </div>
 
                 {/* Actions */}
