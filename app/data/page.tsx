@@ -10,7 +10,7 @@ type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'event
 // Paste your deployed Apps Script web app URL here after deploying honeybook-webapp.gs
 const HONEYBOOK_URL = 'https://script.google.com/macros/s/AKfycbw968UYNRchd6-Nm8V-tEeo48vuPEe3xqfPgKGibhQEP2td2B8mgUs5ThDrkDrmH4WGNA/exec'
 // Deploy wix-webapp.gs and paste the URL here
-const WIX_URL = 'https://script.google.com/macros/s/AKfycbyW83_MeX_mOxTnIrmGNMZZTRhdUi5gBgzj01uOdvYkShR55ZiK18dFoFrR4n6_JFzEhQ/exec'
+const WIX_URL = 'https://script.google.com/macros/s/AKfycbzY3c6_xF2ucrZrQnZLa1bcU2TIcFadBH9UEeIbJYMKumvxygql8ulN-67q1Vu_WM4h/exec'
 // Deploy wix-forms-webapp.gs and paste the URL here.
 const WIX_CLIENT_ID = '46191fb3-0113-44a7-9bd2-031200714fea'
 const HONEYBOOK_CACHE_KEY = 'north-star-donors:honeybook:v1'
