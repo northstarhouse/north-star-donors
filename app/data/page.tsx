@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
 /* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
-type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'events' | 'feedback'
+type DataTab = 'analytics' | 'honeybook' | 'forms' | 'email' | 'social' | 'events' | 'feedback' | 'orders'
 
 // Paste your deployed Apps Script web app URL here after deploying honeybook-webapp.gs
 const HONEYBOOK_URL = 'https://script.google.com/macros/s/AKfycbw968UYNRchd6-Nm8V-tEeo48vuPEe3xqfPgKGibhQEP2td2B8mgUs5ThDrkDrmH4WGNA/exec'
@@ -50,6 +50,7 @@ const CK = {
   social: 'north-star-donors:social:v1',
   events: 'north-star-donors:events:v1',
   wixEvents: 'north-star-donors:wix-events:v2',
+  orders:    'north-star-donors:orders:v1',
   analytics: 'north-star-donors:analytics:v1',
   feedback: 'north-star-donors:feedback:v1',
 }
@@ -99,6 +100,19 @@ interface FacebookEntry {
   id: string; period: string; page_followers: number | null; page_impressions: number | null
   page_reach: number | null; page_engaged_users: number | null; post_count: number | null
   created_at: string
+}
+
+interface WixOrder {
+  id: string
+  number: number
+  created_date: string
+  buyer_email: string | null
+  buyer_name: string | null
+  line_items: { name: string; quantity: number; price: number }[]
+  total: number
+  payment_status: string | null
+  fulfillment_status: string | null
+  status: string | null
 }
 
 interface AnalyticsEntry {
@@ -171,6 +185,7 @@ const TABS: { id: DataTab; label: string }[] = [
   { id: 'social', label: 'Socials' },
   { id: 'events', label: 'Event Data' },
   { id: 'feedback', label: 'Feedback' },
+  { id: 'orders',   label: 'Orders' },
 ]
 
 /* â”€â”€ Background prefetch â€” warms all caches on page load â”€â”€â”€ */
@@ -207,14 +222,15 @@ function usePrefetchAll() {
       }).catch(() => { })
     }
 
-    // Wix analytics — skip if already cached
-    if (WIX_URL && !cacheRead(CK.wix)) {
+    // Wix analytics + orders — skip if already cached
+    if (WIX_URL && (!cacheRead(CK.wix) || !cacheRead(CK.orders))) {
       fetch(WIX_URL).then(r => r.json()).then(json => {
         cacheWrite(CK.wix, {
           pages: json.pages ?? { rows: [] },
           cities: json.cities ?? { rows: [] },
           sources: json.sources ?? { rows: [] },
         }, TTL_SCRIPT)
+        if (json.orders?.orders) cacheWrite(CK.orders, json.orders.orders, TTL_SCRIPT)
       }).catch(() => { })
     }
   }, [])
@@ -263,6 +279,7 @@ export default function DataPage() {
           {tab === 'social' && <SocialSection />}
           {tab === 'events' && <EventsSection />}
           {tab === 'feedback' && <FeedbackSection />}
+          {tab === 'orders' && <OrdersSection />}
         </div>
       </div>
     </div>
@@ -1969,6 +1986,193 @@ function FeedbackSection() {
       )}
       {rows && rows.length > 0 && (
         <p className="text-xs text-stone-400 px-1">{rows.length} entr{rows.length !== 1 ? 'ies' : 'y'} total</p>
+      )}
+    </div>
+  )
+}
+
+/* ══════════════════════════════════════════════════════════
+   ORDERS SECTION
+══════════════════════════════════════════════════════════ */
+const PAYMENT_COLORS: Record<string, string> = {
+  PAID:        'bg-emerald-100 text-emerald-700',
+  NOT_PAID:    'bg-red-100 text-red-600',
+  PENDING:     'bg-amber-100 text-amber-700',
+  REFUNDED:    'bg-stone-100 text-stone-500',
+  PARTIALLY_REFUNDED: 'bg-orange-100 text-orange-600',
+}
+const FULFILL_COLORS: Record<string, string> = {
+  FULFILLED:           'bg-emerald-100 text-emerald-700',
+  NOT_FULFILLED:       'bg-stone-100 text-stone-500',
+  PARTIALLY_FULFILLED: 'bg-amber-100 text-amber-700',
+}
+
+function fmtPayment(s: string | null) {
+  if (!s) return '-'
+  return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+function OrdersSection() {
+  const [orders, setOrders] = useState<WixOrder[] | null>(null)
+  const [selected, setSelected] = useState<WixOrder | null>(null)
+  const [search, setSearch] = useState('')
+
+  useEffect(() => {
+    const cached = cacheRead<WixOrder[]>(CK.orders)
+    if (cached) { setOrders(cached); return }
+    if (!WIX_URL) { setOrders([]); return }
+    const ctrl = new AbortController()
+    fetch(WIX_URL, { signal: ctrl.signal })
+      .then(r => r.json())
+      .then(json => {
+        const list: WixOrder[] = json.orders?.orders ?? []
+        setOrders(list)
+        cacheWrite(CK.orders, list, TTL_SCRIPT)
+      })
+      .catch(() => { if (!ctrl.signal.aborted) setOrders([]) })
+    return () => ctrl.abort()
+  }, [])
+
+  const visible = (orders ?? []).filter(o => {
+    if (!search.trim()) return true
+    const q = search.toLowerCase()
+    return (
+      String(o.number).includes(q) ||
+      (o.buyer_name ?? '').toLowerCase().includes(q) ||
+      (o.buyer_email ?? '').toLowerCase().includes(q) ||
+      o.line_items.some(li => li.name.toLowerCase().includes(q))
+    )
+  })
+
+  const totalRevenue = (orders ?? []).filter(o => o.payment_status === 'PAID').reduce((s, o) => s + o.total, 0)
+  const paidCount = (orders ?? []).filter(o => o.payment_status === 'PAID').length
+  const pendingCount = (orders ?? []).filter(o => o.payment_status === 'PENDING' || o.payment_status === 'NOT_PAID').length
+
+  return (
+    <div className="space-y-4">
+      {orders === null ? (
+        <div className="text-center py-16 text-stone-400 text-sm">Loading orders...</div>
+      ) : (
+        <>
+          {/* Summary cards */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+              <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Total Orders</p>
+              <p className="text-2xl font-semibold text-stone-800">{orders.length.toLocaleString()}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+              <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Revenue (paid)</p>
+              <p className="text-2xl font-semibold" style={{ color: 'var(--gold)' }}>{fmt$(totalRevenue)}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
+              <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Paid / Pending</p>
+              <p className="text-2xl font-semibold text-stone-800">{paidCount} <span className="text-sm font-normal text-stone-400">/ {pendingCount} pending</span></p>
+            </div>
+          </div>
+
+          {/* Search */}
+          <input
+            className={inputCls + ' max-w-sm'}
+            placeholder="Search orders, buyer, product..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+
+          {/* Table + detail panel */}
+          <div className={`flex gap-4 ${selected ? 'items-start' : ''}`}>
+            <div className="flex-1 bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
+              {visible.length === 0 ? (
+                <div className="text-center py-16 text-stone-400 text-sm">
+                  {orders.length === 0 ? 'No orders found.' : 'No orders match your search.'}
+                </div>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-stone-100 bg-stone-50/60">
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Order</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Buyer</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Items</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Total</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Payment</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visible.map((o, i) => (
+                      <tr key={o.id}
+                        onClick={() => setSelected(selected?.id === o.id ? null : o)}
+                        className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === o.id ? 'bg-amber-50/40' : 'hover:bg-stone-50'}`}>
+                        <td className="px-4 py-3 font-semibold text-stone-700">#{o.number}</td>
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-stone-700">{o.buyer_name ?? '—'}</p>
+                          {o.buyer_email && <p className="text-[11px] text-stone-400">{o.buyer_email}</p>}
+                        </td>
+                        <td className="px-4 py-3 text-stone-500 text-xs max-w-[200px] truncate">
+                          {o.line_items.map(li => `${li.name}${li.quantity > 1 ? ` ×${li.quantity}` : ''}`).join(', ')}
+                        </td>
+                        <td className="px-4 py-3 text-right font-medium text-stone-800">{fmt$(o.total)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${PAYMENT_COLORS[o.payment_status ?? ''] ?? 'bg-stone-100 text-stone-400'}`}>
+                            {fmtPayment(o.payment_status)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-stone-400 text-xs whitespace-nowrap">
+                          {o.created_date ? new Date(o.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+              <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">
+                {visible.length} order{visible.length !== 1 ? 's' : ''}{search ? ` matching "${search}"` : ' · live from Wix'}
+              </div>
+            </div>
+
+            {selected && (
+              <DetailPanel onClose={() => setSelected(null)}>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Order #{selected.number}</p>
+                    <p className="text-xs text-stone-400">
+                      {selected.created_date ? new Date(selected.created_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '—'}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${PAYMENT_COLORS[selected.payment_status ?? ''] ?? 'bg-stone-100 text-stone-400'}`}>
+                      {fmtPayment(selected.payment_status)}
+                    </span>
+                    {selected.fulfillment_status && (
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${FULFILL_COLORS[selected.fulfillment_status] ?? 'bg-stone-100 text-stone-400'}`}>
+                        {fmtPayment(selected.fulfillment_status)}
+                      </span>
+                    )}
+                  </div>
+                  <Field label="Buyer" value={selected.buyer_name} />
+                  <Field label="Email" value={selected.buyer_email} />
+                  <div>
+                    <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">Items</p>
+                    <div className="space-y-2">
+                      {selected.line_items.map((li, i) => (
+                        <div key={i} className="flex items-center justify-between gap-2 bg-stone-50 rounded-lg px-3 py-2">
+                          <div>
+                            <p className="text-sm font-medium text-stone-700">{li.name}</p>
+                            {li.quantity > 1 && <p className="text-xs text-stone-400">×{li.quantity}</p>}
+                          </div>
+                          <p className="text-sm font-semibold text-stone-700 flex-shrink-0">{fmt$(li.price * li.quantity)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-stone-100">
+                    <p className="text-sm font-semibold text-stone-600">Total</p>
+                    <p className="text-base font-bold" style={{ color: 'var(--gold)' }}>{fmt$(selected.total)}</p>
+                  </div>
+                </div>
+              </DetailPanel>
+            )}
+          </div>
+        </>
       )}
     </div>
   )

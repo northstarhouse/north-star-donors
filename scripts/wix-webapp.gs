@@ -27,9 +27,10 @@ function doGet() {
   var cities    = fetchTopCities();
   var sources   = fetchTopSources();
   var events    = fetchWixEvents();
+  var orders    = fetchOrders();
 
   return ContentService
-    .createTextOutput(JSON.stringify({ analytics: analytics, forms: forms, pages: pages, cities: cities, sources: sources, events: events }))
+    .createTextOutput(JSON.stringify({ analytics: analytics, forms: forms, pages: pages, cities: cities, sources: sources, events: events, orders: orders }))
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -420,6 +421,68 @@ function fetchWixEvents() {
   }
 
   return { events: events };
+}
+
+// ── Orders ────────────────────────────────────────────────────────────────────
+
+function fetchOrders() {
+  var all = [];
+  var cursor = null;
+
+  try {
+    do {
+      var payload = {
+        sort: [{ fieldName: 'createdDate', order: 'DESC' }],
+        cursorPaging: { limit: 100 }
+      };
+      if (cursor) payload.cursorPaging.cursor = cursor;
+
+      var resp = UrlFetchApp.fetch('https://www.wixapis.com/ecom/v1/orders/search', {
+        method: 'POST',
+        contentType: 'application/json',
+        headers: { 'Authorization': WIX_TOKEN, 'wix-site-id': WIX_SITE },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+
+      if (resp.getResponseCode() !== 200) {
+        Logger.log('Orders error ' + resp.getResponseCode() + ': ' + resp.getContentText());
+        return { orders: [], error: 'HTTP ' + resp.getResponseCode() };
+      }
+
+      var data = JSON.parse(resp.getContentText());
+      var batch = data.orders || [];
+      all = all.concat(batch.map(function(o) {
+        var buyer = o.buyerInfo || {};
+        return {
+          id:                 o.id,
+          number:             o.number,
+          created_date:       o.createdDate,
+          buyer_email:        buyer.email || null,
+          buyer_name:         [buyer.firstName, buyer.lastName].filter(Boolean).join(' ') || null,
+          line_items:         (o.lineItems || []).map(function(li) {
+            return {
+              name:     (li.productName || {}).original || 'Item',
+              quantity: li.quantity || 1,
+              price:    parseFloat(((li.price || {}).amount) || '0')
+            };
+          }),
+          total:              parseFloat(((o.priceSummary || {}).total || {}).amount || '0'),
+          payment_status:     o.paymentStatus || null,
+          fulfillment_status: o.fulfillmentStatus || null,
+          status:             o.status || null
+        };
+      }));
+
+      var meta = data.pagingMetadata || {};
+      cursor = meta.hasNext ? (meta.cursors || {}).next || null : null;
+    } while (cursor);
+  } catch (e) {
+    Logger.log('Orders fetch error: ' + e);
+    return { orders: [], error: String(e) };
+  }
+
+  return { orders: all };
 }
 
 function normalizeFields(raw) {
