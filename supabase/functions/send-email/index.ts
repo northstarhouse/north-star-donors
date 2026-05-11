@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const { bcc, to, subject, body, sender } = await req.json()
+    const { bcc, to, subject, body } = await req.json()
     const raw = to ?? bcc
 
     const recipients: string[] = Array.isArray(raw)
@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    const fromName = sender ? `${sender} · North Star House` : 'North Star House'
+    const fromName = 'North Star Historic Conservancy'
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
