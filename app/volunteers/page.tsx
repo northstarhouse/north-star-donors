@@ -338,7 +338,7 @@ export default function VolunteersPage() {
                 {/* Recipients */}
                 <div>
                   <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">
-                    Recipients — BCC ({modal.members.length})
+                    Recipients ({modal.members.length})
                   </p>
                   <div className="bg-stone-50 rounded-lg p-2.5 max-h-32 overflow-y-auto space-y-1">
                     {modal.members.map(v => (
@@ -382,7 +382,7 @@ export default function VolunteersPage() {
                     Cancel
                   </button>
                 </div>
-                <p className="text-[10px] text-stone-300 text-center">Sends from info@northstarhouse.org · all recipients in BCC</p>
+                <p className="text-[10px] text-stone-300 text-center">Sends from info@northstarhouse.org</p>
               </div>
             )}
           </div>

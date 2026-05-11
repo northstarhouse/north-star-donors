@@ -7,11 +7,12 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
 
   try {
-    const { bcc, subject, body, sender } = await req.json()
+    const { bcc, to, subject, body, sender } = await req.json()
+    const raw = to ?? bcc
 
-    const recipients: string[] = Array.isArray(bcc)
-      ? bcc
-      : String(bcc).split(',').map((e: string) => e.trim()).filter(Boolean)
+    const recipients: string[] = Array.isArray(raw)
+      ? raw
+      : String(raw).split(',').map((e: string) => e.trim()).filter(Boolean)
 
     if (!recipients.length) {
       return new Response(JSON.stringify({ error: 'No recipients' }), {
@@ -29,8 +30,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: `${fromName} <info@northstarhouse.org>`,
-        to: ['info@northstarhouse.org'],
-        bcc: recipients,
+        to: recipients,
         subject,
         text: body || '',
       }),

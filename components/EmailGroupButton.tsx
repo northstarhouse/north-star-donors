@@ -147,7 +147,7 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
               <div className="px-5 py-4 space-y-3">
                 {/* Recipients preview */}
                 <div>
-                  <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">Recipients (BCC)</p>
+                  <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1.5">Recipients</p>
                   <div className="bg-stone-50 rounded-lg p-2.5 max-h-28 overflow-y-auto space-y-1">
                     {volunteers.map(v => (
                       <div key={v.id} className="flex items-center justify-between gap-2">
@@ -206,7 +206,7 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
                     Cancel
                   </button>
                 </div>
-                <p className="text-[10px] text-stone-300 text-center">Sends from info@northstarhouse.org · all recipients in BCC</p>
+                <p className="text-[10px] text-stone-300 text-center">Sends from info@northstarhouse.org</p>
               </div>
             )}
           </div>
