@@ -64,7 +64,10 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
         'https://uvzwhhwzelaelfhfkvdb.supabase.co/functions/v1/send-email',
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
+          },
           body: JSON.stringify({
             bcc: volunteers.map(v => v.Email!.trim()),
             subject,
