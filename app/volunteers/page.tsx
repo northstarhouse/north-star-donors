@@ -327,7 +327,7 @@ export default function VolunteersPage() {
                 </div>
                 <p className="text-sm font-semibold text-stone-700">Email sent!</p>
                 <p className="text-xs text-stone-400 mt-1">
-                  Delivered to {modal.members.length} recipient{modal.members.length !== 1 ? 's' : ''} from info@thenorthstarhouse.org
+                  Delivered to {modal.members.length} recipient{modal.members.length !== 1 ? 's' : ''} from info@northstarhouse.org
                 </p>
                 <button onClick={() => setModal(null)} className="mt-4 px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg">
                   Done
@@ -382,7 +382,7 @@ export default function VolunteersPage() {
                     Cancel
                   </button>
                 </div>
-                <p className="text-[10px] text-stone-300 text-center">Sends from info@thenorthstarhouse.org · all recipients in BCC</p>
+                <p className="text-[10px] text-stone-300 text-center">Sends from info@northstarhouse.org · all recipients in BCC</p>
               </div>
             )}
           </div>

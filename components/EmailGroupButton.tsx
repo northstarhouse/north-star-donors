@@ -206,7 +206,7 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
                     Cancel
                   </button>
                 </div>
-                <p className="text-[10px] text-stone-300 text-center">Sends from info@thenorthstarhouse.org · all recipients in BCC</p>
+                <p className="text-[10px] text-stone-300 text-center">Sends from info@northstarhouse.org · all recipients in BCC</p>
               </div>
             )}
           </div>

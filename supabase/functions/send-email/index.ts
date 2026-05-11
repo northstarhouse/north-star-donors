@@ -28,8 +28,8 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: `${fromName} <info@thenorthstarhouse.org>`,
-        to: ['info@thenorthstarhouse.org'],
+        from: `${fromName} <info@northstarhouse.org>`,
+        to: ['info@northstarhouse.org'],
         bcc: recipients,
         subject,
         text: body || '',
