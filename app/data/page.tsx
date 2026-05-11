@@ -2007,6 +2007,7 @@ function fmtPayment(s: string | null) {
 
 function OrdersSection() {
   const [orders, setOrders] = useState<WixOrder[] | null>(null)
+  const [apiError, setApiError] = useState<string | null>(null)
   const [selected, setSelected] = useState<WixOrder | null>(null)
   const [search, setSearch] = useState('')
 
@@ -2018,9 +2019,10 @@ function OrdersSection() {
     fetch(WIX_URL, { signal: ctrl.signal })
       .then(r => r.json())
       .then(json => {
+        if (json.orders?.error) setApiError(json.orders.error)
         const list: WixOrder[] = json.orders?.orders ?? []
         setOrders(list)
-        cacheWrite(CK.orders, list, TTL_SCRIPT)
+        if (list.length) cacheWrite(CK.orders, list, TTL_SCRIPT)
       })
       .catch(() => { if (!ctrl.signal.aborted) setOrders([]) })
     return () => ctrl.abort()
@@ -2076,7 +2078,7 @@ function OrdersSection() {
             <div className="flex-1 bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
               {visible.length === 0 ? (
                 <div className="text-center py-16 text-stone-400 text-sm">
-                  {orders.length === 0 ? 'No orders found.' : 'No orders match your search.'}
+                  {apiError ? `API error: ${apiError}` : orders.length === 0 ? 'No orders found.' : 'No orders match your search.'}
                 </div>
               ) : (
                 <table className="w-full text-sm">
