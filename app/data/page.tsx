@@ -872,7 +872,7 @@ function FormsSection() {
                             <div className="flex items-start justify-between gap-4">
                               <div className="min-w-0">
                                 {sub.internal_notes && <p className="text-xs text-amber-800 bg-amber-100/80 rounded-md px-2 py-1 mb-2 truncate">{sub.internal_notes}</p>}
-                                {preview && <p className={`text-sm truncate ${isHandled ? 'text-stone-400 line-through' : 'text-stone-700'}`}>{preview}</p>}
+                                {preview && <p className={`text-sm truncate ${isHandled ? 'text-stone-400' : 'text-stone-700'}`}>{preview}</p>}
                                 {email && email !== preview && <p className="text-xs text-stone-400 mt-0.5 truncate">{email}</p>}
                               </div>
                               <p className="text-xs text-stone-500 flex-shrink-0">{fmtTs(sub.created_at)}</p>
