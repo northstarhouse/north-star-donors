@@ -44,6 +44,7 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
   const [giftPaymentType, setGiftPaymentType] = useState<PaymentType | ''>('')
   const [giftBenefits, setGiftBenefits] = useState('')
   const [giftAcknowledged, setGiftAcknowledged] = useState(false)
+  const [giftDonationNotes, setGiftDonationNotes] = useState('')
   const [error, setError] = useState('')
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -91,6 +92,7 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
       payment_type: giftPaymentType || null,
       benefits: giftBenefits.trim() || null,
       acknowledged: giftAcknowledged,
+      donation_notes: giftDonationNotes.trim() || null,
     })
     onCreated()
     onClose()
@@ -184,6 +186,10 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
       <div>
         <label className="text-xs text-stone-500 mb-1 block">Benefits</label>
         <input className={inputCls} placeholder="Any benefits associated with this gift..." value={giftBenefits} onChange={e => setGiftBenefits(e.target.value)} />
+      </div>
+      <div>
+        <label className="text-xs text-stone-500 mb-1 block">Donation Notes</label>
+        <input className={inputCls} placeholder="Notes about this gift..." value={giftDonationNotes} onChange={e => setGiftDonationNotes(e.target.value)} />
       </div>
       <div>
         <label className="flex items-center gap-2 cursor-pointer">
