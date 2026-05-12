@@ -2212,6 +2212,14 @@ function fmtPayment(s: string | null) {
   return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
+const HANDLED_ORDERS_KEY = 'north-star-donors:handled-orders:v1'
+function readHandledOrders(): Set<string> {
+  try { return new Set(JSON.parse(localStorage.getItem(HANDLED_ORDERS_KEY) ?? '[]')) } catch { return new Set() }
+}
+function writeHandledOrders(ids: Set<string>) {
+  try { localStorage.setItem(HANDLED_ORDERS_KEY, JSON.stringify([...ids])) } catch { /* quota */ }
+}
+
 function OrdersSection() {
   const [orders, setOrders] = useState<WixOrder[] | null>(() => {
     const cached = cacheRead<WixOrder[]>(CK.orders)
@@ -2222,6 +2230,16 @@ function OrdersSection() {
   const [apiError, setApiError] = useState<string | null>(null)
   const [selected, setSelected] = useState<WixOrder | null>(null)
   const [search, setSearch] = useState('')
+  const [handledOrders, setHandledOrders] = useState<Set<string>>(() => readHandledOrders())
+
+  function toggleOrderHandled(id: string) {
+    setHandledOrders(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      writeHandledOrders(next)
+      return next
+    })
+  }
 
   useEffect(() => {
     if (orders) return
@@ -2313,6 +2331,7 @@ function OrdersSection() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-stone-100 bg-stone-50/60">
+                      <th className="px-3 py-3 w-8"></th>
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Order</th>
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Buyer</th>
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Items</th>
@@ -2322,29 +2341,41 @@ function OrdersSection() {
                     </tr>
                   </thead>
                   <tbody>
-                    {visible.map((o, i) => (
-                      <tr key={o.id}
-                        onClick={() => setSelected(selected?.id === o.id ? null : o)}
-                        className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === o.id ? 'bg-amber-50/40' : 'hover:bg-stone-50'}`}>
-                        <td className="px-4 py-3 font-semibold text-stone-700">#{o.number}</td>
-                        <td className="px-4 py-3">
-                          <p className="font-medium text-stone-700">{o.buyer_name ?? '—'}</p>
-                          {o.buyer_email && <p className="text-[11px] text-stone-400">{o.buyer_email}</p>}
-                        </td>
-                        <td className="px-4 py-3 text-stone-500 text-xs max-w-[200px] truncate">
-                          {o.line_items.map(li => `${li.name}${li.quantity > 1 ? ` ×${li.quantity}` : ''}`).join(', ')}
-                        </td>
-                        <td className="px-4 py-3 text-right font-medium text-stone-800">{fmt$(o.total)}</td>
-                        <td className="px-4 py-3">
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${PAYMENT_COLORS[o.payment_status ?? ''] ?? 'bg-stone-100 text-stone-400'}`}>
-                            {fmtPayment(o.payment_status)}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-stone-400 text-xs whitespace-nowrap">
-                          {o.created_date ? new Date(o.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                        </td>
-                      </tr>
-                    ))}
+                    {visible.map((o) => {
+                      const isHandled = handledOrders.has(o.id)
+                      const textCls = isHandled ? 'text-stone-400' : 'text-stone-700'
+                      return (
+                        <tr key={o.id}
+                          className={`border-b border-stone-100 transition-colors ${selected?.id === o.id ? 'bg-amber-50/40' : isHandled ? 'bg-stone-50/60' : 'hover:bg-stone-50'}`}>
+                          <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              title="Mark as handled"
+                              className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                              checked={isHandled}
+                              onChange={() => toggleOrderHandled(o.id)}
+                            />
+                          </td>
+                          <td className={`px-4 py-3 font-semibold cursor-pointer ${textCls}`} onClick={() => setSelected(selected?.id === o.id ? null : o)}>#{o.number}</td>
+                          <td className="px-4 py-3 cursor-pointer" onClick={() => setSelected(selected?.id === o.id ? null : o)}>
+                            <p className={`font-medium ${textCls}`}>{o.buyer_name ?? '—'}</p>
+                            {o.buyer_email && <p className="text-[11px] text-stone-400">{o.buyer_email}</p>}
+                          </td>
+                          <td className={`px-4 py-3 text-xs max-w-[200px] truncate cursor-pointer ${isHandled ? 'text-stone-300' : 'text-stone-500'}`} onClick={() => setSelected(selected?.id === o.id ? null : o)}>
+                            {o.line_items.map(li => `${li.name}${li.quantity > 1 ? ` ×${li.quantity}` : ''}`).join(', ')}
+                          </td>
+                          <td className={`px-4 py-3 text-right font-medium cursor-pointer ${isHandled ? 'text-stone-400' : 'text-stone-800'}`} onClick={() => setSelected(selected?.id === o.id ? null : o)}>{fmt$(o.total)}</td>
+                          <td className="px-4 py-3 cursor-pointer" onClick={() => setSelected(selected?.id === o.id ? null : o)}>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${isHandled ? 'bg-stone-100 text-stone-400' : (PAYMENT_COLORS[o.payment_status ?? ''] ?? 'bg-stone-100 text-stone-400')}`}>
+                              {fmtPayment(o.payment_status)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-stone-400 text-xs whitespace-nowrap cursor-pointer" onClick={() => setSelected(selected?.id === o.id ? null : o)}>
+                            {o.created_date ? new Date(o.created_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               )}
