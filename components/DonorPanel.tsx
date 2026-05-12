@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { X, MapPin, Mail, Phone, Briefcase, Plus, DollarSign, Pencil, Trash2, Check, GitMerge, Star, Tag } from 'lucide-react'
-import { DonorWithStats, Donation, Tag as TagType, OutreachEntry, OutreachStatus } from '@/lib/types'
+import { DonorWithStats, Donation, DonationType, PaymentType, Tag as TagType, OutreachEntry, OutreachStatus } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import TierBadge from './TierBadge'
 import StatusBadge from './StatusBadge'
@@ -19,7 +19,17 @@ interface Props {
 
 const goldBtn = { background: 'var(--gold)' }
 
-type DonationEdit = { amount: string; date: string; type: Donation['type']; donation_notes: string }
+type DonationEdit = {
+  amount: string
+  date: string
+  type: DonationType
+  payment_type: PaymentType | ''
+  benefits: string
+  acknowledged: boolean
+  salesforce: boolean
+  donation_notes: string
+  notes: string
+}
 
 export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
   const [notes, setNotes] = useState(donor.donor_notes ?? '')
@@ -56,8 +66,13 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
   const [showAddDonation, setShowAddDonation] = useState(false)
   const [newAmount, setNewAmount] = useState('')
   const [newDate, setNewDate] = useState(new Date().toISOString().slice(0, 10))
-  const [newType, setNewType] = useState<Donation['type']>('one-time')
+  const [newType, setNewType] = useState<DonationType>('Donation')
+  const [newPaymentType, setNewPaymentType] = useState<PaymentType | ''>('')
+  const [newBenefits, setNewBenefits] = useState('')
+  const [newAcknowledged, setNewAcknowledged] = useState(false)
+  const [newSalesforce, setNewSalesforce] = useState(false)
   const [newDonationNotes, setNewDonationNotes] = useState('')
+  const [newNotes, setNewNotes] = useState('')
   const [editField, setEditField] = useState<string | null>(null)
   const [editValues, setEditValues] = useState({
     formal_name: donor.formal_name,
@@ -66,13 +81,14 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
     phone: donor.phone ?? '',
     employer: donor.employer ?? '',
     address: donor.address ?? '',
+    account_type: donor.account_type ?? '',
     interests: donor.interests ?? '',
     background: donor.background ?? '',
     nsh_contact: donor.nsh_contact ?? '',
     first_connected: donor.first_connected ?? '',
   })
   const [editingDonationId, setEditingDonationId] = useState<string | null>(null)
-  const [donationEdit, setDonationEdit] = useState<DonationEdit>({ amount: '', date: '', type: 'one-time', donation_notes: '' })
+  const [donationEdit, setDonationEdit] = useState<DonationEdit>({ amount: '', date: '', type: 'Donation', payment_type: '', benefits: '', acknowledged: false, salesforce: false, donation_notes: '', notes: '' })
   const [showMerge, setShowMerge] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -113,11 +129,21 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
       amount,
       date: newDate,
       type: newType,
-      donation_notes: newDonationNotes || null,
+      payment_type: newPaymentType || null,
+      benefits: newBenefits.trim() || null,
+      acknowledged: newAcknowledged,
+      salesforce: newSalesforce,
+      donation_notes: newDonationNotes.trim() || null,
+      notes: newNotes.trim() || null,
     })
     setShowAddDonation(false)
     setNewAmount('')
+    setNewPaymentType('')
+    setNewBenefits('')
+    setNewAcknowledged(false)
+    setNewSalesforce(false)
     setNewDonationNotes('')
+    setNewNotes('')
     onUpdated()
   }
 
@@ -127,7 +153,12 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
       amount: String(d.amount),
       date: d.date,
       type: d.type,
+      payment_type: (d.payment_type as PaymentType | null) ?? '',
+      benefits: d.benefits ?? '',
+      acknowledged: d.acknowledged ?? false,
+      salesforce: d.salesforce ?? false,
       donation_notes: d.donation_notes ?? '',
+      notes: d.notes ?? '',
     })
   }
 
@@ -138,7 +169,12 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
       amount,
       date: donationEdit.date,
       type: donationEdit.type,
-      donation_notes: donationEdit.donation_notes || null,
+      payment_type: donationEdit.payment_type || null,
+      benefits: donationEdit.benefits.trim() || null,
+      acknowledged: donationEdit.acknowledged,
+      salesforce: donationEdit.salesforce,
+      donation_notes: donationEdit.donation_notes.trim() || null,
+      notes: donationEdit.notes.trim() || null,
     }).eq('id', id)
     setEditingDonationId(null)
     onUpdated()
@@ -304,14 +340,15 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
               <span className="text-[10px] text-stone-300 italic">Click any field to edit</span>
             </div>
             <div className="space-y-1.5">
-              {(['formal_name', 'informal_first_name', 'email', 'phone', 'employer', 'address'] as const).map(field => {
+              {(['formal_name', 'informal_first_name', 'email', 'phone', 'employer', 'account_type', 'address'] as const).map(field => {
                 const icons: Record<string, React.ReactNode> = {
                   email: <Mail size={13} />, phone: <Phone size={13} />,
                   employer: <Briefcase size={13} />, address: <MapPin size={13} />,
                 }
                 const labels: Record<string, string> = {
                   formal_name: 'Formal Name', informal_first_name: 'Informal First Name',
-                  email: 'Email', phone: 'Phone', employer: 'Employer', address: 'Address',
+                  email: 'Email', phone: 'Phone', employer: 'Employer',
+                  account_type: 'Account Type', address: 'Address',
                 }
                 return (
                   <div key={field} className="flex items-start gap-2">
@@ -328,6 +365,16 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
                               value={editValues[field]}
                               onChange={e => setEditValues(v => ({ ...v, [field]: e.target.value }))}
                             />
+                          ) : field === 'account_type' ? (
+                            <select
+                              autoFocus
+                              className="flex-1 text-sm border border-stone-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-300 bg-white text-stone-700"
+                              value={editValues[field]}
+                              onChange={e => setEditValues(v => ({ ...v, [field]: e.target.value }))}
+                            >
+                              <option value="">— unset —</option>
+                              {['Individual','Family','Household','Foundation','Corporate','Organization'].map(t => <option key={t} value={t}>{t}</option>)}
+                            </select>
                           ) : (
                             <input
                               className="flex-1 text-sm border border-stone-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-amber-300"
@@ -503,20 +550,57 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
                       value={newDate} onChange={e => setNewDate(e.target.value)} />
                   </div>
                 </div>
-                <div>
-                  <label className="text-xs text-stone-400">Type</label>
-                  <select className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    value={newType} onChange={e => setNewType(e.target.value as Donation['type'])}>
-                    <option value="one-time">One-time</option>
-                    <option value="recurring">Recurring</option>
-                    <option value="grant">Grant</option>
-                    <option value="in-kind">In-Kind</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs text-stone-400">Donation Type</label>
+                    <select className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                      value={newType} onChange={e => setNewType(e.target.value as DonationType)}>
+                      <option value="Donation">Donation</option>
+                      <option value="Membership">Membership</option>
+                      <option value="Restricted">Restricted</option>
+                      <option value="Membership, Donation">Membership, Donation</option>
+                      <option value="Brick Purchase">Brick Purchase</option>
+                      <option value="Tribute">Tribute</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-stone-400">Payment Type</label>
+                    <select className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                      value={newPaymentType} onChange={e => setNewPaymentType(e.target.value as PaymentType | '')}>
+                      <option value="">—</option>
+                      <option value="Website">Website</option>
+                      <option value="Check">Check</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Credit Card">Credit Card</option>
+                      <option value="ACH">ACH</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
                 </div>
                 <div>
-                  <label className="text-xs text-stone-400">Notes (optional)</label>
+                  <label className="text-xs text-stone-400">Benefits</label>
                   <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    placeholder="Any notes about this gift..." value={newDonationNotes} onChange={e => setNewDonationNotes(e.target.value)} />
+                    placeholder="Any benefits..." value={newBenefits} onChange={e => setNewBenefits(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs text-stone-400">Donation Notes</label>
+                  <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    placeholder="Notes about this gift..." value={newDonationNotes} onChange={e => setNewDonationNotes(e.target.value)} />
+                </div>
+                <div>
+                  <label className="text-xs text-stone-400">Notes</label>
+                  <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    placeholder="General notes..." value={newNotes} onChange={e => setNewNotes(e.target.value)} />
+                </div>
+                <div className="flex gap-4 pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={newAcknowledged} onChange={e => setNewAcknowledged(e.target.checked)} className="rounded border-stone-300 accent-amber-500" />
+                    <span className="text-xs text-stone-500">Acknowledged</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={newSalesforce} onChange={e => setNewSalesforce(e.target.checked)} className="rounded border-stone-300 accent-amber-500" />
+                    <span className="text-xs text-stone-500">In Salesforce</span>
+                  </label>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={addDonation} className="px-3 py-1.5 text-white text-sm rounded-lg" style={goldBtn}>Add</button>
@@ -555,20 +639,57 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
                                     value={donationEdit.date} onChange={e => setDonationEdit(v => ({ ...v, date: e.target.value }))} />
                                 </div>
                               </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="text-xs text-stone-400">Donation Type</label>
+                                  <select className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                    value={donationEdit.type} onChange={e => setDonationEdit(v => ({ ...v, type: e.target.value as DonationType }))}>
+                                    <option value="Donation">Donation</option>
+                                    <option value="Membership">Membership</option>
+                                    <option value="Restricted">Restricted</option>
+                                    <option value="Membership, Donation">Membership, Donation</option>
+                                    <option value="Brick Purchase">Brick Purchase</option>
+                                    <option value="Tribute">Tribute</option>
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="text-xs text-stone-400">Payment Type</label>
+                                  <select className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                    value={donationEdit.payment_type} onChange={e => setDonationEdit(v => ({ ...v, payment_type: e.target.value as PaymentType | '' }))}>
+                                    <option value="">—</option>
+                                    <option value="Website">Website</option>
+                                    <option value="Check">Check</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Credit Card">Credit Card</option>
+                                    <option value="ACH">ACH</option>
+                                    <option value="Other">Other</option>
+                                  </select>
+                                </div>
+                              </div>
                               <div>
-                                <label className="text-xs text-stone-400">Type</label>
-                                <select className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                                  value={donationEdit.type} onChange={e => setDonationEdit(v => ({ ...v, type: e.target.value as Donation['type'] }))}>
-                                  <option value="one-time">One-time</option>
-                                  <option value="recurring">Recurring</option>
-                                  <option value="grant">Grant</option>
-                                  <option value="in-kind">In-Kind</option>
-                                </select>
+                                <label className="text-xs text-stone-400">Benefits</label>
+                                <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                  placeholder="Any benefits..." value={donationEdit.benefits} onChange={e => setDonationEdit(v => ({ ...v, benefits: e.target.value }))} />
+                              </div>
+                              <div>
+                                <label className="text-xs text-stone-400">Donation Notes</label>
+                                <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
+                                  value={donationEdit.donation_notes} onChange={e => setDonationEdit(v => ({ ...v, donation_notes: e.target.value }))} />
                               </div>
                               <div>
                                 <label className="text-xs text-stone-400">Notes</label>
                                 <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                                  value={donationEdit.donation_notes} onChange={e => setDonationEdit(v => ({ ...v, donation_notes: e.target.value }))} />
+                                  value={donationEdit.notes} onChange={e => setDonationEdit(v => ({ ...v, notes: e.target.value }))} />
+                              </div>
+                              <div className="flex gap-4">
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input type="checkbox" checked={donationEdit.acknowledged} onChange={e => setDonationEdit(v => ({ ...v, acknowledged: e.target.checked }))} className="rounded border-stone-300 accent-amber-500" />
+                                  <span className="text-xs text-stone-500">Acknowledged</span>
+                                </label>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                  <input type="checkbox" checked={donationEdit.salesforce} onChange={e => setDonationEdit(v => ({ ...v, salesforce: e.target.checked }))} className="rounded border-stone-300 accent-amber-500" />
+                                  <span className="text-xs text-stone-500">In Salesforce</span>
+                                </label>
                               </div>
                               <div className="flex gap-2">
                                 <button onClick={() => saveDonation(d.id)} className="flex items-center gap-1 px-3 py-1.5 text-white text-xs rounded-lg" style={goldBtn}>
@@ -582,11 +703,17 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
                               <div>
                                 <span className="text-sm font-medium text-stone-800">{fmt(d.amount)}</span>
                                 {d.donation_notes && <p className="text-xs text-stone-400 mt-0.5">{d.donation_notes}</p>}
+                                {d.notes && <p className="text-xs text-stone-400 mt-0.5">{d.notes}</p>}
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  {d.acknowledged && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Acknowledged</span>}
+                                  {d.salesforce && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">Salesforce</span>}
+                                </div>
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="text-right">
                                   <p className="text-sm text-stone-500">{fmtDate(d.date)}</p>
-                                  <span className="text-xs text-stone-400 capitalize">{d.type}</span>
+                                  <span className="text-xs text-stone-400">{d.type}</span>
+                                  {d.payment_type && <p className="text-xs text-stone-300">{d.payment_type}</p>}
                                 </div>
                                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                   <button onClick={() => startEditDonation(d)} className="p-1 text-stone-400 hover:text-stone-600 hover:bg-stone-100 rounded">

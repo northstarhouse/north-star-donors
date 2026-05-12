@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, DollarSign, Search, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { Donation } from '@/lib/types'
+import { DonationType, PaymentType } from '@/lib/types'
 
 interface Props {
   onClose: () => void
@@ -36,11 +36,17 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
     phone: '',
     employer: '',
     address: '',
+    account_type: '',
   })
   const [giftAmount, setGiftAmount] = useState('')
   const [giftDate, setGiftDate] = useState(new Date().toISOString().slice(0, 10))
-  const [giftType, setGiftType] = useState<Donation['type']>('one-time')
+  const [giftType, setGiftType] = useState<DonationType>('Donation')
+  const [giftPaymentType, setGiftPaymentType] = useState<PaymentType | ''>('')
+  const [giftBenefits, setGiftBenefits] = useState('')
+  const [giftAcknowledged, setGiftAcknowledged] = useState(false)
+  const [giftSalesforce, setGiftSalesforce] = useState(false)
   const [giftNotes, setGiftNotes] = useState('')
+  const [giftDonationNotes, setGiftDonationNotes] = useState('')
   const [error, setError] = useState('')
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -85,7 +91,12 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
       amount,
       date: giftDate,
       type: giftType,
-      donation_notes: giftNotes.trim() || null,
+      payment_type: giftPaymentType || null,
+      benefits: giftBenefits.trim() || null,
+      acknowledged: giftAcknowledged,
+      salesforce: giftSalesforce,
+      donation_notes: giftDonationNotes.trim() || null,
+      notes: giftNotes.trim() || null,
     })
     onCreated()
     onClose()
@@ -106,6 +117,7 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
           phone: form.phone.trim() || null,
           employer: form.employer.trim() || null,
           address: form.address.trim() || null,
+          account_type: form.account_type || null,
           historical_lifetime_giving: 0,
           historical_donation_count: 0,
         })
@@ -121,7 +133,12 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
           amount,
           date: giftDate,
           type: giftType,
-          donation_notes: giftNotes.trim() || null,
+          payment_type: giftPaymentType || null,
+          benefits: giftBenefits.trim() || null,
+          acknowledged: giftAcknowledged,
+          salesforce: giftSalesforce,
+          donation_notes: giftDonationNotes.trim() || null,
+          notes: giftNotes.trim() || null,
         })
       }
 
@@ -148,18 +165,52 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
           <input type="date" className={inputCls} value={giftDate} onChange={e => setGiftDate(e.target.value)} />
         </div>
       </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-xs text-stone-500 mb-1 block">Donation Type</label>
+          <select className={inputCls} value={giftType} onChange={e => setGiftType(e.target.value as DonationType)}>
+            <option value="Donation">Donation</option>
+            <option value="Membership">Membership</option>
+            <option value="Restricted">Restricted</option>
+            <option value="Membership, Donation">Membership, Donation</option>
+            <option value="Brick Purchase">Brick Purchase</option>
+            <option value="Tribute">Tribute</option>
+          </select>
+        </div>
+        <div>
+          <label className="text-xs text-stone-500 mb-1 block">Payment Type</label>
+          <select className={inputCls} value={giftPaymentType} onChange={e => setGiftPaymentType(e.target.value as PaymentType | '')}>
+            <option value="">—</option>
+            <option value="Website">Website</option>
+            <option value="Check">Check</option>
+            <option value="Cash">Cash</option>
+            <option value="Credit Card">Credit Card</option>
+            <option value="ACH">ACH</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
       <div>
-        <label className="text-xs text-stone-500 mb-1 block">Type</label>
-        <select className={inputCls} value={giftType} onChange={e => setGiftType(e.target.value as Donation['type'])}>
-          <option value="one-time">One-time</option>
-          <option value="recurring">Recurring</option>
-          <option value="grant">Grant</option>
-          <option value="in-kind">In-Kind</option>
-        </select>
+        <label className="text-xs text-stone-500 mb-1 block">Benefits</label>
+        <input className={inputCls} placeholder="Any benefits associated with this gift..." value={giftBenefits} onChange={e => setGiftBenefits(e.target.value)} />
+      </div>
+      <div>
+        <label className="text-xs text-stone-500 mb-1 block">Donation Notes</label>
+        <input className={inputCls} placeholder="Notes about this gift..." value={giftDonationNotes} onChange={e => setGiftDonationNotes(e.target.value)} />
       </div>
       <div>
         <label className="text-xs text-stone-500 mb-1 block">Notes</label>
-        <input className={inputCls} placeholder="Any notes about this gift..." value={giftNotes} onChange={e => setGiftNotes(e.target.value)} />
+        <input className={inputCls} placeholder="General notes..." value={giftNotes} onChange={e => setGiftNotes(e.target.value)} />
+      </div>
+      <div className="flex gap-4">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={giftAcknowledged} onChange={e => setGiftAcknowledged(e.target.checked)} className="rounded border-stone-300 accent-amber-500" />
+          <span className="text-xs text-stone-500">Acknowledged / Thanked</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input type="checkbox" checked={giftSalesforce} onChange={e => setGiftSalesforce(e.target.checked)} className="rounded border-stone-300 accent-amber-500" />
+          <span className="text-xs text-stone-500">In Salesforce</span>
+        </label>
       </div>
     </div>
   )
@@ -281,9 +332,23 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
                       <input className={inputCls} type="tel" placeholder="(555) 000-0000" value={form.phone} onChange={e => set({ phone: e.target.value })} />
                     </div>
                   </div>
-                  <div>
-                    <label className="text-xs text-stone-500 mb-1 block">Employer</label>
-                    <input className={inputCls} placeholder="Company or organization" value={form.employer} onChange={e => set({ employer: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-stone-500 mb-1 block">Employer</label>
+                      <input className={inputCls} placeholder="Company or organization" value={form.employer} onChange={e => set({ employer: e.target.value })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-stone-500 mb-1 block">Account Type</label>
+                      <select className={inputCls} value={form.account_type} onChange={e => set({ account_type: e.target.value })}>
+                        <option value="">—</option>
+                        <option value="Individual">Individual</option>
+                        <option value="Family">Family</option>
+                        <option value="Household">Household</option>
+                        <option value="Foundation">Foundation</option>
+                        <option value="Corporate">Corporate</option>
+                        <option value="Organization">Organization</option>
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs text-stone-500 mb-1 block">Address</label>

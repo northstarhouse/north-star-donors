@@ -24,6 +24,7 @@ export interface Donor {
   phone: string | null
   employer: string | null
   address: string | null
+  account_type: string | null
   donor_notes: string | null
   interests: string | null
   background: string | null
@@ -38,13 +39,21 @@ export interface Donor {
   updated_at: string
 }
 
+export type DonationType = 'Donation' | 'Membership' | 'Restricted' | 'Membership, Donation' | 'Brick Purchase' | 'Tribute'
+export type PaymentType = 'Website' | 'Check' | 'Cash' | 'Credit Card' | 'ACH' | 'Other'
+
 export interface Donation {
   id: string
   donor_id: string
   amount: number
   date: string
-  type: 'one-time' | 'recurring' | 'grant' | 'in-kind'
+  type: DonationType
+  payment_type: PaymentType | null
+  benefits: string | null
+  acknowledged: boolean
+  salesforce: boolean
   donation_notes: string | null
+  notes: string | null
   created_at: string
 }
 
