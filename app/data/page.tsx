@@ -2212,14 +2212,6 @@ function fmtPayment(s: string | null) {
   return s.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
-const HANDLED_ORDERS_KEY = 'north-star-donors:handled-orders:v1'
-function readHandledOrders(): Set<string> {
-  try { return new Set(JSON.parse(localStorage.getItem(HANDLED_ORDERS_KEY) ?? '[]')) } catch { return new Set() }
-}
-function writeHandledOrders(ids: Set<string>) {
-  try { localStorage.setItem(HANDLED_ORDERS_KEY, JSON.stringify([...ids])) } catch { /* quota */ }
-}
-
 function OrdersSection() {
   const [orders, setOrders] = useState<WixOrder[] | null>(() => {
     const cached = cacheRead<WixOrder[]>(CK.orders)
@@ -2230,15 +2222,26 @@ function OrdersSection() {
   const [apiError, setApiError] = useState<string | null>(null)
   const [selected, setSelected] = useState<WixOrder | null>(null)
   const [search, setSearch] = useState('')
-  const [handledOrders, setHandledOrders] = useState<Set<string>>(() => readHandledOrders())
+  const [handledOrders, setHandledOrders] = useState<Set<string>>(new Set())
 
-  function toggleOrderHandled(id: string) {
+  useEffect(() => {
+    supabase.from('order_handled').select('id').then(({ data }) => {
+      if (data) setHandledOrders(new Set(data.map((r: { id: string }) => r.id)))
+    })
+  }, [])
+
+  async function toggleOrderHandled(id: string) {
+    const isHandled = handledOrders.has(id)
     setHandledOrders(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      writeHandledOrders(next)
+      isHandled ? next.delete(id) : next.add(id)
       return next
     })
+    if (isHandled) {
+      await supabase.from('order_handled').delete().eq('id', id)
+    } else {
+      await supabase.from('order_handled').insert({ id })
+    }
   }
 
   useEffect(() => {
