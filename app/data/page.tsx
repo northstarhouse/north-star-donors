@@ -1,6 +1,6 @@
 ﻿'use client'
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
-import { BarChart2, Plus, X, Pencil, Trash2 } from 'lucide-react'
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
+import { BarChart2, Plus, X, Pencil, Trash2, Mail, Check, ChevronDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
@@ -129,11 +129,106 @@ interface HoneyBookPayload {
   tours?: TourEntry[]
 }
 
+interface WixPayload {
+  pages?: { rows?: unknown[] }
+  cities?: { rows?: unknown[] }
+  sources?: { rows?: unknown[] }
+  forms?: { submissions?: WixSubmission[] }
+  orders?: { orders?: WixOrder[]; error?: string }
+}
+
+interface WixBundle {
+  analytics: {
+    pages: { rows: unknown[] }
+    cities: { rows: unknown[] }
+    sources: { rows: unknown[] }
+  }
+  forms: WixSubmission[]
+  orders: WixOrder[]
+  orderError: string | null
+}
+
 const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
 const goldBtn = { background: 'var(--gold)' }
 const fmt$ = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.round((a / b) * 100)}%` : '-'
+
+let wixBundlePromise: Promise<WixBundle> | null = null
+
+function mergeFormOverrides(
+  submissions: WixSubmission[],
+  overrides: { id: string; internal_notes: string | null; status: string | null }[] | null | undefined,
+) {
+  const overrideMap = Object.fromEntries(
+    (overrides ?? []).map(row => [
+      row.id,
+      {
+        notes: row.internal_notes ?? null,
+        status: row.status ?? null,
+      },
+    ]),
+  )
+
+  return submissions.map(sub => ({
+    ...sub,
+    internal_notes: overrideMap[sub.id]?.notes ?? sub.internal_notes ?? null,
+    status: overrideMap[sub.id]?.status ?? sub.status,
+  }))
+}
+
+async function loadWixBundle(): Promise<WixBundle> {
+  if (!WIX_URL) {
+    return {
+      analytics: {
+        pages: { rows: [] },
+        cities: { rows: [] },
+        sources: { rows: [] },
+      },
+      forms: [],
+      orders: [],
+      orderError: null,
+    }
+  }
+
+  if (!wixBundlePromise) {
+    wixBundlePromise = (async () => {
+      const json = await fetch(WIX_URL).then(r => r.json()) as WixPayload
+      const rawForms = (json.forms?.submissions ?? []) as WixSubmission[]
+      const ids = rawForms.map(sub => sub.id)
+      const { data: overrides } = ids.length > 0
+        ? await supabase.from('data_wix_forms').select('id, internal_notes, status').in('id', ids)
+        : { data: [] }
+
+      const forms = mergeFormOverrides(
+        rawForms,
+        overrides as { id: string; internal_notes: string | null; status: string | null }[] | undefined,
+      )
+      const orders = (json.orders?.orders ?? []) as WixOrder[]
+      const bundle: WixBundle = {
+        analytics: {
+          pages: { rows: json.pages?.rows ?? [] },
+          cities: { rows: json.cities?.rows ?? [] },
+          sources: { rows: json.sources?.rows ?? [] },
+        },
+        forms,
+        orders,
+        orderError: json.orders?.error ?? null,
+      }
+
+      cacheWrite(CK.wix, bundle.analytics, TTL_SCRIPT)
+      cacheWrite(CK.forms, forms, TTL_SCRIPT)
+      cacheWrite(CK.orders, orders, TTL_SCRIPT)
+
+      return bundle
+    })().catch(error => {
+      wixBundlePromise = null
+      throw error
+    })
+  }
+
+  return wixBundlePromise
+}
 
 function readHoneyBookCache() {
   if (typeof window === 'undefined') return null
@@ -208,24 +303,7 @@ function usePrefetchAll() {
 
     // Wix analytics + forms + orders — one fetch, skip if all already cached
     if (WIX_URL && (!cacheRead(CK.wix) || !cacheRead(CK.orders) || !cacheRead(CK.forms))) {
-      fetch(WIX_URL).then(r => r.json()).then(async json => {
-        cacheWrite(CK.wix, {
-          pages: json.pages ?? { rows: [] },
-          cities: json.cities ?? { rows: [] },
-          sources: json.sources ?? { rows: [] },
-        }, TTL_SCRIPT)
-        if (json.orders?.orders) cacheWrite(CK.orders, json.orders.orders, TTL_SCRIPT)
-        const submissions: WixSubmission[] = json.forms?.submissions ?? []
-        if (submissions.length) {
-          const ids = submissions.map(s => s.id)
-          let overrides: Record<string, { notes: string | null; status: string | null }> = {}
-          if (ids.length > 0) {
-            const { data: or } = await supabase.from('data_wix_forms').select('id, internal_notes, status').in('id', ids)
-            overrides = Object.fromEntries((or ?? []).map(r => [r.id as string, { notes: (r.internal_notes as string | null) ?? null, status: (r.status as string | null) ?? null }]))
-          }
-          cacheWrite(CK.forms, submissions.map(s => ({ ...s, internal_notes: overrides[s.id]?.notes ?? null, status: overrides[s.id]?.status ?? s.status })), TTL_SCRIPT)
-        }
-      }).catch(() => { })
+      loadWixBundle().catch(() => { })
     }
   }, [])
 }
@@ -534,6 +612,20 @@ function HoneyBookSection() {
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    FORMS SECTION â€” auto-populated from Wix via Velo
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+const FORM_GROUPS = [
+  { tag: 'Board Member',  label: 'Board Members' },
+  { tag: 'Construction',  label: 'Construction' },
+  { tag: 'Events',        label: 'Events' },
+  { tag: 'Fundraising',   label: 'Fundraising' },
+  { tag: 'Landscaping',   label: 'Landscaping' },
+  { tag: 'Staff',         label: 'Staff' },
+  { tag: 'Venue',         label: 'Venue' },
+]
+
+function parseVolunteerTeams(t: string | null): string[] {
+  return (t ?? '').split(/[,|]/).map(s => s.replace(/\bNEW\b/g, '').trim()).filter(Boolean)
+}
+
 function FormsSection() {
   const [data, setData] = useState<{ submissions: WixSubmission[] } | null>(null)
   const [selected, setSelected] = useState<WixSubmission | null>(null)
@@ -543,6 +635,11 @@ function FormsSection() {
   const [notesSaving, setNotesSaving] = useState(false)
   const [handlingId, setHandlingId] = useState<string | null>(null)
   const scrollYRef = useRef(0)
+  const [groupDropOpen, setGroupDropOpen] = useState(false)
+  const [groupModal, setGroupModal] = useState<{ tag: string; label: string; recipients: string[]; subject: string; body: string } | null>(null)
+  const [groupSending, setGroupSending] = useState(false)
+  const [groupSent, setGroupSent] = useState(false)
+  const [groupError, setGroupError] = useState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -554,31 +651,10 @@ function FormsSection() {
         if (cached && !cancelled) { setSource('wix'); setData({ submissions: cached }) }
 
         try {
-          const json = await fetch(WIX_URL).then(r => r.json())
+          const bundle = await loadWixBundle()
           if (!cancelled) {
-            const submissions = (json.forms?.submissions ?? []) as WixSubmission[]
-            const ids = submissions.map(sub => sub.id)
-            let overrides: Record<string, { notes: string | null; status: string | null }> = {}
-
-            if (ids.length > 0) {
-              const { data: overrideRows } = await supabase
-                .from('data_wix_forms')
-                .select('id, internal_notes, status')
-                .in('id', ids)
-
-              overrides = Object.fromEntries(
-                (overrideRows ?? []).map(row => [row.id as string, { notes: (row.internal_notes as string | null) ?? null, status: (row.status as string | null) ?? null }])
-              )
-            }
-
-            const merged = submissions.map(sub => ({
-              ...sub,
-              internal_notes: overrides[sub.id]?.notes ?? sub.internal_notes ?? null,
-              status: overrides[sub.id]?.status ?? sub.status,
-            }))
             setSource('wix')
-            setData({ submissions: merged })
-            cacheWrite(CK.forms, merged, TTL_SCRIPT)
+            setData({ submissions: bundle.forms })
           }
         } catch {
           if (!cancelled && !cacheRead(CK.forms)) setData({ submissions: [] })
@@ -653,6 +729,47 @@ function FormsSection() {
       } : prev)
     }
     setNotesSaving(false)
+  }
+
+  async function openGroupModal(tag: string, label: string) {
+    if (!selected) return
+    setGroupDropOpen(false)
+    const { data: vols } = await supabase.from('2026 Volunteers').select('*')
+    const recipients = (vols ?? [])
+      .filter((v: { Status?: string; Team?: string; Email?: string }) => {
+        const active = (v.Status ?? '').trim().toLowerCase() === 'active'
+        const hasTag = parseVolunteerTeams(v.Team ?? null).some(t => t.toLowerCase().includes(tag.toLowerCase()))
+        return active && hasTag && v.Email?.trim()
+      })
+      .map((v: { Email?: string }) => v.Email!.trim())
+
+    const fieldLines = Object.entries(selected.fields).map(([k, v]) => `${k}: ${v}`).join('\n')
+    const subject = `${selected.form_name} — ${new Date(selected.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`
+    const body = `New ${selected.form_name} submission:\n\n${fieldLines}`
+
+    setGroupModal({ tag, label, recipients, subject, body })
+    setGroupSent(false)
+    setGroupError(null)
+  }
+
+  async function sendToGroup() {
+    if (!groupModal) return
+    setGroupSending(true)
+    setGroupError(null)
+    try {
+      const res = await fetch('https://uvzwhhwzelaelfhfkvdb.supabase.co/functions/v1/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}` },
+        body: JSON.stringify({ to: groupModal.recipients, subject: groupModal.subject, body: groupModal.body }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Send failed')
+      setGroupSent(true)
+    } catch (err) {
+      setGroupError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setGroupSending(false)
+    }
   }
 
   async function toggleHandled(sub: WixSubmission) {
@@ -775,6 +892,28 @@ function FormsSection() {
                   <p className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--gold)' }}>{selected.form_name}</p>
                   <p className="text-xs text-stone-400">{fmtTs(selected.created_at)}</p>
                 </div>
+
+                {/* Send to List Group */}
+                <div className="mb-4 relative">
+                  <button
+                    onClick={() => setGroupDropOpen(o => !o)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg font-medium border border-stone-200 text-stone-600 bg-white hover:bg-stone-50 w-full justify-between"
+                  >
+                    <span className="flex items-center gap-1.5"><Mail size={12} /> Send to List Group</span>
+                    <ChevronDown size={12} />
+                  </button>
+                  {groupDropOpen && (
+                    <div className="absolute left-0 right-0 mt-1 bg-white border border-stone-200 rounded-lg shadow-lg z-10 overflow-hidden">
+                      {FORM_GROUPS.map(g => (
+                        <button key={g.tag} onClick={() => openGroupModal(g.tag, g.label)}
+                          className="w-full text-left px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 border-b border-stone-100 last:border-0">
+                          {g.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="mb-4">
                   <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1 block">Internal Notes</label>
                   <textarea
@@ -815,6 +954,73 @@ function FormsSection() {
             ) : null}
           </div>
         </>
+      )}
+
+      {/* Send to Group compose modal */}
+      {groupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
+              <div>
+                <h2 className="font-semibold text-stone-800 text-sm">Send to {groupModal.label}</h2>
+                <p className="text-xs text-stone-400 mt-0.5">
+                  {groupModal.recipients.length === 0
+                    ? 'No active volunteers found for this group'
+                    : `${groupModal.recipients.length} recipient${groupModal.recipients.length !== 1 ? 's' : ''}`}
+                </p>
+              </div>
+              <button onClick={() => setGroupModal(null)} className="p-1.5 text-stone-300 hover:text-stone-500 rounded-lg"><X size={15} /></button>
+            </div>
+
+            {groupSent ? (
+              <div className="px-5 py-8 text-center">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+                  <Check size={20} className="text-emerald-600" />
+                </div>
+                <p className="text-sm font-semibold text-stone-700">Email sent!</p>
+                <p className="text-xs text-stone-400 mt-1">Delivered to {groupModal.recipients.length} recipient{groupModal.recipients.length !== 1 ? 's' : ''}</p>
+                <button onClick={() => setGroupModal(null)} className="mt-4 px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg">Close</button>
+              </div>
+            ) : groupModal.recipients.length === 0 ? (
+              <div className="px-5 py-8 text-center">
+                <p className="text-sm text-stone-600">No active volunteers tagged &quot;{groupModal.tag}&quot;.</p>
+                <button onClick={() => setGroupModal(null)} className="mt-4 px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg">Close</button>
+              </div>
+            ) : (
+              <div className="px-5 py-4 space-y-3">
+                <div>
+                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1 block">Subject</label>
+                  <input
+                    className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
+                    value={groupModal.subject}
+                    onChange={e => setGroupModal(m => m ? { ...m, subject: e.target.value } : m)}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1 block">Message</label>
+                  <textarea
+                    className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700 resize-none bg-stone-50"
+                    rows={6}
+                    value={groupModal.body}
+                    onChange={e => setGroupModal(m => m ? { ...m, body: e.target.value } : m)}
+                  />
+                </div>
+                {groupError && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{groupError}</p>}
+                <div className="flex gap-2 pt-1">
+                  <button onClick={sendToGroup} disabled={!groupModal.subject.trim() || groupSending}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium"
+                    style={{ background: 'var(--gold)' }}>
+                    <Mail size={13} /> {groupSending ? 'Sending…' : 'Send Email'}
+                  </button>
+                  <button onClick={() => setGroupModal(null)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">
+                    Cancel
+                  </button>
+                </div>
+                <p className="text-[10px] text-stone-300 text-center">Sends from info@northstarhouse.org</p>
+              </div>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )
@@ -2006,42 +2212,64 @@ function fmtPayment(s: string | null) {
 }
 
 function OrdersSection() {
-  const [orders, setOrders] = useState<WixOrder[] | null>(null)
+  const [orders, setOrders] = useState<WixOrder[] | null>(() => {
+    const cached = cacheRead<WixOrder[]>(CK.orders)
+    if (cached) return cached
+    if (!WIX_URL) return []
+    return null
+  })
   const [apiError, setApiError] = useState<string | null>(null)
   const [selected, setSelected] = useState<WixOrder | null>(null)
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    const cached = cacheRead<WixOrder[]>(CK.orders)
-    if (cached) { setOrders(cached); return }
-    if (!WIX_URL) { setOrders([]); return }
-    const ctrl = new AbortController()
-    fetch(WIX_URL, { signal: ctrl.signal })
-      .then(r => r.json())
-      .then(json => {
-        if (json.orders?.error) setApiError(json.orders.error)
-        const list: WixOrder[] = json.orders?.orders ?? []
-        setOrders(list)
-        if (list.length) cacheWrite(CK.orders, list, TTL_SCRIPT)
+    if (orders) return
+    let cancelled = false
+    loadWixBundle()
+      .then(bundle => {
+        if (cancelled) return
+        setApiError(bundle.orderError)
+        setOrders(bundle.orders)
       })
-      .catch(() => { if (!ctrl.signal.aborted) setOrders([]) })
-    return () => ctrl.abort()
-  }, [])
+      .catch(() => { if (!cancelled) setOrders([]) })
+    return () => { cancelled = true }
+  }, [orders])
 
-  const visible = (orders ?? []).filter(o => {
-    if (!search.trim()) return true
-    const q = search.toLowerCase()
-    return (
-      String(o.number).includes(q) ||
-      (o.buyer_name ?? '').toLowerCase().includes(q) ||
-      (o.buyer_email ?? '').toLowerCase().includes(q) ||
-      o.line_items.some(li => li.name.toLowerCase().includes(q))
-    )
-  })
+  const normalizedSearch = search.trim().toLowerCase()
+  const indexedOrders = useMemo(
+    () => (orders ?? []).map(order => ({
+      order,
+      searchText: [
+        String(order.number),
+        order.buyer_name ?? '',
+        order.buyer_email ?? '',
+        ...order.line_items.map(item => item.name),
+      ].join(' ').toLowerCase(),
+    })),
+    [orders],
+  )
+  const visible = useMemo(
+    () => normalizedSearch
+      ? indexedOrders.filter(entry => entry.searchText.includes(normalizedSearch)).map(entry => entry.order)
+      : indexedOrders.map(entry => entry.order),
+    [indexedOrders, normalizedSearch],
+  )
+  const totals = useMemo(() => {
+    let totalRevenue = 0
+    let paidCount = 0
+    let pendingCount = 0
 
-  const totalRevenue = (orders ?? []).filter(o => o.payment_status === 'PAID').reduce((s, o) => s + o.total, 0)
-  const paidCount = (orders ?? []).filter(o => o.payment_status === 'PAID').length
-  const pendingCount = (orders ?? []).filter(o => o.payment_status === 'PENDING' || o.payment_status === 'NOT_PAID').length
+    for (const order of orders ?? []) {
+      if (order.payment_status === 'PAID') {
+        totalRevenue += order.total
+        paidCount += 1
+      } else if (order.payment_status === 'PENDING' || order.payment_status === 'NOT_PAID') {
+        pendingCount += 1
+      }
+    }
+
+    return { totalRevenue, paidCount, pendingCount }
+  }, [orders])
 
   return (
     <div className="space-y-4">
@@ -2057,11 +2285,11 @@ function OrdersSection() {
             </div>
             <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
               <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Revenue (paid)</p>
-              <p className="text-2xl font-semibold" style={{ color: 'var(--gold)' }}>{fmt$(totalRevenue)}</p>
+              <p className="text-2xl font-semibold" style={{ color: 'var(--gold)' }}>{fmt$(totals.totalRevenue)}</p>
             </div>
             <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4">
               <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-1">Paid / Pending</p>
-              <p className="text-2xl font-semibold text-stone-800">{paidCount} <span className="text-sm font-normal text-stone-400">/ {pendingCount} pending</span></p>
+              <p className="text-2xl font-semibold text-stone-800">{totals.paidCount} <span className="text-sm font-normal text-stone-400">/ {totals.pendingCount} pending</span></p>
             </div>
           </div>
 
