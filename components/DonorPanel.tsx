@@ -26,9 +26,7 @@ type DonationEdit = {
   payment_type: PaymentType | ''
   benefits: string
   acknowledged: boolean
-  salesforce: boolean
   donation_notes: string
-  notes: string
 }
 
 export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
@@ -70,9 +68,7 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
   const [newPaymentType, setNewPaymentType] = useState<PaymentType | ''>('')
   const [newBenefits, setNewBenefits] = useState('')
   const [newAcknowledged, setNewAcknowledged] = useState(false)
-  const [newSalesforce, setNewSalesforce] = useState(false)
   const [newDonationNotes, setNewDonationNotes] = useState('')
-  const [newNotes, setNewNotes] = useState('')
   const [editField, setEditField] = useState<string | null>(null)
   const [editValues, setEditValues] = useState({
     formal_name: donor.formal_name,
@@ -82,13 +78,12 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
     employer: donor.employer ?? '',
     address: donor.address ?? '',
     account_type: donor.account_type ?? '',
-    interests: donor.interests ?? '',
     background: donor.background ?? '',
     nsh_contact: donor.nsh_contact ?? '',
     first_connected: donor.first_connected ?? '',
   })
   const [editingDonationId, setEditingDonationId] = useState<string | null>(null)
-  const [donationEdit, setDonationEdit] = useState<DonationEdit>({ amount: '', date: '', type: 'Donation', payment_type: '', benefits: '', acknowledged: false, salesforce: false, donation_notes: '', notes: '' })
+  const [donationEdit, setDonationEdit] = useState<DonationEdit>({ amount: '', date: '', type: 'Donation', payment_type: '', benefits: '', acknowledged: false, donation_notes: '' })
   const [showMerge, setShowMerge] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
@@ -132,18 +127,14 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
       payment_type: newPaymentType || null,
       benefits: newBenefits.trim() || null,
       acknowledged: newAcknowledged,
-      salesforce: newSalesforce,
       donation_notes: newDonationNotes.trim() || null,
-      notes: newNotes.trim() || null,
     })
     setShowAddDonation(false)
     setNewAmount('')
     setNewPaymentType('')
     setNewBenefits('')
     setNewAcknowledged(false)
-    setNewSalesforce(false)
     setNewDonationNotes('')
-    setNewNotes('')
     onUpdated()
   }
 
@@ -156,9 +147,7 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
       payment_type: (d.payment_type as PaymentType | null) ?? '',
       benefits: d.benefits ?? '',
       acknowledged: d.acknowledged ?? false,
-      salesforce: d.salesforce ?? false,
       donation_notes: d.donation_notes ?? '',
-      notes: d.notes ?? '',
     })
   }
 
@@ -172,9 +161,7 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
       payment_type: donationEdit.payment_type || null,
       benefits: donationEdit.benefits.trim() || null,
       acknowledged: donationEdit.acknowledged,
-      salesforce: donationEdit.salesforce,
       donation_notes: donationEdit.donation_notes.trim() || null,
-      notes: donationEdit.notes.trim() || null,
     }).eq('id', id)
     setEditingDonationId(null)
     onUpdated()
@@ -411,11 +398,10 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
             </div>
             <div className="space-y-3">
               {([
-                { field: 'nsh_contact', label: 'NSH Contact', type: 'select' },
-                { field: 'first_connected', label: 'How They First Connected', type: 'textarea' },
-                { field: 'interests', label: 'Interests', type: 'textarea' },
                 { field: 'background', label: 'Background', type: 'textarea' },
-              ] as { field: 'nsh_contact' | 'first_connected' | 'interests' | 'background'; label: string; type: string }[]).map(({ field, label, type }) => (
+                { field: 'first_connected', label: 'What Ties Them to North Star House', type: 'textarea' },
+                { field: 'nsh_contact', label: 'Main NSH Contact', type: 'select' },
+              ] as { field: 'nsh_contact' | 'first_connected' | 'background'; label: string; type: string }[]).map(({ field, label, type }) => (
                 <div key={field}>
                   <p className="text-[10px] text-stone-400 uppercase tracking-wide mb-0.5">{label}</p>
                   {editField === field ? (
@@ -460,7 +446,7 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
 
           {/* Notes */}
           <div className="space-y-2">
-            <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Donor Notes</h3>
+            <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">More Donor Notes</h3>
             <textarea
               className="w-full border border-stone-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
               rows={4}
@@ -588,18 +574,9 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
                     placeholder="Notes about this gift..." value={newDonationNotes} onChange={e => setNewDonationNotes(e.target.value)} />
                 </div>
                 <div>
-                  <label className="text-xs text-stone-400">Notes</label>
-                  <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                    placeholder="General notes..." value={newNotes} onChange={e => setNewNotes(e.target.value)} />
-                </div>
-                <div className="flex gap-4 pt-1">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="checkbox" checked={newAcknowledged} onChange={e => setNewAcknowledged(e.target.checked)} className="rounded border-stone-300 accent-amber-500" />
                     <span className="text-xs text-stone-500">Acknowledged</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" checked={newSalesforce} onChange={e => setNewSalesforce(e.target.checked)} className="rounded border-stone-300 accent-amber-500" />
-                    <span className="text-xs text-stone-500">In Salesforce</span>
                   </label>
                 </div>
                 <div className="flex gap-2">
@@ -677,18 +654,9 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
                                   value={donationEdit.donation_notes} onChange={e => setDonationEdit(v => ({ ...v, donation_notes: e.target.value }))} />
                               </div>
                               <div>
-                                <label className="text-xs text-stone-400">Notes</label>
-                                <input className="w-full border border-stone-200 rounded-lg px-2 py-1.5 text-sm mt-0.5 focus:outline-none focus:ring-2 focus:ring-amber-300"
-                                  value={donationEdit.notes} onChange={e => setDonationEdit(v => ({ ...v, notes: e.target.value }))} />
-                              </div>
-                              <div className="flex gap-4">
                                 <label className="flex items-center gap-2 cursor-pointer">
                                   <input type="checkbox" checked={donationEdit.acknowledged} onChange={e => setDonationEdit(v => ({ ...v, acknowledged: e.target.checked }))} className="rounded border-stone-300 accent-amber-500" />
                                   <span className="text-xs text-stone-500">Acknowledged</span>
-                                </label>
-                                <label className="flex items-center gap-2 cursor-pointer">
-                                  <input type="checkbox" checked={donationEdit.salesforce} onChange={e => setDonationEdit(v => ({ ...v, salesforce: e.target.checked }))} className="rounded border-stone-300 accent-amber-500" />
-                                  <span className="text-xs text-stone-500">In Salesforce</span>
                                 </label>
                               </div>
                               <div className="flex gap-2">
@@ -703,11 +671,7 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
                               <div>
                                 <span className="text-sm font-medium text-stone-800">{fmt(d.amount)}</span>
                                 {d.donation_notes && <p className="text-xs text-stone-400 mt-0.5">{d.donation_notes}</p>}
-                                {d.notes && <p className="text-xs text-stone-400 mt-0.5">{d.notes}</p>}
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  {d.acknowledged && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Acknowledged</span>}
-                                  {d.salesforce && <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">Salesforce</span>}
-                                </div>
+                                {d.acknowledged && <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full mt-0.5 inline-block">Acknowledged</span>}
                               </div>
                               <div className="flex items-center gap-3">
                                 <div className="text-right">

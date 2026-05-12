@@ -51,9 +51,7 @@ export interface Donation {
   payment_type: PaymentType | null
   benefits: string | null
   acknowledged: boolean
-  salesforce: boolean
   donation_notes: string | null
-  notes: string | null
   created_at: string
 }
 

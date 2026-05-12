@@ -44,9 +44,6 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
   const [giftPaymentType, setGiftPaymentType] = useState<PaymentType | ''>('')
   const [giftBenefits, setGiftBenefits] = useState('')
   const [giftAcknowledged, setGiftAcknowledged] = useState(false)
-  const [giftSalesforce, setGiftSalesforce] = useState(false)
-  const [giftNotes, setGiftNotes] = useState('')
-  const [giftDonationNotes, setGiftDonationNotes] = useState('')
   const [error, setError] = useState('')
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -94,9 +91,6 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
       payment_type: giftPaymentType || null,
       benefits: giftBenefits.trim() || null,
       acknowledged: giftAcknowledged,
-      salesforce: giftSalesforce,
-      donation_notes: giftDonationNotes.trim() || null,
-      notes: giftNotes.trim() || null,
     })
     onCreated()
     onClose()
@@ -136,9 +130,6 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
           payment_type: giftPaymentType || null,
           benefits: giftBenefits.trim() || null,
           acknowledged: giftAcknowledged,
-          salesforce: giftSalesforce,
-          donation_notes: giftDonationNotes.trim() || null,
-          notes: giftNotes.trim() || null,
         })
       }
 
@@ -195,21 +186,9 @@ export default function AddDonorModal({ onClose, onCreated }: Props) {
         <input className={inputCls} placeholder="Any benefits associated with this gift..." value={giftBenefits} onChange={e => setGiftBenefits(e.target.value)} />
       </div>
       <div>
-        <label className="text-xs text-stone-500 mb-1 block">Donation Notes</label>
-        <input className={inputCls} placeholder="Notes about this gift..." value={giftDonationNotes} onChange={e => setGiftDonationNotes(e.target.value)} />
-      </div>
-      <div>
-        <label className="text-xs text-stone-500 mb-1 block">Notes</label>
-        <input className={inputCls} placeholder="General notes..." value={giftNotes} onChange={e => setGiftNotes(e.target.value)} />
-      </div>
-      <div className="flex gap-4">
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={giftAcknowledged} onChange={e => setGiftAcknowledged(e.target.checked)} className="rounded border-stone-300 accent-amber-500" />
           <span className="text-xs text-stone-500">Acknowledged / Thanked</span>
-        </label>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" checked={giftSalesforce} onChange={e => setGiftSalesforce(e.target.checked)} className="rounded border-stone-300 accent-amber-500" />
-          <span className="text-xs text-stone-500">In Salesforce</span>
         </label>
       </div>
     </div>
