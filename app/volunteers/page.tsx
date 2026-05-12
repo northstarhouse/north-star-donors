@@ -27,6 +27,7 @@ interface EmailLog {
 const GROUPS = [
   { tag: 'Board Member',  label: 'Board Members' },
   { tag: 'Construction',  label: 'Construction' },
+  { tag: 'Docent',        label: 'Docents' },
   { tag: 'Events Team',   label: 'Events Team' },
   { tag: 'Landscaping',   label: 'Grounds' },
   { tag: 'Interiors',     label: 'Interiors' },

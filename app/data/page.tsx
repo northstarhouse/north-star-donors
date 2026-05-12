@@ -615,6 +615,7 @@ function HoneyBookSection() {
 const FORM_GROUPS = [
   { tag: 'Board Member',  label: 'Board Members' },
   { tag: 'Construction',  label: 'Construction' },
+  { tag: 'Docent',        label: 'Docents' },
   { tag: 'Events',        label: 'Events' },
   { tag: 'Fundraising',   label: 'Fundraising' },
   { tag: 'Landscaping',   label: 'Landscaping' },
