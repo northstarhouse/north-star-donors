@@ -30,9 +30,6 @@ type DonationEdit = {
 }
 
 export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
-  const [notes, setNotes] = useState(donor.donor_notes ?? '')
-  const [alsoSupports, setAlsoSupports] = useState(donor.also_supports ?? '')
-  const [savingAlsoSupports, setSavingAlsoSupports] = useState(false)
   const [saving, setSaving] = useState(false)
   const [starred, setStarred] = useState(donor.starred ?? false)
   const [starNote, setStarNote] = useState(donor.star_note ?? '')
@@ -83,6 +80,8 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
     background: donor.background ?? '',
     nsh_contact: donor.nsh_contact ?? '',
     first_connected: donor.first_connected ?? '',
+    donor_notes: donor.donor_notes ?? '',
+    also_supports: donor.also_supports ?? '',
   })
   const [editingDonationId, setEditingDonationId] = useState<string | null>(null)
   const [donationEdit, setDonationEdit] = useState<DonationEdit>({ amount: '', date: '', type: 'Donation', payment_type: '', benefits: '', acknowledged: false, donation_notes: '' })
@@ -107,16 +106,9 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
     onUpdated()
   }
 
-  async function saveAlsoSupports() {
-    setSavingAlsoSupports(true)
-    await supabase.from('donors').update({ also_supports: alsoSupports.trim() || null, updated_at: new Date().toISOString() }).eq('id', donor.id)
-    setSavingAlsoSupports(false)
-    onUpdated()
-  }
-
   async function saveNotes() {
     setSaving(true)
-    await supabase.from('donors').update({ donor_notes: notes, updated_at: new Date().toISOString() }).eq('id', donor.id)
+    await supabase.from('donors').update({ donor_notes: editValues.donor_notes.trim() || null, updated_at: new Date().toISOString() }).eq('id', donor.id)
     setSaving(false)
     onUpdated()
   }
@@ -501,37 +493,38 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
             </div>
           </div>
 
-          {/* Notes */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">More Donor Notes</h3>
-            <textarea
-              className="w-full border border-stone-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
-              rows={4}
-              placeholder="Add notes about this donor..."
-              value={notes}
-              onChange={e => setNotes(e.target.value)}
-            />
-            <button onClick={saveNotes} disabled={saving}
-              className="px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50" style={goldBtn}>
-              {saving ? 'Saving...' : 'Save Notes'}
-            </button>
-          </div>
-
-          {/* Also Supports */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Also Supports</h3>
-            <textarea
-              className="w-full border border-stone-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
-              rows={3}
-              placeholder="Other organizations or causes this donor supports..."
-              value={alsoSupports}
-              onChange={e => setAlsoSupports(e.target.value)}
-            />
-            <button onClick={saveAlsoSupports} disabled={savingAlsoSupports}
-              className="px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50" style={goldBtn}>
-              {savingAlsoSupports ? 'Saving...' : 'Save'}
-            </button>
-          </div>
+          {/* Notes + Also Supports */}
+          {([
+            { field: 'donor_notes', label: 'More Donor Notes', placeholder: 'Add notes about this donor...' },
+            { field: 'also_supports', label: 'Also Supports', placeholder: 'Other organizations or causes this donor supports...' },
+          ] as { field: 'donor_notes' | 'also_supports'; label: string; placeholder: string }[]).map(({ field, label, placeholder }) => (
+            <div key={field} className="space-y-1">
+              <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">{label}</p>
+              {editField === field ? (
+                <div className="flex gap-1">
+                  <textarea
+                    autoFocus
+                    className="flex-1 text-sm border border-stone-200 rounded-lg px-2 py-1 resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
+                    rows={4}
+                    value={editValues[field]}
+                    onChange={e => setEditValues(v => ({ ...v, [field]: e.target.value }))}
+                  />
+                  <div className="flex flex-col gap-1">
+                    <button onClick={() => saveField(field)} className="px-2 py-1 text-white text-xs rounded-lg" style={goldBtn}>Save</button>
+                    <button onClick={() => setEditField(null)} className="px-2 py-1 bg-stone-100 text-stone-600 text-xs rounded-lg hover:bg-stone-200">✕</button>
+                  </div>
+                </div>
+              ) : (
+                <p
+                  className="text-sm text-stone-700 cursor-pointer hover:bg-stone-50 rounded px-1 -mx-1 min-h-[1.5rem] py-0.5 group flex items-start gap-1 whitespace-pre-wrap"
+                  onClick={() => setEditField(field)}
+                >
+                  <span className="flex-1">{editValues[field] || <span className="text-stone-300 italic text-xs">{placeholder}</span>}</span>
+                  <Pencil size={10} className="text-stone-300 opacity-0 group-hover:opacity-100 flex-shrink-0 mt-1" />
+                </p>
+              )}
+            </div>
+          ))}
 
           {/* Tags */}
           <div className="space-y-2">
