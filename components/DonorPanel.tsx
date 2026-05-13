@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { X, MapPin, Mail, Phone, Briefcase, Plus, DollarSign, Pencil, Trash2, Check, GitMerge, Star, Tag } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { X, MapPin, Mail, Phone, Briefcase, Plus, DollarSign, Pencil, Trash2, Check, GitMerge, Star, Tag, Camera } from 'lucide-react'
 import { DonorWithStats, Donation, DonationType, PaymentType, Tag as TagType, OutreachEntry, OutreachStatus } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import TierBadge from './TierBadge'
@@ -86,6 +86,24 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
   const [donationEdit, setDonationEdit] = useState<DonationEdit>({ amount: '', date: '', type: 'Donation', payment_type: '', benefits: '', acknowledged: false, donation_notes: '' })
   const [showMerge, setShowMerge] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState(donor.avatar_url ?? null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
+
+  async function uploadAvatar(file: File) {
+    setUploadingAvatar(true)
+    const ext = file.name.split('.').pop()
+    const path = `${donor.id}/avatar.${ext}`
+    await supabase.storage.from('donor-avatars').remove([path])
+    const { error: upErr } = await supabase.storage.from('donor-avatars').upload(path, file, { upsert: true })
+    if (upErr) { setUploadingAvatar(false); return }
+    const { data: { publicUrl } } = supabase.storage.from('donor-avatars').getPublicUrl(path)
+    const urlWithBust = `${publicUrl}?t=${Date.now()}`
+    await supabase.from('donors').update({ avatar_url: urlWithBust, updated_at: new Date().toISOString() }).eq('id', donor.id)
+    setAvatarUrl(urlWithBust)
+    setUploadingAvatar(false)
+    onUpdated()
+  }
 
   async function saveNotes() {
     setSaving(true)
@@ -204,7 +222,36 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-stone-100 px-6 py-4 z-10">
           <div className="flex items-start justify-between">
-            <div>
+            <div className="flex items-start gap-3">
+              {/* Avatar bubble */}
+              <div
+                onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
+                title="Upload photo"
+                style={{ width: 48, height: 48, borderRadius: '50%', background: avatarUrl ? 'transparent' : '#e7e5e4', flexShrink: 0, position: 'relative', overflow: 'hidden', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 }}
+                onMouseEnter={e => { (e.currentTarget.lastElementChild as HTMLElement).style.opacity = '1' }}
+                onMouseLeave={e => { (e.currentTarget.lastElementChild as HTMLElement).style.opacity = '0' }}
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <span style={{ fontSize: 18, fontWeight: 600, color: '#78716c', userSelect: 'none' }}>
+                    {donor.formal_name.charAt(0).toUpperCase()}
+                  </span>
+                )}
+                <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.15s' }}>
+                  {uploadingAvatar
+                    ? <div style={{ width: 16, height: 16, border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+                    : <Camera size={14} color="white" />}
+                </div>
+              </div>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={e => { const f = e.target.files?.[0]; if (f) uploadAvatar(f); e.target.value = '' }}
+              />
+              <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold text-stone-800" style={{ fontFamily: 'var(--font-serif)' }}>
                   {donor.formal_name}
@@ -216,6 +263,7 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
               <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                 <TierBadge tier={donor.tier} />
                 <StatusBadge status={donor.status} />
+              </div>
               </div>
             </div>
             <div className="flex items-center gap-1 ml-2 flex-shrink-0">

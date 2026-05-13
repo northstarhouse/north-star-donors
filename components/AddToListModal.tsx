@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { X, Plus, Check, List, Tags } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { DonorList } from '@/lib/types'
+import { DonorList, Tag } from '@/lib/types'
 
 interface Props {
   donorIds: string[]
@@ -16,6 +16,7 @@ const TAG_COLORS = ['#ef4444','#f97316','#eab308','#22c55e','#14b8a6','#3b82f6',
 
 export default function AddToListModal({ donorIds, onClose, onDone }: Props) {
   const [lists, setLists] = useState<DonorList[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
   const [loading, setLoading] = useState(true)
   const [createMode, setCreateMode] = useState<'list' | 'tag'>('list')
   const [newListName, setNewListName] = useState('')
@@ -24,20 +25,22 @@ export default function AddToListModal({ donorIds, onClose, onDone }: Props) {
   const [creating, setCreating] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selectedListId, setSelectedListId] = useState<string | null>(null)
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    loadLists()
+    loadData()
   }, [])
 
-  async function loadLists() {
+  async function loadData() {
     setLoading(true)
-    const { data } = await supabase
-      .from('lists')
-      .select('id, name, created_at')
-      .order('created_at', { ascending: false })
-    setLists(data ?? [])
+    const [{ data: listData }, { data: tagData }] = await Promise.all([
+      supabase.from('lists').select('id, name, created_at').order('created_at', { ascending: false }),
+      supabase.from('tags').select('id, name, color, created_at').order('name'),
+    ])
+    setLists(listData ?? [])
+    setTags(tagData ?? [])
     setLoading(false)
   }
 
@@ -89,7 +92,19 @@ export default function AddToListModal({ donorIds, onClose, onDone }: Props) {
     setTimeout(() => { onDone(); onClose() }, 800)
   }
 
+  async function addToTag() {
+    if (!selectedTagId) return
+    setSaving(true)
+    setError('')
+    const rows = donorIds.map(donor_id => ({ tag_id: selectedTagId, donor_id }))
+    const { error: err } = await supabase.from('donor_tags').upsert(rows, { onConflict: 'donor_id,tag_id' })
+    if (err) { setError(err.message); setSaving(false); return }
+    setDone(true)
+    setTimeout(() => { onDone(); onClose() }, 800)
+  }
+
   const selectedList = lists.find(l => l.id === selectedListId)
+  const selectedTag = tags.find(t => t.id === selectedTagId)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -188,7 +203,7 @@ export default function AddToListModal({ donorIds, onClose, onDone }: Props) {
                 {lists.map(list => (
                   <button
                     key={list.id}
-                    onClick={() => setSelectedListId(list.id === selectedListId ? null : list.id)}
+                    onClick={() => { setSelectedListId(list.id === selectedListId ? null : list.id); setSelectedTagId(null) }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors border ${
                       selectedListId === list.id
                         ? 'border-amber-300 bg-amber-50 text-stone-800'
@@ -204,18 +219,46 @@ export default function AddToListModal({ donorIds, onClose, onDone }: Props) {
             )}
           </div>
 
+          {/* Existing tags */}
+          <div>
+            <label className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2 block">Existing Tags</label>
+            {loading ? (
+              <p className="text-sm text-stone-400 py-2">Loading...</p>
+            ) : tags.length === 0 ? (
+              <p className="text-sm text-stone-400 italic py-2">No tags yet — create one above.</p>
+            ) : (
+              <div className="space-y-1 max-h-36 overflow-y-auto">
+                {tags.map(tag => (
+                  <button
+                    key={tag.id}
+                    onClick={() => { setSelectedTagId(tag.id === selectedTagId ? null : tag.id); setSelectedListId(null) }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors border ${
+                      selectedTagId === tag.id
+                        ? 'border-amber-300 bg-amber-50 text-stone-800'
+                        : 'border-transparent hover:bg-stone-50 text-stone-700'
+                    }`}
+                  >
+                    <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: tag.color }} />
+                    <span className="flex-1 font-medium">{tag.name}</span>
+                    {selectedTagId === tag.id && <Check size={13} className="text-amber-600 flex-shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
 
         <div className="border-t border-stone-100 px-5 py-3 flex items-center justify-between">
           <button onClick={onClose} className="px-4 py-2 text-sm text-stone-500 hover:text-stone-700">Cancel</button>
           <button
-            onClick={addToList}
-            disabled={!selectedListId || saving || done}
+            onClick={selectedTagId ? addToTag : addToList}
+            disabled={(!selectedListId && !selectedTagId) || saving || done}
             className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-lg disabled:opacity-40 font-medium"
             style={goldBtn}
           >
-            {done ? <><Check size={13} /> Added!</> : saving ? 'Adding...' : `Add to "${selectedList?.name ?? ''}"`}
+            {done ? <><Check size={13} /> Added!</> : saving ? 'Adding...' : selectedTagId ? `Add to "${selectedTag?.name ?? ''}"` : selectedListId ? `Add to "${selectedList?.name ?? ''}"` : 'Select a list or tag'}
           </button>
         </div>
       </div>

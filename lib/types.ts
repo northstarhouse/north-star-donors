@@ -35,6 +35,7 @@ export interface Donor {
   starred: boolean
   star_note: string | null
   deceased: boolean
+  avatar_url: string | null
   created_at: string
   updated_at: string
 }
