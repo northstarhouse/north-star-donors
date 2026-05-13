@@ -31,6 +31,8 @@ type DonationEdit = {
 
 export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
   const [notes, setNotes] = useState(donor.donor_notes ?? '')
+  const [alsoSupports, setAlsoSupports] = useState(donor.also_supports ?? '')
+  const [savingAlsoSupports, setSavingAlsoSupports] = useState(false)
   const [saving, setSaving] = useState(false)
   const [starred, setStarred] = useState(donor.starred ?? false)
   const [starNote, setStarNote] = useState(donor.star_note ?? '')
@@ -102,6 +104,13 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
     await supabase.from('donors').update({ avatar_url: urlWithBust, updated_at: new Date().toISOString() }).eq('id', donor.id)
     setAvatarUrl(urlWithBust)
     setUploadingAvatar(false)
+    onUpdated()
+  }
+
+  async function saveAlsoSupports() {
+    setSavingAlsoSupports(true)
+    await supabase.from('donors').update({ also_supports: alsoSupports.trim() || null, updated_at: new Date().toISOString() }).eq('id', donor.id)
+    setSavingAlsoSupports(false)
     onUpdated()
   }
 
@@ -505,6 +514,22 @@ export default function DonorPanel({ donor, onClose, onUpdated }: Props) {
             <button onClick={saveNotes} disabled={saving}
               className="px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50" style={goldBtn}>
               {saving ? 'Saving...' : 'Save Notes'}
+            </button>
+          </div>
+
+          {/* Also Supports */}
+          <div className="space-y-2">
+            <h3 className="text-xs font-semibold text-stone-400 uppercase tracking-wider">Also Supports</h3>
+            <textarea
+              className="w-full border border-stone-200 rounded-xl p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-amber-300 text-stone-700"
+              rows={3}
+              placeholder="Other organizations or causes this donor supports..."
+              value={alsoSupports}
+              onChange={e => setAlsoSupports(e.target.value)}
+            />
+            <button onClick={saveAlsoSupports} disabled={savingAlsoSupports}
+              className="px-3 py-1.5 text-white text-sm rounded-lg disabled:opacity-50" style={goldBtn}>
+              {savingAlsoSupports ? 'Saving...' : 'Save'}
             </button>
           </div>
 
