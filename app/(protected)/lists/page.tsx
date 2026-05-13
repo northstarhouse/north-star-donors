@@ -174,8 +174,10 @@ export default function ListsPage() {
     setSelectedIds(new Set())
     setRespondedIds(new Set())
 
-    const { data: linkRows } = await supabase.from('donor_tags').select('donor_id').eq('tag_id', tag.id)
-    const donorIds = (linkRows ?? []).map((r: { donor_id: string }) => r.donor_id)
+    const { data: linkRows } = await supabase.from('donor_tags').select('donor_id, responded').eq('tag_id', tag.id)
+    const donorIds = (linkRows ?? []).map((r: { donor_id: string; responded: boolean }) => r.donor_id)
+    const tagResponded = new Set<string>((linkRows ?? []).filter((r: { donor_id: string; responded: boolean }) => r.responded).map((r: { donor_id: string; responded: boolean }) => r.donor_id))
+    setRespondedIds(tagResponded)
 
     if (donorIds.length === 0) { setListDonors([]); setListLoading(false); return }
 
@@ -224,17 +226,23 @@ export default function ListsPage() {
   }
 
   async function toggleResponded(donorId: string) {
-    if (!activeList || activeList.id === '__no_address__') return
     const next = !respondedIds.has(donorId)
     setRespondedIds(prev => {
       const s = new Set(prev)
       next ? s.add(donorId) : s.delete(donorId)
       return s
     })
-    await supabase.from('list_donors')
-      .update({ responded: next })
-      .eq('list_id', activeList.id)
-      .eq('donor_id', donorId)
+    if (activeList && activeList.id !== '__no_address__') {
+      await supabase.from('list_donors')
+        .update({ responded: next })
+        .eq('list_id', activeList.id)
+        .eq('donor_id', donorId)
+    } else if (activeTag) {
+      await supabase.from('donor_tags')
+        .update({ responded: next })
+        .eq('tag_id', activeTag.id)
+        .eq('donor_id', donorId)
+    }
   }
 
   async function deleteList(listId: string) {
@@ -488,7 +496,7 @@ export default function ListsPage() {
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Status</th>
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">This Year</th>
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Lifetime</th>
-                      {(activeList && activeList.id !== '__no_address__') && (
+                      {((activeList && activeList.id !== '__no_address__') || activeTag) && (
                         <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-center w-24">Responded</th>
                       )}
                       <th className="px-4 py-3 w-10" />
@@ -538,7 +546,7 @@ export default function ListsPage() {
                         <td className="px-4 py-3 text-right text-stone-600" onClick={() => setSelected(donor)}>
                           {fmt(Math.max(donor.lifetime_total, donor.historical_lifetime_giving))}
                         </td>
-                        {(activeList && activeList.id !== '__no_address__') && (
+                        {((activeList && activeList.id !== '__no_address__') || activeTag) && (
                           <td className="px-4 py-3 text-center">
                             <button
                               onClick={() => toggleResponded(donor.id)}
