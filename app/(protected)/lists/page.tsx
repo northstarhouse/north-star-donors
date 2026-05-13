@@ -1,6 +1,6 @@
 ﻿'use client'
 import { useState, useEffect } from 'react'
-import { List, Trash2, X, Users, ChevronLeft, Download, Star, Tags, MapPinOff, Palette } from 'lucide-react'
+import { List, Trash2, X, Users, ChevronLeft, Download, Star, Tags, MapPinOff, Palette, CheckCircle2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import { DonorList, DonorWithStats, Donor, Donation, Tag } from '@/lib/types'
@@ -62,6 +62,7 @@ export default function ListsPage() {
   const [selected, setSelected] = useState<DonorWithStats | null>(null)
   const [removingId, setRemovingId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [respondedIds, setRespondedIds] = useState<Set<string>>(new Set())
   const [showAddToList, setShowAddToList] = useState(false)
   const [showTagModal, setShowTagModal] = useState(false)
   const [donorTagsMap, setDonorTagsMap] = useState<Record<string, Tag[]>>({})
@@ -101,6 +102,7 @@ export default function ListsPage() {
     setActiveList(list)
     setListLoading(true)
     setSelectedIds(new Set())
+    setRespondedIds(new Set())
 
     if (list.id === '__no_address__') {
       const { data: donorRows } = await supabase
@@ -129,10 +131,12 @@ export default function ListsPage() {
 
     const { data: linkRows } = await supabase
       .from('list_donors')
-      .select('donor_id')
+      .select('donor_id, responded')
       .eq('list_id', list.id)
 
-    const donorIds = (linkRows ?? []).map((r: { donor_id: string }) => r.donor_id)
+    const donorIds = (linkRows ?? []).map((r: { donor_id: string; responded: boolean }) => r.donor_id)
+    const responded = new Set<string>((linkRows ?? []).filter((r: { donor_id: string; responded: boolean }) => r.responded).map((r: { donor_id: string; responded: boolean }) => r.donor_id))
+    setRespondedIds(responded)
 
     if (donorIds.length === 0) {
       setListDonors([])
@@ -168,6 +172,7 @@ export default function ListsPage() {
     setActiveList(null)
     setListLoading(true)
     setSelectedIds(new Set())
+    setRespondedIds(new Set())
 
     const { data: linkRows } = await supabase.from('donor_tags').select('donor_id').eq('tag_id', tag.id)
     const donorIds = (linkRows ?? []).map((r: { donor_id: string }) => r.donor_id)
@@ -216,6 +221,20 @@ export default function ListsPage() {
     setListDonors(prev => prev.filter(d => d.id !== donorId))
     setLists(prev => prev.map(l => l.id === activeList.id ? { ...l, donor_count: l.donor_count - 1 } : l))
     setRemovingId(null)
+  }
+
+  async function toggleResponded(donorId: string) {
+    if (!activeList || activeList.id === '__no_address__') return
+    const next = !respondedIds.has(donorId)
+    setRespondedIds(prev => {
+      const s = new Set(prev)
+      next ? s.add(donorId) : s.delete(donorId)
+      return s
+    })
+    await supabase.from('list_donors')
+      .update({ responded: next })
+      .eq('list_id', activeList.id)
+      .eq('donor_id', donorId)
   }
 
   async function deleteList(listId: string) {
@@ -469,14 +488,19 @@ export default function ListsPage() {
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Status</th>
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">This Year</th>
                       <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Lifetime</th>
+                      {(activeList && activeList.id !== '__no_address__') && (
+                        <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-center w-24">Responded</th>
+                      )}
                       <th className="px-4 py-3 w-10" />
                     </tr>
                   </thead>
                   <tbody>
-                    {[...listDonors].sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0)).map(donor => (
+                    {[...listDonors].sort((a, b) => (b.starred ? 1 : 0) - (a.starred ? 1 : 0)).map(donor => {
+                      const responded = respondedIds.has(donor.id)
+                      return (
                       <tr key={donor.id}
-                        className={`border-b border-stone-100 group ${donor.deceased ? 'opacity-50' : ''} ${donor.starred ? 'bg-amber-50/60 hover:bg-amber-50' : 'hover:bg-stone-50/60'}`}
-                        style={donor.starred ? { boxShadow: 'inset 3px 0 0 #b5a185' } : {}}>
+                        className={`border-b border-stone-100 group ${donor.deceased ? 'opacity-50' : ''} ${responded ? 'bg-emerald-50 hover:bg-emerald-100/80' : donor.starred ? 'bg-amber-50/60 hover:bg-amber-50' : 'hover:bg-stone-50/60'}`}
+                        style={responded ? { boxShadow: 'inset 3px 0 0 #22c55e' } : donor.starred ? { boxShadow: 'inset 3px 0 0 #b5a185' } : {}}>
                         <td className="px-4 py-3">
                           <input type="checkbox"
                             className="rounded border-stone-300 text-amber-500 focus:ring-amber-300 cursor-pointer"
@@ -515,6 +539,17 @@ export default function ListsPage() {
                           {fmt(Math.max(donor.lifetime_total, donor.historical_lifetime_giving))}
                         </td>
                         {(activeList && activeList.id !== '__no_address__') && (
+                          <td className="px-4 py-3 text-center">
+                            <button
+                              onClick={() => toggleResponded(donor.id)}
+                              title={responded ? 'Mark as not responded' : 'Mark as responded'}
+                              className={`p-1.5 rounded-lg transition-all ${responded ? 'text-emerald-600 hover:text-emerald-700' : 'text-stone-200 hover:text-emerald-400 opacity-0 group-hover:opacity-100'}`}
+                            >
+                              <CheckCircle2 size={16} fill={responded ? 'currentColor' : 'none'} />
+                            </button>
+                          </td>
+                        )}
+                        {(activeList && activeList.id !== '__no_address__') && (
                           <td className="px-4 py-3">
                             <button
                               onClick={() => removeFromList(donor.id)}
@@ -539,7 +574,8 @@ export default function ListsPage() {
                           </td>
                         )}
                       </tr>
-                    ))}
+                      )
+                    })}
                   </tbody>
                 </table>
                 <div className="px-6 py-2.5 text-xs text-stone-400 border-t border-stone-100">
