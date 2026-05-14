@@ -24,12 +24,6 @@ interface EmailLog {
   sender: string
 }
 
-interface EventEmailGroup {
-  id: string
-  name: string
-  recipients: { name: string; email: string }[]
-  created_at: string
-}
 
 const GROUPS = [
   { tag: 'Board Member',  label: 'Board Members' },
@@ -86,9 +80,6 @@ export default function VolunteersPage() {
     supabase.from('volunteer_email_logs').select('*').order('sent_at', { ascending: false }).limit(20)
       .then(({ data }) => { if (data) setLogs(data as EmailLog[]) })
 
-    supabase.from('event_email_groups').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { if (data) setEventGroups(data as EventEmailGroup[]) })
-
     const channel = supabase
       .channel('volunteers-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: '2026 Volunteers' }, fetchVolunteers)
@@ -133,17 +124,6 @@ export default function VolunteersPage() {
   const [sending, setSending] = useState(false)
   const [sendError, setSendError] = useState<string | null>(null)
 
-  // Event email groups
-  const [eventGroups, setEventGroups] = useState<EventEmailGroup[]>([])
-  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set())
-  const [copiedEvent, setCopiedEvent] = useState<string | null>(null)
-  const [showNewGroup, setShowNewGroup] = useState(false)
-  const [newGroupName, setNewGroupName] = useState('')
-  const [savingGroup, setSavingGroup] = useState(false)
-  const [managingGroup, setManagingGroup] = useState<EventEmailGroup | null>(null)
-  const [newRecipName, setNewRecipName] = useState('')
-  const [newRecipEmail, setNewRecipEmail] = useState('')
-
   async function handleSend() {
     if (!modal) return
     setSending(true)
@@ -182,66 +162,6 @@ export default function VolunteersPage() {
     } finally {
       setSending(false)
     }
-  }
-
-  async function createEventGroup() {
-    if (!newGroupName.trim()) return
-    setSavingGroup(true)
-    const { data } = await supabase.from('event_email_groups').insert({ name: newGroupName.trim(), recipients: [] }).select().single()
-    if (data) setEventGroups(prev => [data as EventEmailGroup, ...prev])
-    setNewGroupName('')
-    setShowNewGroup(false)
-    setSavingGroup(false)
-  }
-
-  async function deleteEventGroup(id: string) {
-    if (!confirm('Delete this event email group?')) return
-    await supabase.from('event_email_groups').delete().eq('id', id)
-    setEventGroups(prev => prev.filter(g => g.id !== id))
-    if (managingGroup?.id === id) setManagingGroup(null)
-  }
-
-  async function addRecipient(group: EventEmailGroup) {
-    if (!newRecipEmail.trim()) return
-    const updated = [...group.recipients, { name: newRecipName.trim(), email: newRecipEmail.trim() }]
-    await supabase.from('event_email_groups').update({ recipients: updated }).eq('id', group.id)
-    const updatedGroup = { ...group, recipients: updated }
-    setEventGroups(prev => prev.map(g => g.id === group.id ? updatedGroup : g))
-    setManagingGroup(updatedGroup)
-    setNewRecipName('')
-    setNewRecipEmail('')
-  }
-
-  async function removeRecipient(group: EventEmailGroup, idx: number) {
-    const updated = group.recipients.filter((_, i) => i !== idx)
-    await supabase.from('event_email_groups').update({ recipients: updated }).eq('id', group.id)
-    const updatedGroup = { ...group, recipients: updated }
-    setEventGroups(prev => prev.map(g => g.id === group.id ? updatedGroup : g))
-    setManagingGroup(updatedGroup)
-  }
-
-  function copyEventEmails(group: EventEmailGroup) {
-    const emails = group.recipients.map(r => r.email).join(', ')
-    navigator.clipboard.writeText(emails)
-    setCopiedEvent(group.id)
-    setTimeout(() => setCopiedEvent(null), 2000)
-  }
-
-  function openEventModal(group: EventEmailGroup) {
-    const members = group.recipients.map((r, i) => ({
-      id: i,
-      'First Name': r.name.split(' ')[0] || r.name,
-      'Last Name': r.name.split(' ').slice(1).join(' '),
-      'Email': r.email,
-      'Status': 'Active',
-      'Team': group.name,
-      'Overview Notes': null,
-      'Phone Number': null,
-    } as Volunteer))
-    setModal({ team: group.name, members })
-    setSubject(`${group.name} — ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`)
-    setBody('')
-    setSent(false)
   }
 
   const goldBtn = { background: 'var(--gold)' }
@@ -353,121 +273,6 @@ export default function VolunteersPage() {
                 )
               })
             )}
-          </div>
-
-          {/* Event Emails */}
-          <div className="flex-1 space-y-3 mt-8">
-            <div className="flex items-center justify-between mb-1">
-              <div>
-                <h2 className="text-base font-semibold text-stone-700" style={{ fontFamily: 'var(--font-serif)' }}>Event Emails</h2>
-                <p className="text-xs text-stone-400 mt-0.5">Custom email lists for specific events</p>
-              </div>
-              <button onClick={() => { setShowNewGroup(true); setNewGroupName('') }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-white text-xs rounded-lg font-medium"
-                style={goldBtn}>
-                <Mail size={11} /> New Group
-              </button>
-            </div>
-
-            {showNewGroup && (
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-4 flex gap-2">
-                <input
-                  autoFocus
-                  className={inputCls}
-                  placeholder="Group name (e.g. Spring Gala, Board Dinner...)"
-                  value={newGroupName}
-                  onChange={e => setNewGroupName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') createEventGroup(); if (e.key === 'Escape') setShowNewGroup(false) }}
-                />
-                <button onClick={createEventGroup} disabled={!newGroupName.trim() || savingGroup}
-                  className="px-3 py-2 text-white text-sm rounded-lg disabled:opacity-40 whitespace-nowrap font-medium"
-                  style={goldBtn}>
-                  {savingGroup ? 'Creating…' : 'Create'}
-                </button>
-                <button onClick={() => setShowNewGroup(false)}
-                  className="px-3 py-2 bg-stone-100 text-stone-500 text-sm rounded-lg hover:bg-stone-200">
-                  Cancel
-                </button>
-              </div>
-            )}
-
-            {eventGroups.length === 0 && !showNewGroup && (
-              <div className="bg-white rounded-xl border border-stone-200 shadow-sm px-5 py-8 text-center">
-                <p className="text-sm text-stone-400 italic">No event email groups yet.</p>
-              </div>
-            )}
-
-            {eventGroups.map(group => {
-              const isOpen = expandedEvents.has(group.id)
-              return (
-                <div key={group.id} className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-                  <div className="flex items-center gap-3 px-5 py-3.5"
-                    style={{ borderBottom: isOpen ? '0.5px solid #f0ece6' : 'none', background: '#fdfcfb' }}>
-                    <button className="flex-1 flex items-center gap-3 text-left"
-                      onClick={() => setExpandedEvents(prev => { const n = new Set(prev); n.has(group.id) ? n.delete(group.id) : n.add(group.id); return n })}>
-                      <span className="text-sm font-semibold text-stone-800">{group.name}</span>
-                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">
-                        {group.recipients.length} recipient{group.recipients.length !== 1 ? 's' : ''}
-                      </span>
-                      <span className="ml-auto text-stone-300">
-                        {isOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
-                      </span>
-                    </button>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button onClick={() => copyEventEmails(group)} disabled={group.recipients.length === 0}
-                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs border border-stone-200 rounded-lg text-stone-500 hover:bg-stone-50 disabled:opacity-40 transition-colors">
-                        {copiedEvent === group.id ? <><Check size={11} className="text-emerald-500" /> Copied</> : <><Copy size={11} /> Copy emails</>}
-                      </button>
-                      <button onClick={() => openEventModal(group)} disabled={group.recipients.length === 0}
-                        className="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded-lg text-white font-medium disabled:opacity-40 transition-colors"
-                        style={goldBtn}>
-                        <Mail size={11} /> Email group
-                      </button>
-                      <button onClick={() => deleteEventGroup(group.id)}
-                        className="p-1.5 text-stone-300 hover:text-red-400 rounded-lg transition-colors">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {isOpen && (
-                    <div>
-                      {group.recipients.map((r, i) => (
-                        <div key={i} className="flex items-center gap-3 px-5 py-2.5"
-                          style={{ borderBottom: '0.5px solid #f5f1eb' }}>
-                          <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-white"
-                            style={{ background: 'var(--gold)' }}>
-                            {(r.name?.[0] ?? '?').toUpperCase()}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className="text-sm font-medium text-stone-700">{r.name || <span className="text-stone-300 italic text-xs">No name</span>}</span>
-                          </div>
-                          <span className="text-xs text-stone-400 truncate max-w-[200px]">{r.email}</span>
-                          <button onClick={() => removeRecipient(group, i)}
-                            className="p-1 text-stone-200 hover:text-red-400 rounded transition-colors flex-shrink-0">
-                            <X size={12} />
-                          </button>
-                        </div>
-                      ))}
-
-                      {/* Add recipient inline */}
-                      <div className="px-5 py-3 flex gap-2 bg-stone-50" style={{ borderTop: group.recipients.length > 0 ? '0.5px solid #f0ece6' : 'none' }}>
-                        <input className={inputCls + ' text-xs py-1.5'} placeholder="Name"
-                          value={newRecipName} onChange={e => setNewRecipName(e.target.value)} />
-                        <input className={inputCls + ' text-xs py-1.5'} placeholder="Email"
-                          value={newRecipEmail} onChange={e => setNewRecipEmail(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') addRecipient(group) }} />
-                        <button onClick={() => addRecipient(group)} disabled={!newRecipEmail.trim()}
-                          className="px-3 py-1.5 text-white text-xs rounded-lg disabled:opacity-40 whitespace-nowrap font-medium"
-                          style={goldBtn}>
-                          + Add
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
           </div>
 
           {/* Log sidebar */}

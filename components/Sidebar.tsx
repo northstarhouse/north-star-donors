@@ -30,6 +30,7 @@ const MORE_NAV = [
   { id: 'lists', label: 'Lists', icon: List, href: '/lists/' },
   { id: 'gifts', label: 'Gift Log', icon: Heart, href: '/gifts/' },
   { id: 'volunteers', label: 'Volunteer Emails', icon: Users, href: '/volunteers/' },
+  { id: 'event-emails', label: 'Event Emails', icon: Users, href: '/event-emails/' },
 ] as const
 
 const ASSET_BASE = process.env.NODE_ENV === 'production' ? '/north-star-donors' : ''
@@ -74,13 +75,13 @@ function NavLink({
 }
 
 export default function Sidebar({ activePage }: Props) {
-  const [moreOpen, setMoreOpen] = useState(activePage === 'lists' || activePage === 'gifts')
+  const [moreOpen, setMoreOpen] = useState(activePage === 'lists' || activePage === 'gifts' || activePage === 'event-emails')
 
   useEffect(() => {
-    if (activePage === 'lists' || activePage === 'gifts') setMoreOpen(true)
+    if (activePage === 'lists' || activePage === 'gifts' || activePage === 'event-emails') setMoreOpen(true)
   }, [activePage])
 
-  const moreActive = activePage === 'lists' || activePage === 'gifts' || activePage === 'volunteers'
+  const moreActive = activePage === 'lists' || activePage === 'gifts' || activePage === 'volunteers' || activePage === 'event-emails'
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', flexShrink: 0 }}>
