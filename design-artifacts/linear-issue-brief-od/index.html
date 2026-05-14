@@ -1,0 +1,807 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Approve Sponsor Packet V2 · Linear Issue Brief</title>
+  <style>
+    :root {
+      --bg:       #f5f0e8;
+      --surface:  #faf7f1;
+      --fg:       #1e1c18;
+      --muted:    #6b6355;
+      --border:   #ddd8cc;
+      --accent:   #9a7c2e;
+      --accent-soft: color-mix(in oklch, #9a7c2e 12%, transparent);
+      --sidebar-bg:   #1e2a1f;
+      --sidebar-fg:   #c8c4b8;
+      --sidebar-muted:#7a8a7b;
+      --sidebar-rule: #2e3d2f;
+      --sidebar-hover:#2c3e2d;
+      --sidebar-active:#3a5040;
+      --blocker-bg:   #fdf2f0;
+      --blocker-border:#d4735a;
+      --blocker-fg:   #8b2e18;
+      --blocker-pill: #c0442c;
+      --green:    #3d6b45;
+      --green-soft: color-mix(in oklch, #3d6b45 12%, transparent);
+      --font-display: 'Iowan Old Style', 'Charter', 'Palatino Linotype', Georgia, serif;
+      --font-body:    -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      --font-mono:    ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+      --sidebar-w: 196px;
+      --rail-w: 220px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { height: 100%; }
+    body {
+      background: var(--sidebar-bg);
+      color: var(--fg);
+      font-family: var(--font-body);
+      font-size: 14px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      min-height: 100vh;
+    }
+    .shell {
+      display: grid;
+      grid-template-columns: var(--sidebar-w) 1fr;
+      min-height: 100vh;
+    }
+    /* ── Sidebar ── */
+    .sidebar {
+      background: var(--sidebar-bg);
+      color: var(--sidebar-fg);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      border-right: 1px solid var(--sidebar-rule);
+    }
+    .sidebar-brand {
+      padding: 20px 18px 16px;
+      border-bottom: 1px solid var(--sidebar-rule);
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .brand-star { width: 32px; height: 32px; display: grid; place-items: center; margin-bottom: 4px; }
+    .brand-star svg { width: 28px; height: 28px; }
+    .brand-name {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #d4cfc5;
+      line-height: 1.2;
+    }
+    .brand-tagline {
+      font-size: 10px;
+      color: var(--sidebar-muted);
+      letter-spacing: 0.03em;
+      font-style: italic;
+      line-height: 1.3;
+    }
+    .sidebar-section { padding: 14px 10px 6px; }
+    .sidebar-section-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--sidebar-muted);
+      padding: 0 8px 8px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 8px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--sidebar-fg);
+      cursor: pointer;
+      transition: background 0.1s;
+      text-decoration: none;
+    }
+    .nav-item:hover { background: var(--sidebar-hover); }
+    .nav-item.active { background: var(--sidebar-active); color: #e8e4da; }
+    .nav-item svg { width: 15px; height: 15px; opacity: 0.7; flex-shrink: 0; }
+    .sidebar-spacer { flex: 1; }
+    .sidebar-footer { padding: 16px 18px; border-top: 1px solid var(--sidebar-rule); }
+    .sidebar-footer-text { font-size: 11px; color: var(--sidebar-muted); font-style: italic; line-height: 1.5; }
+    /* ── Main ── */
+    .main { background: var(--bg); display: flex; flex-direction: column; min-height: 100vh; }
+    .topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .topbar-breadcrumb {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .topbar-breadcrumb span { color: var(--accent); }
+    .topbar-actions { display: flex; align-items: center; gap: 8px; }
+    .btn-export {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 13px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: transparent;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-export svg { width: 12px; height: 12px; }
+    .btn-more {
+      width: 28px; height: 28px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      background: transparent;
+      display: grid; place-items: center;
+      cursor: pointer;
+      color: var(--muted);
+    }
+    /* ── Content grid ── */
+    .content-body {
+      display: grid;
+      grid-template-columns: 1fr var(--rail-w);
+      gap: 0;
+      flex: 1;
+    }
+    /* ── Document ── */
+    .document { padding: 36px 40px 60px; border-right: 1px solid var(--border); }
+    .doc-meta-line {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .doc-meta-line .pipe { opacity: 0.4; }
+    .doc-title {
+      font-family: var(--font-display);
+      font-size: clamp(28px, 3.5vw, 40px);
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: var(--fg);
+      margin-bottom: 20px;
+      font-weight: normal;
+    }
+    .doc-rule { border: 0; border-top: 1.5px solid var(--fg); margin-bottom: 28px; opacity: 0.15; }
+    /* Section rows */
+    .issue-row {
+      display: grid;
+      grid-template-columns: 168px 1fr;
+      gap: 0 24px;
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border);
+      align-items: start;
+    }
+    .issue-row:last-child { border-bottom: none; }
+    .row-label {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      padding-top: 1px;
+    }
+    .row-mark {
+      width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: grid; place-items: center;
+      color: var(--green);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .row-mark svg { width: 15px; height: 15px; }
+    .row-label-text {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+    .row-label-sub { font-size: 11px; color: var(--muted); font-style: italic; line-height: 1.3; max-width: 120px; }
+    .row-content { padding-top: 1px; }
+    .row-content p { font-size: 14px; line-height: 1.6; color: var(--fg); }
+    /* Next action */
+    .next-action-body { display: flex; flex-direction: column; gap: 10px; }
+    .next-action-text { font-size: 14px; line-height: 1.6; }
+    .next-action-meta {
+      display: flex; align-items: center; gap: 16px;
+      font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    }
+    .next-action-meta .meta-item { display: flex; align-items: center; gap: 5px; }
+    .next-action-meta svg { width: 12px; height: 12px; }
+    /* Decisions */
+    .decisions-grid { display: flex; flex-direction: column; gap: 8px; }
+    .decision-chip {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .decision-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-radius: 4px;
+      padding: 2px 6px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .decisions-link {
+      margin-top: 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    /* Blocker */
+    .blocker-band {
+      background: var(--blocker-bg);
+      border: 1.5px solid var(--blocker-border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+    }
+    .blocker-icon {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 1.5px solid var(--blocker-border);
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      color: var(--blocker-fg);
+      margin-top: 1px;
+    }
+    .blocker-icon svg { width: 13px; height: 13px; }
+    .blocker-body { flex: 1; }
+    .blocker-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .blocker-text { font-size: 13px; line-height: 1.55; color: var(--blocker-fg); }
+    .blocker-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      background: var(--blocker-pill);
+      color: #fff;
+      border-radius: 3px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    /* Done When */
+    .done-list { display: flex; flex-direction: column; gap: 7px; }
+    .done-item { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.55; }
+    .done-check {
+      width: 16px; height: 16px;
+      border: 1.5px solid var(--green);
+      border-radius: 4px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+      color: var(--green);
+    }
+    .done-check svg { width: 9px; height: 9px; }
+    .done-date { font-family: var(--font-mono); font-size: 10px; color: var(--accent); margin-top: 2px; }
+    /* Context */
+    .context-text { font-size: 14px; line-height: 1.65; color: var(--muted); }
+    .context-note { margin-top: 8px; font-size: 12px; color: color-mix(in oklch, var(--muted) 75%, transparent); font-style: italic; }
+    /* Source */
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--accent);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      word-break: break-all;
+    }
+    .source-link svg { width: 13px; height: 13px; flex-shrink: 0; }
+    .source-sub { margin-top: 5px; font-size: 11px; color: var(--muted); font-family: var(--font-mono); }
+    /* Markdown section */
+    .markdown-section {
+      margin-top: 36px;
+      padding-top: 24px;
+      border-top: 1px dashed var(--border);
+    }
+    .markdown-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      opacity: 0.7;
+      margin-bottom: 10px;
+    }
+    .markdown-block {
+      background: color-mix(in oklch, var(--fg) 4%, transparent);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--muted);
+      white-space: pre-wrap;
+      word-break: break-word;
+      user-select: all;
+    }
+    /* ── Right rail ── */
+    .right-rail { padding: 28px 22px; background: var(--surface); }
+    .rail-group { margin-bottom: 20px; }
+    .rail-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+    .rail-value { font-size: 13px; color: var(--fg); line-height: 1.4; }
+    .rail-rule { border: 0; border-top: 1px solid var(--border); margin: 18px 0; }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.03em;
+      background: color-mix(in oklch, var(--green) 12%, transparent);
+      color: var(--green);
+      border: 1px solid color-mix(in oklch, var(--green) 30%, transparent);
+    }
+    .status-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; }
+    .priority-row { display: flex; align-items: center; gap: 6px; }
+    .priority-star { color: var(--accent); font-size: 14px; }
+    .priority-text { font-size: 13px; font-weight: 600; }
+    .tags-row { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tag {
+      padding: 3px 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .tag-add { color: var(--accent); border-color: var(--accent-soft); cursor: pointer; }
+    .related-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 0;
+      font-size: 12px;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .related-item:last-child { border-bottom: none; }
+    .related-item svg { width: 12px; height: 12px; flex-shrink: 0; }
+    .related-item a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+    .person-row { display: flex; align-items: center; gap: 8px; }
+    .avatar {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--green-soft);
+      border: 1px solid var(--border);
+      display: grid; place-items: center;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--green);
+      flex-shrink: 0;
+    }
+    .person-info .name { font-size: 12px; color: var(--fg); }
+    .person-info .time { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+  </style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-star">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="14,2 17.5,10.5 27,11.5 20.5,17.5 22.5,27 14,22 5.5,27 7.5,17.5 1,11.5 10.5,10.5" fill="#9a7c2e" opacity="0.9"/>
+        </svg>
+      </div>
+      <div class="brand-name">North Star<br>Historic Conservancy</div>
+      <div class="brand-tagline">Preserve the past.<br>Steward the present.<br>Inspire the future.</div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Workspace</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="8" y1="5" x2="8" y2="11"/></svg>
+        Work Surface
+      </a>
+      <a class="nav-item active" href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="3" width="12" height="10" rx="1.5"/><line x1="5" y1="7" x2="11" y2="7"/><line x1="5" y1="10" x2="8" y2="10"/></svg>
+        Issue Briefs
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><line x1="8" y1="5" x2="8" y2="8.5"/><line x1="8" y1="8.5" x2="10.5" y2="10.5"/></svg>
+        Decisions
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="5.5" height="5.5" rx="1"/><rect x="8.5" y="2" width="5.5" height="5.5" rx="1"/><rect x="2" y="8.5" width="5.5" height="5.5" rx="1"/><rect x="8.5" y="8.5" width="5.5" height="5.5" rx="1"/></svg>
+        Projects
+      </a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Reference</div>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><line x1="5" y1="6" x2="11" y2="6"/><line x1="5" y1="9" x2="9" y2="9"/></svg>
+        Documents
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l1.5 3.5L13 6l-2.5 2.5.5 3.5L8 10.5 5 12l.5-3.5L3 6l3.5-.5z"/></svg>
+        Sources
+      </a>
+      <a class="nav-item" href="#">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M3 8h7M3 12h5"/></svg>
+        Archive
+      </a>
+    </div>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-text">Development Operations<br>Fundraising Cycle 2026</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-breadcrumb">
+        <span>Linear Issue Brief</span>
+        <span style="opacity:.4">·</span>
+        IB-2025-0057
+      </div>
+      <div class="topbar-actions">
+        <button class="btn-export">
+          <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 1v7M3 6l3 3 3-3"/><path d="M1 10h10"/></svg>
+          Export Brief
+        </button>
+        <button class="btn-more">
+          <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="1.3"/><circle cx="8" cy="8" r="1.3"/><circle cx="13" cy="8" r="1.3"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="content-body">
+      <!-- Document -->
+      <div class="document">
+        <div class="doc-meta-line">
+          <span>Development Operations</span>
+          <span class="pipe">·</span>
+          <span>Sponsor Program Refresh</span>
+          <span class="pipe">·</span>
+          <span>May 2026</span>
+        </div>
+        <h1 class="doc-title">Approve Sponsor Packet V2<br>tier structure</h1>
+        <hr class="doc-rule">
+
+        <!-- OUTCOME -->
+        <div class="issue-row">
+          <div class="row-label">
+            <div class="row-mark">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M5.5 8l2 2 3-3"/></svg>
+            </div>
+            <div class="row-label-text">Outcome</div>
+            <div class="row-label-sub">The measurable result we're driving toward.</div>
+          </div>
+          <div class="row-content">
+            <p>Approve or revise the board-review tier structure for Sponsor Packet V2.</p>
+          </div>
+        </div>
+
+        <!-- NEXT ACTION -->
+        <div class="issue-row">
+          <div class="row-label">
+            <div class="row-mark" style="color:var(--accent);border-color:color-mix(in oklch,var(--accent) 30%,transparent);">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+            </div>
+            <div class="row-label-text">Next Action</div>
+            <div class="row-label-sub">The immediate step to keep momentum.</div>
+          </div>
+          <div class="row-content">
+            <div class="next-action-body">
+              <div class="next-action-text">Review the board-structure draft with Haley and decide whether the proposed tier/perk structure is approved, needs revision, or needs deeper board discussion.</div>
+              <div class="next-action-meta">
+                <div class="meta-item">
+                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="2" width="10" height="9" rx="1"/><path d="M4 1v2M8 1v2M1 5h10"/></svg>
+                  Due Thu, May 14 2026
+                </div>
+                <div class="meta-item">
+                  <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="6" r="4.5"/><path d="M6 3v3l2 1.5"/></svg>
+                  Owner: Kaelen &amp; Haley
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DECISIONS -->
+        <div class="issue-row">
+          <div class="row-label">
+            <div class="row-mark">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 14V9l5-7 5 7v5"/><path d="M6 14v-4h4v4"/></svg>
+            </div>
+            <div class="row-label-text">Decisions to Resolve</div>
+            <div class="row-label-sub">The key choices that will unblock progress.</div>
+          </div>
+          <div class="row-content">
+            <div class="decisions-grid">
+              <div class="decision-chip">
+                <span class="decision-num">01</span>
+                Approve <strong>Friend of North Star</strong> as a supporter lane below formal sponsorship, with final recognition boundaries still open.
+              </div>
+              <div class="decision-chip">
+                <span class="decision-num">02</span>
+                Approve <strong>$1,000 cash or approved in-kind value</strong> as the formal sponsorship floor.
+              </div>
+              <div class="decision-chip">
+                <span class="decision-num">03</span>
+                Approve <strong>Heritage Partner, Preservation Leader, Keystone, and Presenting Sponsor</strong> as the formal sponsor ladder.
+              </div>
+              <div class="decision-chip">
+                <span class="decision-num">04</span>
+                Reserve <strong>control benefits for Presenting Sponsor</strong> unless an exception is explicitly approved.
+              </div>
+            </div>
+            <div class="decisions-link">View decision details →</div>
+          </div>
+        </div>
+
+        <!-- BLOCKER -->
+        <div class="issue-row">
+          <div class="row-label">
+            <div class="row-mark" style="color:var(--blocker-fg);border-color:var(--blocker-border);background:var(--blocker-bg);">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 2.5L14 13H2L8 2.5z"/><line x1="8" y1="7" x2="8" y2="10"/><circle cx="8" cy="12" r="0.7" fill="currentColor" stroke="none"/></svg>
+            </div>
+            <div class="row-label-text" style="color:var(--blocker-fg);">Blocker</div>
+            <div class="row-label-sub">The constraint stopping us from moving forward.</div>
+          </div>
+          <div class="row-content">
+            <div class="blocker-band">
+              <div class="blocker-icon">
+                <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 2L12.5 12H1.5L7 2z"/><line x1="7" y1="6" x2="7" y2="9"/><circle cx="7" cy="10.5" r="0.6" fill="currentColor" stroke="none"/></svg>
+              </div>
+              <div class="blocker-body">
+                <div class="blocker-header">
+                  <div class="blocker-text">Sponsor-facing packet copy should wait until the tier structure and deliverable perks are approved.</div>
+                  <span class="blocker-pill">Active</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- DONE WHEN -->
+        <div class="issue-row">
+          <div class="row-label">
+            <div class="row-mark" style="color:var(--green);border-color:color-mix(in oklch,var(--green) 30%,transparent);">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 8.5l3.5 3.5 6.5-7"/></svg>
+            </div>
+            <div class="row-label-text">Done When</div>
+            <div class="row-label-sub">The clear signal of completion.</div>
+          </div>
+          <div class="row-content">
+            <div class="done-list">
+              <div class="done-item">
+                <div class="done-check"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 5l2.5 2.5 3.5-4"/></svg></div>
+                <span>Tier names and ask amounts are approved or explicitly revised.</span>
+              </div>
+              <div class="done-item">
+                <div class="done-check"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 5l2.5 2.5 3.5-4"/></svg></div>
+                <span>Sponsor Packet V1 perks/benefits are audited against what North Star can actually deliver.</span>
+              </div>
+              <div class="done-item">
+                <div class="done-check"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 5l2.5 2.5 3.5-4"/></svg></div>
+                <div>
+                  <div>Kaelen and Haley have acknowledged whether the structure is approved, needs edits, or needs deeper discussion.</div>
+                  <div class="done-date">By Thursday, May 14, 2026</div>
+                </div>
+              </div>
+              <div class="done-item">
+                <div class="done-check"><svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 5l2.5 2.5 3.5-4"/></svg></div>
+                <span>The approved/revised structure is clear enough to use for sponsor-facing packet copy.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CONTEXT -->
+        <div class="issue-row">
+          <div class="row-label">
+            <div class="row-mark">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><line x1="8" y1="7" x2="8" y2="12"/><circle cx="8" cy="5" r="0.7" fill="currentColor" stroke="none"/></svg>
+            </div>
+            <div class="row-label-text">Context</div>
+            <div class="row-label-sub">Why this matters right now.</div>
+          </div>
+          <div class="row-content">
+            <p class="context-text">Known near-term sponsor lanes are BNC/Ace Hardware, Mike Bratton/State Farm, and Hills Flat Lumber. This issue is the tier/perk approval gate before sponsor-facing copy or outreach can begin.</p>
+            <p class="context-note">Keep sponsor lanes as context only — no outreach until tier structure is approved.</p>
+          </div>
+        </div>
+
+        <!-- SOURCE -->
+        <div class="issue-row">
+          <div class="row-label">
+            <div class="row-mark">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2h8a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z"/><line x1="5" y1="6" x2="11" y2="6"/><line x1="5" y1="9" x2="9" y2="9"/></svg>
+            </div>
+            <div class="row-label-text">Source</div>
+            <div class="row-label-sub">Where this issue originated.</div>
+          </div>
+          <div class="row-content">
+            <a class="source-link" href="https://northstarhouse.github.io/north-star-donors/sponsorship-plan/sponsor-packet-v2-board-structure.html" target="_blank" rel="noopener">
+              <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V8"/><path d="M9 1h4v4"/><line x1="5.5" y1="8.5" x2="13" y2="1"/></svg>
+              Sponsor Packet V2 board-structure draft
+            </a>
+            <div class="source-sub">northstarhouse.github.io · sponsor-packet-v2-board-structure.html</div>
+          </div>
+        </div>
+
+        <!-- Markdown template -->
+        <div class="markdown-section">
+          <div class="markdown-label">Markdown Template · Copy &amp; adapt</div>
+          <div class="markdown-block">## IB-2025-0057 · Approve Sponsor Packet V2 tier structure
+
+**Outcome:** Approve or revise the board-review tier structure for Sponsor Packet V2.
+
+**Next Action:** Review the board-structure draft with Haley and decide whether the
+proposed tier/perk structure is approved, needs revision, or needs deeper board discussion.
+_Due: Thursday, May 14, 2026 · Owner: Kaelen &amp; Haley_
+
+**Decisions to Resolve:**
+1. Approve Friend of North Star as a supporter lane below formal sponsorship.
+2. Approve $1,000 cash or approved in-kind value as the formal sponsorship floor.
+3. Approve Heritage Partner / Preservation Leader / Keystone / Presenting Sponsor ladder.
+4. Reserve control benefits for Presenting Sponsor unless an exception is approved.
+
+**⚠ Blocker:** Sponsor-facing packet copy should wait until tier structure and
+deliverable perks are approved.
+
+**Done When:**
+- [ ] Tier names and ask amounts are approved or explicitly revised.
+- [ ] Sponsor Packet V1 perks/benefits audited against what North Star can deliver.
+- [ ] By Thu May 14, 2026 — Kaelen and Haley acknowledged structure status.
+- [ ] Structure is clear enough for sponsor-facing packet copy.
+
+**Context:** Near-term lanes: BNC/Ace Hardware, Mike Bratton/State Farm, Hills Flat Lumber.
+This issue is the approval gate — no outreach until tier structure is locked.
+
+**Source:** https://northstarhouse.github.io/north-star-donors/sponsorship-plan/sponsor-packet-v2-board-structure.html</div>
+        </div>
+      </div><!-- /document -->
+
+      <!-- Right rail -->
+      <div class="right-rail">
+        <div class="rail-group">
+          <div class="rail-label">Brief ID</div>
+          <div class="rail-value" style="font-family:var(--font-mono);font-size:12px;display:flex;align-items:center;gap:7px;">
+            IB-2025-0057
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" style="width:12px;height:12px;color:var(--muted);cursor:pointer;"><rect x="1" y="4" width="8" height="9" rx="1.5"/><path d="M4 4V2.5A1.5 1.5 0 0 1 5.5 1h6A1.5 1.5 0 0 1 13 2.5V10a1.5 1.5 0 0 1-1.5 1.5H10"/></svg>
+          </div>
+        </div>
+        <hr class="rail-rule">
+        <div class="rail-group">
+          <div class="rail-label">Status</div>
+          <div class="status-pill"><div class="status-dot"></div>In Progress</div>
+        </div>
+        <div class="rail-group">
+          <div class="rail-label">Priority</div>
+          <div class="priority-row">
+            <span class="priority-star">★</span>
+            <span class="priority-text">High</span>
+          </div>
+        </div>
+        <div class="rail-group">
+          <div class="rail-label">Review Date</div>
+          <div class="rail-value" style="font-family:var(--font-mono);font-size:12px;">Thu, May 14 2026</div>
+        </div>
+        <hr class="rail-rule">
+        <div class="rail-group">
+          <div class="rail-label">Workstream</div>
+          <div class="rail-value">Development Operations</div>
+        </div>
+        <div class="rail-group">
+          <div class="rail-label">Project</div>
+          <div class="rail-value">Sponsor Program Refresh</div>
+        </div>
+        <hr class="rail-rule">
+        <div class="rail-group">
+          <div class="rail-label">Created By</div>
+          <div class="person-row">
+            <div class="avatar">KL</div>
+            <div class="person-info">
+              <div class="name">Kaelen L.</div>
+              <div class="time">May 8, 2026 · 9:14 AM</div>
+            </div>
+          </div>
+        </div>
+        <div class="rail-group">
+          <div class="rail-label">Last Updated</div>
+          <div class="person-row">
+            <div class="avatar">KL</div>
+            <div class="person-info">
+              <div class="name">Kaelen L.</div>
+              <div class="time">May 11, 2026 · 11:32 AM</div>
+            </div>
+          </div>
+        </div>
+        <hr class="rail-rule">
+        <div class="rail-group">
+          <div class="rail-label">Tags</div>
+          <div class="tags-row">
+            <span class="tag">Sponsorships</span>
+            <span class="tag">Fundraising</span>
+            <span class="tag tag-add">+ Add</span>
+          </div>
+        </div>
+        <hr class="rail-rule">
+        <div class="rail-group">
+          <div class="rail-label">Related</div>
+          <div class="related-item">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="2" width="10" height="8" rx="1"/><path d="M3 5h6M3 7.5h4"/></svg>
+            <a href="https://northstarhouse.github.io/north-star-donors/sponsorship-plan/sponsor-packet-v2-board-structure.html" target="_blank" rel="noopener">Sponsor Packet V2 Draft</a>
+          </div>
+          <div class="related-item">
+            <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1" y="2" width="10" height="8" rx="1"/><path d="M3 5h6M3 7.5h4"/></svg>
+            <a href="#">Tier Benefits Matrix (V1)</a>
+          </div>
+        </div>
+      </div><!-- /right-rail -->
+
+    </div><!-- /content-body -->
+  </div><!-- /main -->
+
+</div><!-- /shell -->
+</body>
+</html>

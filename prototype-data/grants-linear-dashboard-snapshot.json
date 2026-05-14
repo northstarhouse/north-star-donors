@@ -1,0 +1,144 @@
+{
+  "generatedAt": "2026-05-14T07:00:53.815Z",
+  "linearCount": 11,
+  "dashboardCount": 0,
+  "linear": [
+    {
+      "identifier": "THE-19",
+      "title": "HER Grant Resubmission - recover reviewer comments and rebuild workplan",
+      "state": "Todo",
+      "project": "Grant Pipeline",
+      "priority": 2,
+      "assignee": "Kaelen Jennings",
+      "labels": [],
+      "updatedAt": "2026-05-12T08:18:21.966Z",
+      "description": "## Outcome\n\nThe History of Equal Rights resubmission path is rebuilt from the prior application, reviewer feedback, and remaining work items.\n\n## Source context\n\n* Amount: about $750,000.\n* Deadline: 2026-09-30.\n* Known work includes reviewer comments, SHPO materials, 2023 budget, historic photos, PDFs, narratives, forms, and [grants.gov](<http://grants.gov>) submission.\n\n## Next action\n\nRecover the reviewer comments and prior 23-file application package, then map each remaining work item into either done, blocked, or next-action status.\n\n## Blockers\n\n* Reviewer comments not yet recovered.\n* Original application package location needs confirmation.\n* SHPO letter/status needs confirmation.\n\n## Acceptance criteria\n\n* Reviewer comments and prior application package are linked or summarized.\n* Reuse/new-work split is clear.\n* Budget, narrative, forms, attachments, and submission tasks are either converted to child issues or explicitly marked unnecessary.\n* Timeline works backward from 2026-09-30.",
+      "latestComments": []
+    },
+    {
+      "identifier": "THE-20",
+      "title": "Schwemm Family Foundation - define archive or interpreter project and draft application",
+      "state": "Todo",
+      "project": "Grant Pipeline",
+      "priority": 3,
+      "assignee": "Kaelen Jennings",
+      "labels": [],
+      "updatedAt": "2026-05-12T08:18:23.853Z",
+      "description": "## Outcome\n\nNorth Star has a concrete Schwemm application concept and enough application detail to decide whether to submit before the 2026 window closes.\n\n## Source context\n\n* Amount: about $8,000.\n* Window: 2026-05-01 to 2026-06-30.\n* Fit note: archives, interpretive signage, or docent program.\n\n## Next action\n\nRecover/download the current application instructions and choose one focused scope: archive supplies/digitization, interpretive signage, or docent/interpreter support.\n\n## Blockers\n\n* Current application details and required attachments need confirmation.\n* Scope owner and budget not chosen.\n\n## Acceptance criteria\n\n* Current guidelines are attached or summarized.\n* One project scope is selected with rough budget.\n* Application requirements are translated into a submission checklist.\n* Submit/no-submit decision is made before 2026-06-15.",
+      "latestComments": []
+    },
+    {
+      "identifier": "THE-22",
+      "title": "NEA Grants for Arts Projects - start federal registration path and museum fit research",
+      "state": "Todo",
+      "project": "Grant Pipeline",
+      "priority": 3,
+      "assignee": "Kaelen Jennings",
+      "labels": [],
+      "updatedAt": "2026-05-12T08:18:28.774Z",
+      "description": "## Outcome\n\nNorth Star has a clear go/no-go for NEA Grants for Arts Projects and knows whether federal registration work must start immediately.\n\n## Source context\n\n* Amount: $10,000 to $100,000.\n* Intent/application date noted: 2026-07-09.\n* Known gates: [SAM.gov](<http://SAM.gov>), [Login.gov](<http://Login.gov>), [Grants.gov](<http://Grants.gov>), museum/arts fit.\n\n## Next action\n\nCheck [SAM.gov/Login.gov/Grants.gov](<http://SAM.gov/Login.gov/Grants.gov>) status and research the strongest museum or arts-program frame for North Star.\n\n## Blockers\n\n* Federal registration can take time.\n* Need a strong arts-program deliverable, not just building preservation.\n* Match/cash requirements need confirmation.\n\n## Acceptance criteria\n\n* Federal registration status is documented.\n* Program fit and eligible project type are summarized with source links.\n* Match/cash requirement is known.\n* Submit/no-submit decision target is set before 2026-06-30.",
+      "latestComments": []
+    },
+    {
+      "identifier": "THE-23",
+      "title": "Hind Foundation - find discrete restoration scope with deposited funds proof",
+      "state": "Backlog",
+      "project": "Grant Pipeline",
+      "priority": 3,
+      "assignee": "Kaelen Jennings",
+      "labels": [],
+      "updatedAt": "2026-05-12T08:19:12.581Z",
+      "description": "## Outcome\n\nNorth Star knows whether a Hind Foundation request can be made around a discrete restoration scope with required funds already deposited.\n\n## Source context\n\n* Amount: $10,000 to $50,000.\n* Deadline: rolling.\n* Notes flagged proof of deposited funds and restrictions.\n\n## Next action\n\nAsk finance/board for candidate projects and whether deposited matching/project funds can be documented.\n\n## Blockers\n\n* Proof of deposited funds may be required.\n* Project restrictions and eligible cost categories need confirmation.\n\n## Acceptance criteria\n\n* Current Hind guidelines are summarized.\n* Candidate restoration scope and budget are identified or ruled out.\n* Deposited-funds proof requirement is answered.\n* If viable, draft application checklist is created.",
+      "latestComments": []
+    },
+    {
+      "identifier": "THE-24",
+      "title": "Long Foundation - research youth arts or education frame",
+      "state": "Backlog",
+      "project": "Grant Pipeline",
+      "priority": 4,
+      "assignee": "Kaelen Jennings",
+      "labels": [],
+      "updatedAt": "2026-05-12T08:19:14.175Z",
+      "description": "## Outcome\n\nNorth Star knows whether Long Foundation is worth pursuing through a youth arts, education, or interpretation angle.\n\n## Source context\n\n* Amount: $10,000 to $40,000 first-time.\n* Fall cycle opens around 2026-07-27.\n* Fit note: youth arts/education, not pure preservation.\n\n## Next action\n\nResearch current cycle requirements and identify whether North Star has a credible youth/education deliverable.\n\n## Blockers\n\n* Program fit may be weak if framed as preservation only.\n* No current youth program scope is documented in this recovery pass.\n\n## Acceptance criteria\n\n* Current guidelines and cycle dates are linked.\n* Youth/education fit is rated strong, possible, or weak.\n* If possible, one concrete project concept and partner need are named.\n* If weak, issue is marked no-go with rationale.",
+      "latestComments": []
+    },
+    {
+      "identifier": "THE-26",
+      "title": "NEH Collections Stewardship - verify qualifying North Star collection",
+      "state": "Backlog",
+      "project": "Grant Pipeline",
+      "priority": 4,
+      "assignee": "Kaelen Jennings",
+      "labels": [],
+      "updatedAt": "2026-05-12T08:19:17.694Z",
+      "description": "## Outcome\n\nNorth Star knows whether it has a qualifying humanities collection for a future NEH Collections Stewardship application.\n\n## Source context\n\n* Deadline noted: 2026-05-11.\n* Fit gate: verify qualifying collection.\n\n## Next action\n\nAsk Haley/archives owner what collections exist, where they live, and whether preservation/access work is needed.\n\n## Blockers\n\n* 2026-05-11 deadline appears passed.\n* Qualifying collection is unverified.\n* Need collection owner, inventory, and preservation/access need.\n\n## Acceptance criteria\n\n* Current/future NEH cycle status is documented.\n* Collection existence and ownership are confirmed or ruled out.\n* If viable, eligible project activities and required partners are listed.\n* If not viable, no-go rationale is recorded.",
+      "latestComments": []
+    },
+    {
+      "identifier": "THE-25",
+      "title": "NEH Media Projects - test Julia Morgan media concept",
+      "state": "Backlog",
+      "project": "Grant Pipeline",
+      "priority": 4,
+      "assignee": "Kaelen Jennings",
+      "labels": [],
+      "updatedAt": "2026-05-12T08:19:16.077Z",
+      "description": "## Outcome\n\nNorth Star knows whether the Julia Morgan / North Star story can support an NEH Media Projects concept before the noted June 2026 deadline.\n\n## Source context\n\n* Deadline noted: 2026-06-25.\n* Fit note: Julia Morgan media angle.\n\n## Next action\n\nConfirm eligible media formats, required humanities framing, and whether a credible media partner or producer exists.\n\n## Blockers\n\n* Media partner/producer not identified.\n* Humanities framing and audience plan need research.\n* Timeline may be too short for a competitive 2026 submission.\n\n## Acceptance criteria\n\n* Current guidelines and deadline are linked.\n* Media concept is stated in one paragraph.\n* Required partner, budget, and production plan gaps are listed.\n* Submit/no-submit decision is made before 2026-06-10.",
+      "latestComments": []
+    },
+    {
+      "identifier": "THE-27",
+      "title": "NTHP Preservation Fund - decide June 1 preservation planning application",
+      "state": "Todo",
+      "project": "Grant Pipeline",
+      "priority": 2,
+      "assignee": "Kaelen Jennings",
+      "labels": [],
+      "updatedAt": "2026-05-12T08:20:25.481Z",
+      "description": "## Outcome\n\nNorth Star decides whether to pursue the June 1 NTHP Preservation Fund cycle and knows whether PLF membership or another eligibility step is required.\n\n## Source context\n\n* Amount: $2,500 to $5,000.\n* Deadline noted: 2026-06-01.\n* Note: PLF membership required to receive funds.\n\n## Next action\n\nEmail or call NTHP/Saving Places to confirm eligibility, deadline, and whether a planning/consultant scope fits.\n\n## Blockers\n\n* PLF membership or affiliation requirement needs confirmation.\n* Scope must likely be planning/consultant/professional service, not general construction.\n* Short timeline to 2026-06-01.\n\n## Acceptance criteria\n\n* Eligibility and membership requirement are confirmed.\n* A narrow preservation planning scope is selected or ruled out.\n* Required match/attachments are listed.\n* Submit/no-submit decision is made by 2026-05-20.",
+      "latestComments": []
+    },
+    {
+      "identifier": "THE-28",
+      "title": "NCA Cultural District Mini-Grants - research eligibility and cycle",
+      "state": "Todo",
+      "project": "Grant Pipeline",
+      "priority": 3,
+      "assignee": "Kaelen Jennings",
+      "labels": [],
+      "updatedAt": "2026-05-12T08:20:27.603Z",
+      "description": "## Outcome\n\nNorth Star knows whether Nevada County Arts Council / Grass Valley-Nevada City cultural district mini-grants are available and worth pursuing.\n\n## Source context\n\n* Note: NCA/GVNC mini-grants; eligibility and cycle unknown.\n\n## Next action\n\nFind current NCAC/GVNC mini-grant contacts, cycle timing, eligibility, and typical award amount.\n\n## Blockers\n\n* Current cycle unknown.\n* Eligibility may depend on cultural district geography, fiscal sponsor relationship, or arts programming.\n\n## Acceptance criteria\n\n* Current program owner/contact is identified.\n* Cycle date and application path are known or confirmed inactive.\n* Fit is rated strong, possible, or weak.\n* If viable, next outreach/application step is named.",
+      "latestComments": []
+    },
+    {
+      "identifier": "THE-29",
+      "title": "USDA Community Facilities - verify area eligibility and no-go or continue path",
+      "state": "Todo",
+      "project": "Grant Pipeline",
+      "priority": 2,
+      "assignee": "Kaelen Jennings",
+      "labels": [],
+      "updatedAt": "2026-05-12T08:20:29.496Z",
+      "description": "## Outcome\n\nNorth Star gets a clear no-go/continue decision for USDA Community Facilities before investing application labor.\n\n## Research finding\n\nPerplexity research rates fit as uncertain-to-possible. The nonprofit/community-facility/museum frame may fit, but the hard gates are property eligibility, USDA Rural Development review, repayment/commercial-credit requirements, and likely low grant percentage. A loan or loan/grant mix is more realistic than a pure grant.\n\n## Next action\n\nRun the exact North Star property address through the USDA eligibility map, then call California USDA Rural Development with a short fact pattern: 501(c)(3), historic house/museum/community facility, needed safety/accessibility/building-envelope work, and likely project range.\n\n## Blockers\n\n* Exact property eligibility must be verified by USDA map/RD staff.\n* Need to know whether North Star can take debt or show repayment capacity.\n* Need documentation that credit is unavailable at reasonable commercial rates.\n* Grant-only path likely weak.\n\n## Acceptance criteria\n\n* Eligibility-map result is captured.\n* California USDA RD response is summarized.\n* Eligible cost categories are confirmed for doors, safety/accessibility, building envelope, and any bat-related remediation.\n* Board-level debt/grant appetite is named.\n* Issue ends with continue, pause, or no-go decision.",
+      "latestComments": []
+    },
+    {
+      "identifier": "THE-30",
+      "title": "Bat netting and 12 upstairs doors - pursue safety and in-kind funding routes",
+      "state": "Todo",
+      "project": "Grant Pipeline",
+      "priority": 2,
+      "assignee": "Kaelen Jennings",
+      "labels": [
+        "Outreach"
+      ],
+      "updatedAt": "2026-05-12T08:20:33.913Z",
+      "description": "## Outcome\n\nNorth Star has a practical funding and in-kind outreach route for removing second-floor bat netting and installing 12 basic upstairs doors.\n\n## Transcript grounding\n\nThe 2026-05-07 developer meeting described construction work to remove bat netting on the second floor and a need for 12 basic upstairs doors. The discussion framed doors as sponsor/newsletter/in-kind friendly and bats as a possible worker-safety or public-health angle, not necessarily a normal posted grant.\n\n## Research finding\n\nPerplexity research suggests a $15,000-$55,000 cash target plus $3,000-$10,000 in-kind target. Highest-priority routes are local/business/civic and small preservation grants: Walmart Spark Good, Home Depot Foundation Community Impact, Lowe's/local store support, NTHP Preservation Fund, Community Foundation of Nevada County, Nevada County Arts Council/CA Arts Council if a cultural/safety frame fits, Rotary/Elks/local civic groups, Habitat ReStore, and local hardware/lumber suppliers. OSHA/Cal OES style routes are possible only with a real worker-safety training or county emergency-management partner.\n\n## Next action\n\nCreate a one-page ask packet with photos, itemized door count/specs, bat-netting safety rationale, cost estimate, nonprofit status, and recognition offer. Start with Walmart/Home Depot/Lowe's/local civic asks while preserving NTHP as a possible June 1 planning/safety application.\n\n## Blockers\n\n* Need actual contractor or materials quote.\n* Need basic door specs and whether labor is volunteer, contractor, or in-kind.\n* Need bat/remediation framing that is accurat...",
+      "latestComments": []
+    }
+  ],
+  "tasks": [],
+  "sidecars": [],
+  "logs": []
+}

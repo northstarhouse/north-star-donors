@@ -13,9 +13,16 @@
 # testing
 /coverage
 
+# local auth/cache
+/.cc-oauth/
+/supabase/.temp/
+__pycache__/
+*.py[cod]
+
 # next.js
 /.next/
 /out/
+/output/
 
 # production
 /build

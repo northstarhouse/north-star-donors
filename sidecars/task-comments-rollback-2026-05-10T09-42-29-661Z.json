@@ -1,0 +1,39 @@
+{
+  "tasks": [
+    {
+      "id": "de0c67ae-de3f-4f34-a285-9d55306dc284",
+      "title": "Confirm Constant Contact sender address"
+    },
+    {
+      "id": "daee947c-2e3f-46a8-8934-19e033f02a36",
+      "title": "Define reply monitoring plan for membership emails"
+    },
+    {
+      "id": "813ef1ef-3061-4a71-a380-157b2442f36a",
+      "title": "Making info@ able to send emails through Dev Dashboard"
+    }
+  ],
+  "comments": [
+    {
+      "id": "d3d492e9-b281-4646-9259-ed439c4ca7f0",
+      "task_id": "daee947c-2e3f-46a8-8934-19e033f02a36",
+      "author": "Kaelen",
+      "content": "I believe we decided this would be info@thenorthstarhouse.org but I can't currently log in to it",
+      "created_at": "2026-05-08T06:09:00.07821+00:00"
+    },
+    {
+      "id": "53299109-064e-4c9f-a03b-488c559d7b3c",
+      "task_id": "daee947c-2e3f-46a8-8934-19e033f02a36",
+      "author": "Haley",
+      "content": "Just fixed this",
+      "created_at": "2026-05-08T16:27:23.67898+00:00"
+    },
+    {
+      "id": "08036aee-4b54-4127-a0a1-cc63179cda14",
+      "task_id": "813ef1ef-3061-4a71-a380-157b2442f36a",
+      "author": "Haley",
+      "content": "IONOS is processing the server access.. using Resend as the backend for this. Created list section for each volunteer sector.",
+      "created_at": "2026-05-08T18:45:47.51366+00:00"
+    }
+  ]
+}

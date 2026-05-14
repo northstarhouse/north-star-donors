@@ -1,0 +1,32 @@
+[
+  {
+    "id": "de0c67ae-de3f-4f34-a285-9d55306dc284",
+    "title": "Confirm Constant Contact sender address",
+    "status": "todo",
+    "label": "Decision",
+    "assigned_to": null,
+    "due_date": null,
+    "notes": "Decide which sender address and display name the membership campaign should use in Constant Contact, including where replies will go. This corresponds to the sender identity / reply handling open decisions in the Membership overview.",
+    "updated_at": "2026-05-05T06:41:09.065+00:00"
+  },
+  {
+    "id": "daee947c-2e3f-46a8-8934-19e033f02a36",
+    "title": "Define reply monitoring plan for membership emails",
+    "status": "todo",
+    "label": "Decision",
+    "assigned_to": null,
+    "due_date": null,
+    "notes": "Decision needed: who checks the reply-to inbox, how often, what gets escalated, what gets logged, and which replies suppress later touches.\n\nConstant Contact tracks sends, opens, clicks, bounces, and unsubscribes; human replies go to the reply-to inbox.\n\nRestored 2026-05-07 after accidental deletion; source: Captain's Log 2026-05-05 master-portal-fund-development-triage.",
+    "updated_at": "2026-05-08T06:09:34.081+00:00"
+  },
+  {
+    "id": "813ef1ef-3061-4a71-a380-157b2442f36a",
+    "title": "Making info@ able to send emails through Dev Dashboard",
+    "status": "in_progress",
+    "label": "Technical",
+    "assigned_to": "Haley",
+    "due_date": null,
+    "notes": null,
+    "updated_at": "2026-05-08T18:42:37.135722+00:00"
+  }
+]

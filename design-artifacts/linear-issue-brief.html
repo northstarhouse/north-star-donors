@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>North Star Linear Issue Brief</title>
+  <style>
+    :root {
+      --ink: #211f1a;
+      --soft-ink: #484238;
+      --muted: #756d61;
+      --hair: #d8d0c2;
+      --paper: #f6f2ea;
+      --vellum: #fffdf8;
+      --field: #ebe3d5;
+      --green: #315f4d;
+      --blue: #315a78;
+      --red: #8f3b32;
+      --gold: #a56f22;
+      --charcoal: #2c2b27;
+      --shadow: 0 28px 70px rgba(51, 42, 30, .16);
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(49, 95, 77, .06) 1px, transparent 1px),
+        linear-gradient(180deg, rgba(49, 95, 77, .05) 1px, transparent 1px),
+        var(--paper);
+      background-size: 34px 34px;
+      color: var(--ink);
+      font-family: "Aptos", "Segoe UI", system-ui, sans-serif;
+      letter-spacing: 0;
+    }
+
+    main {
+      width: min(1220px, calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 28px 0 42px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 20px;
+      align-items: end;
+      padding-bottom: 18px;
+    }
+
+    .eyebrow {
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(34px, 4.6vw, 62px);
+      line-height: .98;
+      letter-spacing: 0;
+    }
+
+    .intro {
+      max-width: 700px;
+      margin-top: 12px;
+      color: var(--soft-ink);
+      font-size: 15px;
+      line-height: 1.45;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: repeat(2, max-content);
+      gap: 8px;
+      justify-content: end;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 9px;
+      border: 1px solid var(--hair);
+      border-radius: 999px;
+      background: rgba(255,255,255,.64);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: var(--green);
+    }
+
+    .dot.gold { background: var(--gold); }
+    .dot.red { background: var(--red); }
+    .dot.blue { background: var(--blue); }
+
+    .brief-shell {
+      position: relative;
+      display: grid;
+      grid-template-columns: 230px minmax(0, 1fr);
+      margin-top: 22px;
+      background: var(--vellum);
+      border: 1px solid #cfc4b3;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .brief-shell::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 8px;
+      background: linear-gradient(180deg, var(--gold), var(--green) 52%, var(--blue));
+    }
+
+    .rail {
+      padding: 24px 20px 20px 28px;
+      background: #ede5d6;
+      border-right: 1px solid var(--hair);
+    }
+
+    .rail-title {
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .meta {
+      display: grid;
+      gap: 11px;
+      margin-bottom: 22px;
+    }
+
+    .meta-row {
+      display: grid;
+      gap: 3px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(117, 109, 97, .25);
+    }
+
+    .meta-key {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 820;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .meta-value {
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 740;
+      line-height: 1.25;
+    }
+
+    .signal {
+      display: grid;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .signal h3 {
+      color: var(--red);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .signal p {
+      font-size: 13px;
+      color: var(--soft-ink);
+      line-height: 1.36;
+    }
+
+    .brief-main {
+      min-width: 0;
+      padding: 24px 26px 26px;
+    }
+
+    .brief-heading {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 18px;
+      align-items: start;
+      padding-bottom: 18px;
+      border-bottom: 2px solid var(--charcoal);
+    }
+
+    .brief-kind {
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    .brief-title {
+      font-size: clamp(26px, 3.2vw, 40px);
+      line-height: 1.02;
+      font-family: Georgia, "Times New Roman", serif;
+      letter-spacing: 0;
+      max-width: 760px;
+    }
+
+    .stamp {
+      min-width: 132px;
+      border: 2px solid var(--charcoal);
+      padding: 9px 10px;
+      text-align: center;
+      transform: rotate(1deg);
+      background: #fffaf0;
+    }
+
+    .stamp span {
+      display: block;
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .stamp strong {
+      display: block;
+      margin-top: 3px;
+      font-size: 17px;
+      color: var(--green);
+    }
+
+    .brief-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .tile {
+      position: relative;
+      min-width: 0;
+      border: 1px solid var(--hair);
+      border-radius: 7px;
+      padding: 14px 14px 14px 48px;
+      background: #fffdfa;
+    }
+
+    .tile.wide { grid-column: 1 / -1; }
+    .tile.hot { border-color: #d8a8a1; background: #fff8f6; }
+    .tile.done { background: #f7faf7; border-color: #bdd0c4; }
+
+    .glyph {
+      position: absolute;
+      left: 13px;
+      top: 13px;
+      display: grid;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 99px;
+      background: var(--field);
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .tile h3 {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    .tile p, .tile li {
+      color: var(--soft-ink);
+      font-size: 14px;
+      line-height: 1.38;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    li + li { margin-top: 5px; }
+
+    .decisions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .decision-card {
+      min-height: 92px;
+      display: grid;
+      align-content: start;
+      gap: 6px;
+      padding: 10px;
+      background: #f4efe5;
+      border: 1px solid #d7cab7;
+      border-radius: 6px;
+    }
+
+    .decision-card b {
+      color: var(--ink);
+      font-size: 13px;
+      line-height: 1.18;
+    }
+
+    .decision-card span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+    }
+
+    .source {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--blue);
+      font-weight: 740;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(49, 90, 120, .35);
+      overflow-wrap: anywhere;
+    }
+
+    .variant-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .mini {
+      border: 1px solid var(--hair);
+      border-radius: 8px;
+      background: rgba(255,255,255,.72);
+      overflow: hidden;
+    }
+
+    .mini-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 13px 15px;
+      border-bottom: 1px solid var(--hair);
+      background: #efe7da;
+    }
+
+    .mini-head h2 {
+      font-size: 15px;
+      letter-spacing: 0;
+    }
+
+    .mini-head span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      white-space: nowrap;
+    }
+
+    pre {
+      margin: 0;
+      padding: 15px;
+      white-space: pre-wrap;
+      color: #302d28;
+      font: 12.8px/1.43 "Cascadia Mono", "Consolas", monospace;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+      max-width: 820px;
+    }
+
+    @media (max-width: 980px) {
+      .topbar, .brief-shell, .variant-row { grid-template-columns: 1fr; }
+      .legend { justify-content: start; grid-template-columns: repeat(2, max-content); }
+      .brief-shell::before { width: 100%; height: 7px; inset: 0 0 auto 0; }
+      .rail { padding-left: 20px; border-right: 0; border-bottom: 1px solid var(--hair); }
+      .brief-grid, .decisions { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      main { width: calc(100vw - 20px); padding-top: 18px; }
+      .legend { grid-template-columns: 1fr; }
+      .brief-heading { grid-template-columns: 1fr; }
+      .stamp { width: 150px; }
+      .brief-main { padding: 18px 14px 18px; }
+      .tile { padding-left: 14px; }
+      .glyph { position: static; margin-bottom: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="topbar">
+      <div>
+        <div class="eyebrow">North Star Historic Conservancy</div>
+        <h1>Linear Issue Brief Pattern</h1>
+        <p class="intro">A repeatable operating brief for Linear issues: strong enough to carry board decisions and blockers, compact enough to scan during a meeting, and simple enough to translate back into plain Markdown.</p>
+      </div>
+      <div class="legend" aria-label="Visual system">
+        <span><i class="dot gold"></i>Decision</span>
+        <span><i class="dot red"></i>Blocker</span>
+        <span><i class="dot green"></i>Action</span>
+        <span><i class="dot blue"></i>Source</span>
+      </div>
+    </section>
+
+    <section class="brief-shell" aria-label="Sponsor Packet V2 issue brief">
+      <aside class="rail">
+        <div class="rail-title">Issue Signals</div>
+        <div class="meta">
+          <div class="meta-row">
+            <div class="meta-key">Project</div>
+            <div class="meta-value">Sponsorship Plan</div>
+          </div>
+          <div class="meta-row">
+            <div class="meta-key">Owner</div>
+            <div class="meta-value">Kaelen</div>
+          </div>
+          <div class="meta-row">
+            <div class="meta-key">Status</div>
+            <div class="meta-value">In Progress</div>
+          </div>
+          <div class="meta-row">
+            <div class="meta-key">Priority</div>
+            <div class="meta-value">Medium</div>
+          </div>
+          <div class="meta-row">
+            <div class="meta-key">Checkpoint</div>
+            <div class="meta-value">Haley meeting · May 14</div>
+          </div>
+        </div>
+        <div class="signal">
+          <h3>Resume Cue</h3>
+          <p>Decision gate before copy or outreach. Keep prospect lanes as context until the packet structure is approved.</p>
+        </div>
+      </aside>
+
+      <article class="brief-main">
+        <div class="brief-heading">
+          <div>
+            <div class="brief-kind">Decision Brief</div>
+            <h2 class="brief-title">Approve Sponsor Packet V2 tier structure</h2>
+          </div>
+          <div class="stamp" aria-label="Issue type">
+            <span>Pattern</span>
+            <strong>Decision</strong>
+          </div>
+        </div>
+
+        <div class="brief-grid">
+          <section class="tile">
+            <div class="glyph">→</div>
+            <h3>Outcome</h3>
+            <p>Approve or revise the board-review tier structure for Sponsor Packet V2.</p>
+          </section>
+
+          <section class="tile">
+            <div class="glyph">1</div>
+            <h3>Next Action</h3>
+            <p>Review the board-structure draft with Haley and decide whether the tier/perk structure is approved, needs revision, or needs deeper board discussion.</p>
+          </section>
+
+          <section class="tile wide">
+            <div class="glyph">?</div>
+            <h3>Decisions to Resolve</h3>
+            <div class="decisions">
+              <div class="decision-card">
+                <b>Supporter lane</b>
+                <span>Friend of North Star below formal sponsorship.</span>
+              </div>
+              <div class="decision-card">
+                <b>Formal floor</b>
+                <span>$1,000 cash or approved in-kind value.</span>
+              </div>
+              <div class="decision-card">
+                <b>Tier ladder</b>
+                <span>Heritage, Preservation, Keystone, Presenting.</span>
+              </div>
+              <div class="decision-card">
+                <b>Control benefits</b>
+                <span>Reserved for Presenting unless explicitly approved.</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="tile hot">
+            <div class="glyph">!</div>
+            <h3>Blocker</h3>
+            <p>Sponsor-facing packet copy waits until the tier structure and deliverable perks are approved.</p>
+          </section>
+
+          <section class="tile done">
+            <div class="glyph">✓</div>
+            <h3>Done When</h3>
+            <ul>
+              <li>Tier names and ask amounts are approved or revised.</li>
+              <li>V1 perks are audited against what North Star can deliver.</li>
+              <li>Kaelen and Haley acknowledge the review outcome by May 14, 2026.</li>
+              <li>The structure is clear enough for sponsor-facing copy.</li>
+            </ul>
+          </section>
+
+          <section class="tile">
+            <div class="glyph">•</div>
+            <h3>Context</h3>
+            <p>Known near-term sponsor lanes: BNC/Ace Hardware, Mike Bratton/State Farm, and Hills Flat Lumber. Context only until packet approval.</p>
+          </section>
+
+          <section class="tile">
+            <div class="glyph">↗</div>
+            <h3>Source</h3>
+            <p><a class="source" href="https://northstarhouse.github.io/north-star-donors/sponsorship-plan/sponsor-packet-v2-board-structure.html">Sponsor Packet V2 board-structure draft</a></p>
+          </section>
+        </div>
+      </article>
+    </section>
+
+    <section class="variant-row" aria-label="Reusable markdown templates">
+      <article class="mini">
+        <div class="mini-head">
+          <h2>Decision Issue Template</h2>
+          <span>Paste into Linear</span>
+        </div>
+        <pre>## Outcome
+[Approve, revise, or decide the specific question.]
+
+## Next Action
+[One concrete review or decision step.]
+
+## Decisions to Resolve
+- [Decision point]
+- [Decision point]
+- [Decision point]
+
+## Blocker
+[What should wait until this decision is resolved.]
+
+## Done When
+- [Decision is approved or explicitly revised.]
+- [Constraints/deliverability are checked.]
+- [Review checkpoint is acknowledged if relevant.]
+- [Next workstream has enough clarity.]
+
+## Context
+[Only the context needed to resume.]
+
+## Source
+[Canonical source link or document title.]</pre>
+      </article>
+
+      <article class="mini">
+        <div class="mini-head">
+          <h2>Execution Issue Template</h2>
+          <span>Paste into Linear</span>
+        </div>
+        <pre>## Outcome
+[Concrete artifact, update, send, repair, or deliverable.]
+
+## Next Action
+[The next physical step someone can take.]
+
+## Inputs
+- [Required source, approval, file, data, or access]
+- [Required dependency]
+
+## Blocker
+[Current blocker, or "None" if unblocked.]
+
+## Done When
+- [Observable completion criterion]
+- [Quality/review criterion]
+- [Handoff or readback criterion]
+
+## Context
+[Only the context needed to resume.]
+
+## Source
+[Canonical source link or document title.]</pre>
+      </article>
+    </section>
+
+    <p class="footer-note">The visual pattern uses section tokens, a left signal rail, and decision cards to show hierarchy. Linear gets the Markdown template; the design gives us a consistent mental model for what each issue should contain.</p>
+  </main>
+</body>
+</html>

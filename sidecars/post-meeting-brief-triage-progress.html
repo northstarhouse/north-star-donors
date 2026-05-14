@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Post-meeting brief triage progress</title>
+  <style>
+    :root {
+      --bg: #f6f1e8;
+      --ink: #211d18;
+      --muted: #766f66;
+      --line: #ded4c6;
+      --gold: #8a6b39;
+      --green: #2f7a54;
+      --blue: #3f6592;
+      --red: #9b4a3f;
+      --card: #fffdf8;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font: 15px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 32px 24px 56px;
+    }
+    header {
+      display: flex;
+      gap: 20px;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 18px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-size: 30px;
+      line-height: 1.1;
+      letter-spacing: 0;
+      color: var(--gold);
+      font-family: Georgia, serif;
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--gold);
+    }
+    p { margin: 0; }
+    .sub { color: var(--muted); max-width: 760px; }
+    .stamp { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .num { font-size: 26px; font-weight: 750; }
+    .label { color: var(--muted); font-size: 12px; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    section {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 18px;
+    }
+    .item {
+      display: grid;
+      grid-template-columns: 24px 1fr auto;
+      gap: 10px;
+      align-items: start;
+      padding: 12px 0;
+      border-top: 1px solid #eee6da;
+    }
+    .item:first-of-type { border-top: 0; padding-top: 0; }
+    .box {
+      width: 18px;
+      height: 18px;
+      border-radius: 5px;
+      border: 1.5px solid var(--line);
+      display: grid;
+      place-items: center;
+      margin-top: 1px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .done .box { background: var(--green); border-color: var(--green); }
+    .parked .box { background: var(--blue); border-color: var(--blue); }
+    .pending .box { background: #fff; }
+    .active .box { background: var(--gold); border-color: var(--gold); }
+    .title { font-weight: 700; margin-bottom: 3px; }
+    .desc { color: var(--muted); font-size: 13px; }
+    .chip {
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .done .title { text-decoration: line-through; color: var(--muted); }
+    .approved .chip { border-color: #bad6c6; color: var(--green); background: #edf8f1; }
+    .decision .chip { border-color: #e5d3a9; color: var(--gold); background: #fff8e6; }
+    .risk .chip { border-color: #e3beb8; color: var(--red); background: #fff1ef; }
+    .full { grid-column: 1 / -1; }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      background: #f1e9dd;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    @media (max-width: 820px) {
+      header { display: block; }
+      .stamp { margin-top: 10px; }
+      .stats { grid-template-columns: 1fr 1fr; }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <h1>Post-meeting brief triage</h1>
+        <p class="sub">Goal: separate real work from context/noise, map items to the right place, and only promote clean team-facing tasks.</p>
+      </div>
+      <div class="stamp">Closed May 10, 2026 · sandbox mirror</div>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><div class="num">10</div><div class="label">decisions made</div></div>
+      <div class="stat"><div class="num">8</div><div class="label">sandbox changes approved</div></div>
+      <div class="stat"><div class="num">3</div><div class="label">separate drilldowns parked</div></div>
+      <div class="stat"><div class="num">0</div><div class="label">items still in this pass</div></div>
+    </div>
+
+    <div class="grid">
+      <section>
+        <h2>Done / Decided</h2>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Empire Mine</div><div class="desc">No Development task. Existing Outreach row holds the lane.</div></div>
+          <div class="chip">no add</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Banner spaces</div><div class="desc">No Development task. Added Kaelen Current Focus item in sandbox.</div></div>
+          <div class="chip">focus</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Nisenan / Arts Council intro</div><div class="desc">No Development task. Added Kaelen Current Focus item in sandbox.</div></div>
+          <div class="chip">focus</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Current pursued grants</div><div class="desc">Created To Do: <code>Port current pursued grants into Development Dashboard</code>.</div></div>
+          <div class="chip">task</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">USDA grant lead</div><div class="desc">Renamed existing task to <code>Research USDA Community Facilities grant fit</code> and assigned Kaelen.</div></div>
+          <div class="chip">task</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Bat netting + upstairs doors</div><div class="desc">Created Grants task: <code>Research funding options for bat netting and upstairs doors</code>.</div></div>
+          <div class="chip">task</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Mother's Day follow-up</div><div class="desc">Created task: <code>Design event follow-up opt-in process</code>.</div></div>
+          <div class="chip">task</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Sponsor packet / past sponsors</div><div class="desc">Updated <code>Draft sponsor packet v2</code> with corrected sponsor lanes and future prospect logic.</div></div>
+          <div class="chip">task update</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Cake / macarons / in-kind tracking</div><div class="desc">Created decision task: confirm whether the macaron discount should be logged as in-kind sponsorship.</div></div>
+          <div class="chip">task</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Creative Exchange / photo-location revenue</div><div class="desc">Closed this pass as separate drilldown territory; no dashboard task added here.</div></div>
+          <div class="chip">park</div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Parked Drilldowns</h2>
+        <div class="item pending">
+          <div class="box"></div>
+          <div><div class="title">Portal / Supabase source map</div><div class="desc">Map Haley's portal/database tables into a reusable architecture reference for future signal triage.</div></div>
+          <div class="chip">future</div>
+        </div>
+        <div class="item pending">
+          <div class="box"></div>
+          <div><div class="title">Sponsor prospects</div><div class="desc">Use tracker/history/warm paths to decide the next sponsor prospect list.</div></div>
+          <div class="chip">future</div>
+        </div>
+        <div class="item pending">
+          <div class="box"></div>
+          <div><div class="title">Creative Exchange / photo-location revenue</div><div class="desc">Needs its own context dig before dashboard work.</div></div>
+          <div class="chip">future</div>
+        </div>
+      </section>
+
+      <section class="full">
+        <h2>Sandbox Changes Made</h2>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Kaelen Current Focus</div><div class="desc"><code>Research local banner-space costs</code></div></div>
+          <div class="chip">mirror only</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Kaelen Current Focus</div><div class="desc"><code>Clarify respectful next step for Nisenan / Arts Council intro</code></div></div>
+          <div class="chip">mirror only</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Development To Do</div><div class="desc"><code>Port current pursued grants into Development Dashboard</code>, owner Kaelen, due May 11.</div></div>
+          <div class="chip">mirror only</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Development To Do</div><div class="desc"><code>Research USDA Community Facilities grant fit</code>, owner Kaelen.</div></div>
+          <div class="chip">mirror only</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Development To Do</div><div class="desc"><code>Research funding options for bat netting and upstairs doors</code>, owner Kaelen, area Grants.</div></div>
+          <div class="chip">mirror only</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Development To Do</div><div class="desc"><code>Design event follow-up opt-in process</code>, label Research, owner Kaelen.</div></div>
+          <div class="chip">mirror only</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Development In Progress</div><div class="desc"><code>Draft sponsor packet v2</code> now includes corrected sponsor lanes and prospect-selection logic.</div></div>
+          <div class="chip">mirror only</div>
+        </div>
+        <div class="item done approved">
+          <div class="box">✓</div>
+          <div><div class="title">Development To Do</div><div class="desc"><code>Decide whether Mother's Day macaron discount should be logged as in-kind sponsorship</code>, label Decision, owner Kaelen.</div></div>
+          <div class="chip">mirror only</div>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Mail, Copy, Check, ChevronDown, ChevronUp, Users, AlertCircle, X } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { sendEmail } from '@/lib/send-email'
 import Sidebar from '@/components/Sidebar'
 
 const TEAM_MEMBERS = ['Kaelen', 'Haley', 'Derek', 'Gerrie', 'Jen']
@@ -129,19 +130,12 @@ export default function VolunteersPage() {
     setSending(true)
     setSendError(null)
     try {
-      const res = await fetch(
-        'https://uvzwhhwzelaelfhfkvdb.supabase.co/functions/v1/send-email',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            bcc: modal.members.map(v => v.Email!.trim()),
-            subject,
-            body,
-            sender,
-          }),
-        }
-      )
+      const res = await sendEmail({
+        bcc: modal.members.map(v => v.Email!.trim()),
+        subject,
+        body,
+        sender,
+      })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Send failed')
       setSent(true)

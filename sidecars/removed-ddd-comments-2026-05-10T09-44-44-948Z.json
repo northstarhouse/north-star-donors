@@ -1,0 +1,23 @@
+[
+  {
+    "id": "976ba80f-222f-416a-a1e4-f21d2f41cde2",
+    "task_id": "de0c67ae-de3f-4f34-a285-9d55306dc284",
+    "author": "DDD",
+    "content": "DDD update, May 10: Constant Contact sender settings still need their own confirmation: sender address, display name, and reply-to address. The current Resend/DKIM blocker applies to Dev Dashboard sending and does not by itself confirm or block the Constant Contact configuration.",
+    "created_at": "2026-05-10T09:42:31.890274+00:00"
+  },
+  {
+    "id": "242c9bfa-85a1-44dd-ba8e-334896bf0a09",
+    "task_id": "daee947c-2e3f-46a8-8934-19e033f02a36",
+    "author": "DDD",
+    "content": "DDD update, May 10: info@ mailbox access is confirmed through gws-info. If info@ is the intended reply inbox, the team can define reply-monitoring ownership, cadence, and escalation separately from the IONOS/DKIM work. The current DNS blocker affects authenticated sending through Resend, not basic inbox access.",
+    "created_at": "2026-05-10T09:42:32.068389+00:00"
+  },
+  {
+    "id": "57284415-44f8-4351-adaa-dad921987fd5",
+    "task_id": "813ef1ef-3061-4a71-a380-157b2442f36a",
+    "author": "DDD",
+    "content": "DDD update, May 10: info@ mailbox access is confirmed, and the Resend invite has been accepted. Supabase already has a RESEND_API_KEY secret from May 8, so key rotation is not needed unless later testing proves the key is invalid.\n\nThe Dev Dashboard send path was tested. The app-side Supabase auth issue has a local code fix: send-email calls now include Supabase auth headers and the existing app token. With auth in place, the function reaches Resend.\n\nCurrent blocker: Resend is rejecting sends because thenorthstarhouse.org is not domain-verified. SPF/MX records are verified, but the IONOS TXT value for resend._domainkey does not match the DKIM value shown in Resend.\n\nAccess blocker: IONOS login routes through admin@thenorthstarhouse.org. That mailbox is currently blocked by Google 2FA to a phone we do not control. Next step is to recover admin mailbox/2FA access, or have the DNS/account owner replace the existing resend._domainkey TXT value, restart Resend verification, and retest sending.",
+    "created_at": "2026-05-10T09:42:32.267859+00:00"
+  }
+]

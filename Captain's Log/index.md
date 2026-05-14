@@ -1,0 +1,31 @@
+# Captain's Log Index
+
+- 2026-04-30 — [captains-log-genesis](2026-04-30-captains-log-genesis.md): Captain's Log Genesis.
+- 2026-04-30 — [cc-oauth-blocked](2026-04-30-cc-oauth-blocked.md): Constant Contact OAuth attempt blocked.
+- 2026-04-30 — [donor-drive-day-one-reactivation-schematic](2026-04-30-donor-drive-day-one-reactivation-schematic.md): Donor drive day-one reactivation schematic.
+- 2026-05-01 — [donor-mirror-kanban-prototype](2026-05-01-donor-mirror-kanban-prototype.md): Donor mirror kanban prototype.
+- 2026-05-01 — [find-on-site-skill-and-fork-cleanup](2026-05-01-find-on-site-skill-and-fork-cleanup.md): `/find-on-site` skill and fork cleanup.
+- 2026-05-02 — [branch-fuckery-and-vercel-deploy-audit](2026-05-02-branch-fuckery-and-vercel-deploy-audit.md): Branch and Vercel deploy audit.
+- 2026-05-02 — [cc-campaign-readiness-and-system-gaps](2026-05-02-cc-campaign-readiness-and-system-gaps.md): Constant Contact campaign readiness and system gaps.
+- 2026-05-02 — [initiatives-system-shipped](2026-05-02-initiatives-system-shipped.md): Initiatives system shipped.
+- 2026-05-02 — [unreachable-donor-email-recovery-cc-oauth](2026-05-02-unreachable-donor-email-recovery-cc-oauth.md): Unreachable-donor email recovery via Constant Contact OAuth.
+- 2026-05-03 — [cc-architecture-deep-dive-and-task-audit](2026-05-03-cc-architecture-deep-dive-and-task-audit.md): Constant Contact architecture deep dive and task audit.
+- 2026-05-03 — [email-only-leftover-cohort-segmented](2026-05-03-email-only-leftover-cohort-segmented.md): Email-only leftover cohort segmented.
+- 2026-05-03 — [list-files-renamed-and-task-refs-updated](2026-05-03-list-files-renamed-and-task-refs-updated.md): List files renamed and task refs updated.
+- 2026-05-03 — [membership-campaign-architecture-locked](2026-05-03-membership-campaign-architecture-locked.md): Membership campaign architecture locked.
+- 2026-05-03 — [membership-renewal-task-walkthrough](2026-05-03-membership-renewal-task-walkthrough.md): Membership renewal walkthrough.
+- 2026-05-04 — [mirror-lists-and-codex-skill-port](2026-05-04-mirror-lists-and-codex-skill-port.md): Mirror lists and Codex skill port.
+- 2026-05-05 — [master-portal-fund-development-triage](2026-05-05-master-portal-fund-development-triage.md): Master Portal fund development triage.
+- 2026-05-05 — [master-portal-membership-campaign-buildout](2026-05-05-master-portal-membership-campaign-buildout.md): Master Portal membership campaign buildout.
+- 2026-05-05 — [protected-campaign-overview-merged](2026-05-05-protected-campaign-overview-merged.md): Protected campaign overview merged.
+- 2026-05-06 — [arts-council-discovery-map-alpha-reference-build](2026-05-06-arts-council-discovery-map-alpha-reference-build.md): Arts Council discovery map alpha reference build.
+- 2026-05-10 — [gws-info-profile-auth](2026-05-10-gws-info-profile-auth.md): GWS info profile auth.
+- 2026-05-10 — [info-resend-ionos-blocker](2026-05-10-info-resend-ionos-blocker.md): DDD rabbit hole on `info@`, Resend, Supabase send-email, IONOS DKIM, and admin mailbox 2FA blocker.
+- 2026-05-10 — [post-meeting-brief-triage](2026-05-10-post-meeting-brief-triage.md): Closed DDD pass separating post-meeting brief signal from noise, with sandbox task updates and future drilldowns parked.
+- 2026-05-10 — [potential-python-modal-pop-up-fix](2026-05-10-potential-python-modal-pop-up-fix.md): Potential Python modal pop-up fix.
+- 2026-05-10 — [sandbox-mirror-setup](2026-05-10-sandbox-mirror-setup.md): Safe local sandbox clone pointed at mirror Supabase, with mirror data refreshed from live and localhost isolation verified.
+- 2026-05-11 — [constant-contact-auth-recovered](2026-05-11-constant-contact-auth-recovered.md): Restored Constant Contact API access, persisted fresh rotated tokens, and verified read-only account, list, and campaign calls.
+- 2026-05-11 — [northstar-sandbox-skill-stack](2026-05-11-northstar-sandbox-skill-stack.md): Converted the failed-feeling sandbox-to-production promotion into a skill stack: sandbox verification, DDD sandbox defaults, production-promotion guardrails, and CLI sandbox commands.
+- 2026-05-11 — [production-membership-lists-exported](2026-05-11-production-membership-lists-exported.md): Exported Haley production membership lists/tags into the Vault Membership Drive and triaged current dashboard list truth against older campaign CSVs.
+- 2026-05-14 — [membership-touch-1-warm-ready](2026-05-14-membership-touch-1-warm-ready.md): Warm Touch 1 was built, corrected, proofed, tracked in Linear/dashboard, and promoted to production as ready to send but not sent.
+- 2026-05-14 — [membership-touch-1-cold-ready](2026-05-14-membership-touch-1-cold-ready.md): Cold Touch 1 was fact-checked, corrected, proofed, approved, tracked in Linear/dashboard, and promoted to production as ready to send but not sent.

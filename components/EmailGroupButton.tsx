@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { Mail, X, AlertCircle, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { sendEmail } from '@/lib/send-email'
 
 const TEAM_MEMBERS = ['Kaelen', 'Haley', 'Derek', 'Gerrie', 'Jen']
 
@@ -60,19 +61,12 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
     setSending(true)
     setSendError(null)
     try {
-      const res = await fetch(
-        'https://uvzwhhwzelaelfhfkvdb.supabase.co/functions/v1/send-email',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            bcc: volunteers.map(v => v.Email!.trim()),
-            subject,
-            body,
-            sender,
-          }),
-        }
-      )
+      const res = await sendEmail({
+        bcc: volunteers.map(v => v.Email!.trim()),
+        subject,
+        body,
+        sender,
+      })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Send failed')
       setSent(true)
@@ -127,7 +121,7 @@ export default function EmailGroupButton({ tag, label, defaultSubject, defaultBo
             ) : volunteers.length === 0 ? (
               <div className="px-5 py-8 text-center">
                 <AlertCircle size={24} className="text-amber-400 mx-auto mb-2" />
-                <p className="text-sm text-stone-600">No active volunteers found tagged "{tag}".</p>
+                <p className="text-sm text-stone-600">No active volunteers found tagged &quot;{tag}&quot;.</p>
                 <p className="text-xs text-stone-400 mt-1">Check that the tag matches a team name in the volunteer database.</p>
                 <button onClick={() => setOpen(false)} className="mt-4 px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg">Close</button>
               </div>

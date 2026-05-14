@@ -1,0 +1,376 @@
+{
+  "generated_at": "2026-05-10T16:44:18.963Z",
+  "counts": {
+    "done": 4,
+    "in_progress": 3,
+    "todo": 6
+  },
+  "tasks": [
+    {
+      "id": "4b1b5e9b-29b6-4393-b38e-940a3f3b1072",
+      "title": "Review Touch 1 email drafts",
+      "status": "done",
+      "label": "Editing",
+      "owner": "Haley",
+      "due_date": null,
+      "initiative": {
+        "title": "Membership Email Campaign",
+        "area": "Membership",
+        "status": "active"
+      },
+      "has_notes": true,
+      "notes_preview": "Review the Warm, Cold, and Brick Buyers Touch 1 drafts from the protected campaign overview before they are built or sent in Constant Contact.",
+      "attachment_url": null,
+      "updated_at": "2026-05-06T01:14:20.794+00:00",
+      "created_at": "2026-05-05T04:30:50.857467+00:00",
+      "archived_at": null,
+      "comments": [
+        {
+          "id": "5f804c48-2844-4e61-9f43-925ecc9ccb81",
+          "author": "Haley",
+          "content": "This was perfect, Kaelen. Great job!",
+          "created_at": "2026-05-06T02:59:55.587797+00:00"
+        }
+      ]
+    },
+    {
+      "id": "e2dde5b6-f50b-4edd-bf9a-530fcf6f0992",
+      "title": "Edit/Proof Read Recently Lapsed Members Letter",
+      "status": "done",
+      "label": "Editing",
+      "owner": null,
+      "due_date": "2026-04-28",
+      "initiative": {
+        "title": "Recently Lapsed Member Letter",
+        "area": "Membership",
+        "status": "active"
+      },
+      "has_notes": false,
+      "notes_preview": "",
+      "attachment_url": "https://uvzwhhwzelaelfhfkvdb.supabase.co/storage/v1/object/public/task-attachments/e2dde5b6-f50b-4edd-bf9a-530fcf6f0992/1777234934637-Renewal_Letter.pdf",
+      "updated_at": "2026-04-26T20:22:44.267+00:00",
+      "created_at": "2026-04-26T20:21:52.515787+00:00",
+      "archived_at": null,
+      "comments": []
+    },
+    {
+      "id": "1d27a6de-fdeb-4920-8aa1-1126b568a6fc",
+      "title": "Set up membership mail merge",
+      "status": "done",
+      "label": "Technical",
+      "owner": null,
+      "due_date": "2026-04-28",
+      "initiative": {
+        "title": "Recently Lapsed Member Letter",
+        "area": "Membership",
+        "status": "active"
+      },
+      "has_notes": false,
+      "notes_preview": "",
+      "attachment_url": null,
+      "updated_at": "2026-04-23T18:59:56.654+00:00",
+      "created_at": "2026-04-23T17:15:34.930418+00:00",
+      "archived_at": null,
+      "comments": []
+    },
+    {
+      "id": "eda32a4e-94c5-4795-aa8f-6acbf694116c",
+      "title": "Picking up print from House of Print & Copy",
+      "status": "done",
+      "label": "Other",
+      "owner": "Haley",
+      "due_date": "2026-04-23",
+      "initiative": null,
+      "has_notes": false,
+      "notes_preview": "",
+      "attachment_url": null,
+      "updated_at": "2026-04-23T17:14:34.576+00:00",
+      "created_at": "2026-04-23T17:14:24.459453+00:00",
+      "archived_at": null,
+      "comments": []
+    },
+    {
+      "id": "813ef1ef-3061-4a71-a380-157b2442f36a",
+      "title": "Making info@ able to send emails through Dev Dashboard",
+      "status": "in_progress",
+      "label": "Technical",
+      "owner": "Haley",
+      "due_date": null,
+      "initiative": null,
+      "has_notes": true,
+      "notes_preview": "May 10 DDD update: info@ mailbox access is confirmed, and the Resend invite has been accepted. Supabase already has a RESEND_API_KEY secret from May 8, so key rotation is not needed unless later testing proves the key is",
+      "attachment_url": null,
+      "updated_at": "2026-05-10T09:38:27.933+00:00",
+      "created_at": "2026-05-08T18:42:37.135722+00:00",
+      "archived_at": null,
+      "comments": [
+        {
+          "id": "08036aee-4b54-4127-a0a1-cc63179cda14",
+          "author": "Haley",
+          "content": "IONOS is processing the server access.. using Resend as the backend for this. Created list section for each volunteer sector.",
+          "created_at": "2026-05-08T18:45:47.51366+00:00"
+        }
+      ]
+    },
+    {
+      "id": "63ec1fc9-3798-40b1-a9bd-18fdc3dbe0ef",
+      "title": "Draft sponsor packet v2",
+      "status": "in_progress",
+      "label": "Decision",
+      "owner": null,
+      "due_date": null,
+      "initiative": {
+        "title": "Sponsorship Plan",
+        "area": "Sponsorships",
+        "status": "active"
+      },
+      "has_notes": true,
+      "notes_preview": "STATUS: Board-review tier structure draft is ready. Editing and review work remains before this becomes a sponsor-facing packet.\n\nNext sequence:\n1. Review/approve the board-facing tier structure.\n2. Work the existing blo",
+      "attachment_url": "https://northstarhouse.github.io/north-star-donors/sponsorship-plan/sponsor-packet-v2-board-structure.html",
+      "updated_at": "2026-05-09T20:34:49.477552+00:00",
+      "created_at": "2026-05-09T20:34:49.477552+00:00",
+      "archived_at": null,
+      "comments": [
+        {
+          "id": "01e852a8-0e6e-488a-ac97-84f41b76b845",
+          "author": "Kaelen",
+          "content": "Board-review structure draft is ready for discussion. This is not the final sponsor-facing packet yet; next steps are to approve the tier structure, audit v1 perks for deliverability, then turn the approved structure into Sponsor Packet V2 copy.",
+          "created_at": "2026-05-09T20:46:48.498138+00:00"
+        }
+      ]
+    },
+    {
+      "id": "82925293-a4eb-49d2-8f6e-ebe854a3e3a7",
+      "title": "Send Long-Lapsed Email-Only Renewal to 11 recipients",
+      "status": "in_progress",
+      "label": "Other",
+      "owner": "Kaelen",
+      "due_date": "2026-05-11",
+      "initiative": {
+        "title": "Recently Lapsed Member Letter",
+        "area": "Membership",
+        "status": "active"
+      },
+      "has_notes": true,
+      "notes_preview": "Touch 1 for 11 long-lapsed donors who could not receive the physical letter but had emails recovered through Constant Contact.\n\nRecipient list: Membership Drive/lists-csv/long-lapsed-undeliverable-email-recovered-2026-05",
+      "attachment_url": null,
+      "updated_at": "2026-05-08T06:06:39.998+00:00",
+      "created_at": "2026-05-08T05:38:21.687738+00:00",
+      "archived_at": null,
+      "comments": []
+    },
+    {
+      "id": "daee947c-2e3f-46a8-8934-19e033f02a36",
+      "title": "Define reply monitoring plan for membership emails",
+      "status": "todo",
+      "label": "Decision",
+      "owner": null,
+      "due_date": null,
+      "initiative": {
+        "title": "Membership Email Campaign",
+        "area": "Membership",
+        "status": "active"
+      },
+      "has_notes": true,
+      "notes_preview": "Decision needed: who checks the reply-to inbox, how often, what gets escalated, what gets logged, and which replies suppress later touches.\n\nConstant Contact tracks sends, opens, clicks, bounces, and unsubscribes; human ",
+      "attachment_url": null,
+      "updated_at": "2026-05-10T09:38:27.498+00:00",
+      "created_at": "2026-05-08T05:38:21.21109+00:00",
+      "archived_at": null,
+      "comments": [
+        {
+          "id": "d3d492e9-b281-4646-9259-ed439c4ca7f0",
+          "author": "Kaelen",
+          "content": "I believe we decided this would be info@thenorthstarhouse.org but I can't currently log in to it",
+          "created_at": "2026-05-08T06:09:00.07821+00:00"
+        },
+        {
+          "id": "53299109-064e-4c9f-a03b-488c559d7b3c",
+          "author": "Haley",
+          "content": "Just fixed this",
+          "created_at": "2026-05-08T16:27:23.67898+00:00"
+        }
+      ]
+    },
+    {
+      "id": "de0c67ae-de3f-4f34-a285-9d55306dc284",
+      "title": "Confirm Constant Contact sender address",
+      "status": "todo",
+      "label": "Decision",
+      "owner": null,
+      "due_date": null,
+      "initiative": {
+        "title": "Membership Email Campaign",
+        "area": "Membership",
+        "status": "active"
+      },
+      "has_notes": true,
+      "notes_preview": "Decide which sender address and display name the membership campaign should use in Constant Contact, including where replies will go. This corresponds to the sender identity / reply handling open decisions in the Members",
+      "attachment_url": null,
+      "updated_at": "2026-05-10T09:38:27.202+00:00",
+      "created_at": "2026-05-05T01:43:28.733616+00:00",
+      "archived_at": null,
+      "comments": []
+    },
+    {
+      "id": "4f1bf813-3560-4f6e-9fad-0f1af40d0876",
+      "title": "Grant Potential: https://www.rd.usda.gov/programs-services/community-facilities/community-facilities-direct-loan-grant-program-11",
+      "status": "todo",
+      "label": "Research",
+      "owner": null,
+      "due_date": null,
+      "initiative": null,
+      "has_notes": true,
+      "notes_preview": "https://www.rd.usda.gov/programs-services/community-facilities/community-facilities-direct-loan-grant-program-11",
+      "attachment_url": null,
+      "updated_at": "2026-05-09T22:17:40.0439+00:00",
+      "created_at": "2026-05-09T22:17:40.0439+00:00",
+      "archived_at": null,
+      "comments": []
+    },
+    {
+      "id": "00ad353c-fd15-4457-8691-3c5668025966",
+      "title": "Build Touch 1 draft campaigns in Constant Contact",
+      "status": "todo",
+      "label": "Technical",
+      "owner": null,
+      "due_date": null,
+      "initiative": {
+        "title": "Membership Email Campaign",
+        "area": "Membership",
+        "status": "active"
+      },
+      "has_notes": true,
+      "notes_preview": "Constant Contact Touch 1 drafts created/staged. Do not schedule or send until sender, audience, and draft review tasks are approved.\nWarm Touch 1: campaign e5b5a45f-9120-4096-9e43-94603582c2c0; activity 7933aa9a-6956-498",
+      "attachment_url": null,
+      "updated_at": "2026-05-06T02:59:07.488+00:00",
+      "created_at": "2026-05-05T04:56:25.408775+00:00",
+      "archived_at": null,
+      "comments": []
+    },
+    {
+      "id": "9e04f555-4f6e-42c6-bf63-1298c893c326",
+      "title": "Confirm membership email audience groups",
+      "status": "todo",
+      "label": "Decision",
+      "owner": null,
+      "due_date": null,
+      "initiative": {
+        "title": "Membership Email Campaign",
+        "area": "Membership",
+        "status": "active"
+      },
+      "has_notes": true,
+      "notes_preview": "Review the Warm, Cold, and Brick Buyers lists before scheduling the first membership email sends. Constant Contact sendability check: source cohorts remain Warm 86, Cold 38, Brick Buyers 30; sendable counts are Warm 85, ",
+      "attachment_url": null,
+      "updated_at": "2026-05-05T03:36:13.398+00:00",
+      "created_at": "2026-05-05T03:25:46.310883+00:00",
+      "archived_at": null,
+      "comments": []
+    },
+    {
+      "id": "8f0d1e1b-5709-40b3-bc73-1fe41561d229",
+      "title": "Historic Blog Posting",
+      "status": "todo",
+      "label": "Blog Post",
+      "owner": null,
+      "due_date": null,
+      "initiative": null,
+      "has_notes": false,
+      "notes_preview": "",
+      "attachment_url": null,
+      "updated_at": "2026-04-26T18:34:36.379282+00:00",
+      "created_at": "2026-04-26T18:34:36.379282+00:00",
+      "archived_at": null,
+      "comments": []
+    }
+  ],
+  "initiatives": [
+    {
+      "id": "a652dbfb-fcab-4e55-8f21-323f01350570",
+      "title": "Membership Email Campaign",
+      "area": "Membership",
+      "status": "active",
+      "created_at": "2026-05-05T02:37:13.296966+00:00",
+      "updated_at": "2026-05-05T02:37:13.296966+00:00"
+    },
+    {
+      "id": "5a88fa72-5052-4450-bd09-85355800bdbe",
+      "title": "Recently Lapsed Member Letter",
+      "area": "Membership",
+      "status": "active",
+      "created_at": "2026-05-05T02:51:53.60661+00:00",
+      "updated_at": "2026-05-05T02:51:53.60661+00:00"
+    },
+    {
+      "id": "20216183-e3bf-42f5-a4ec-5bff03227bc9",
+      "title": "Sponsorship Plan",
+      "area": "Sponsorships",
+      "status": "active",
+      "created_at": "2026-05-07T06:08:05.595+00:00",
+      "updated_at": "2026-05-07T06:08:05.595+00:00"
+    }
+  ],
+  "fund_goals": [
+    {
+      "id": 1,
+      "created_at": "2026-03-21T06:26:21.256013+00:00",
+      "category": "Fund Development",
+      "goal_type": "annual",
+      "title": "Fund Development Plan",
+      "description": "Document the Conservancy's fund development plan (to include grants, donors, memberships, sponsorships, earned revenue, etc.).",
+      "lead": null,
+      "due_date": null,
+      "status": "Not started",
+      "updates": null
+    },
+    {
+      "id": 3,
+      "created_at": "2026-03-21T06:26:21.256013+00:00",
+      "category": "Fund Development",
+      "goal_type": "future",
+      "title": "Capital Campaign Committee",
+      "description": "Establish a capital campaign committee.",
+      "lead": null,
+      "due_date": null,
+      "status": "Not started",
+      "updates": null
+    },
+    {
+      "id": 4,
+      "created_at": "2026-03-21T06:26:21.256013+00:00",
+      "category": "Fund Development",
+      "goal_type": "future",
+      "title": "Capital Campaign Plan",
+      "description": "Create a capital campaign plan, including a case for support, financial goals, and timeline.",
+      "lead": null,
+      "due_date": null,
+      "status": "Not started",
+      "updates": null
+    },
+    {
+      "id": 5,
+      "created_at": "2026-03-21T06:26:21.256013+00:00",
+      "category": "Fund Development",
+      "goal_type": "three_year_vision",
+      "title": "Three-Year Vision",
+      "description": "Established a fully staffed, sustainable fund development operation. Secured $1M to $2M in capital funding to complete planned restoration and access improvements.",
+      "lead": null,
+      "due_date": null,
+      "status": null,
+      "updates": null
+    },
+    {
+      "id": 2,
+      "created_at": "2026-03-21T06:26:21.256013+00:00",
+      "category": "Fund Development",
+      "goal_type": "annual",
+      "title": "Development Director",
+      "description": "Acquire funding to hire and successfully onboard a half-time development director.",
+      "lead": "",
+      "due_date": "2026-04-01",
+      "status": "On track",
+      "updates": "We have hired an independent contractor for a six month period to start with a likelihood to bring on as an official employee when the contract ends."
+    }
+  ]
+}

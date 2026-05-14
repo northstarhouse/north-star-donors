@@ -24,6 +24,30 @@ This file is the canonical local credentials source for North Star work. Relevan
 
 Do not print secret values into chat or logs. It is fine to list key names.
 
+## Linear plugin and local GraphQL fallback
+
+Use the official Codex Linear plugin first for Linear reads and writes.
+
+Use local direct GraphQL only as a fallback when the plugin lacks the needed operation or a concrete plugin operation fails. This fallback is not a general Linear CLI or MCP replacement.
+
+Do not use browser DevTools for Linear unless the user explicitly asks for browser inspection or UI automation.
+
+For Linear API access, load credentials from `C:\Users\ender\.claude\.env`. Accepted local key names may include `LINEAR_API_KEY`, `LINEAR_TOKEN`, or `LIN_API_KEY` if a helper supports them. Do not print, log, paste, or commit secret values.
+
+Before any Linear mutation:
+
+- verify the target with a read-only operation
+- show the exact target, operation, and payload to the user
+- wait for explicit approval
+- run the write only through a helper with an explicit write guard
+- record decisions, commands, and results in a sidecar
+
+Never mutate Linear during documentation, discovery, schema inspection, or payload preview work.
+
+Prefer small, operation-specific GraphQL helper commands over installing or pretending npm Linear CLIs are complete. If a new Linear operation is blocked by the plugin, add one small command to an existing helper or create one new focused helper. Keep reads and writes separate, inspect schema when the mutation shape is uncertain, preview the mutation payload before write, and gate writes behind an explicit environment variable such as `LINEAR_ALLOW_WRITE=YES`.
+
+Historical reference: `C:\Users\ender\Documents\Playground\sidecars\linear-membership.ps1` wraps a narrow Membership Renewal Campaign helper with `verify`, `schema`, `payload`, and `post-update`. It is project-specific reference material, not the active repo CLI.
+
 ## Local drilldown bootstrap
 
 This repo uses `basePath: '/north-star-donors'` in `next.config.ts`.

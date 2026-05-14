@@ -1,0 +1,9 @@
+[
+  {
+    "id": "95349bda-4521-4ed0-9844-80f46d7b245d",
+    "task_id": "813ef1ef-3061-4a71-a380-157b2442f36a",
+    "author": "Kaelen",
+    "content": "TASK: Making info@ able to send emails through Dev Dashboard\n\nI dug into this on May 10 so we could separate what is actually blocked from what is already working.\n\ninfo@ mailbox access is confirmed, and the Resend invite has been accepted. Supabase already has a RESEND_API_KEY secret from May 8, so I would not rotate or replace that key unless later testing proves it is bad.\n\nThe Dev Dashboard send path was tested. I found one app-side issue: the send-email calls were not including Supabase auth headers. I have a local code fix for that now. With those headers in place, the function reaches Resend.\n\nThe current blocker is DNS/domain verification. Resend is rejecting sends because thenorthstarhouse.org is not verified. SPF/MX records are verified, but the IONOS TXT value for resend._domainkey does not match the DKIM value shown in Resend.\n\nAccess is the hard stop. IONOS login routes through admin@thenorthstarhouse.org. That mailbox is currently blocked by Google 2FA to a phone we do not control. Next step is to recover admin mailbox/2FA access, or have the DNS/account owner replace the existing resend._domainkey TXT value, restart Resend verification, and retest sending.\n\n---\nTASK: Define reply monitoring plan for membership emails\n\nI confirmed info@ mailbox access. If info@ is the reply inbox we want to use, we can define reply-monitoring ownership, cadence, and escalation separately from the IONOS/DKIM work.\n\nThe current DNS blocker affects authenticated sending through Resend. It does not block basic inbox access.",
+    "created_at": "2026-05-10T09:48:44.255608+00:00"
+  }
+]
