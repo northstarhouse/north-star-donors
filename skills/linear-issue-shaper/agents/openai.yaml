@@ -1,0 +1,4 @@
+interface:
+  display_name: "Linear Issue Shaper"
+  short_description: "Shape dashboard or rough work into Linear-ready issues."
+  default_prompt: "Use this skill to decide whether a rough task is ready for Linear, identify missing outcome/owner/next action/blocker/done-when/source/scope fields, and draft or classify the issue without creating anything until approved."

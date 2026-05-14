@@ -1,0 +1,7 @@
+interface:
+  display_name: "North Star Linear To Sandbox"
+  short_description: "Bridge Linear issues into sandbox dashboard"
+  default_prompt: "Use $northstar-linear-to-sandbox to sync these Linear issues back into the North Star sandbox dashboard without overloading Haley's PM view."
+
+policy:
+  allow_implicit_invocation: true

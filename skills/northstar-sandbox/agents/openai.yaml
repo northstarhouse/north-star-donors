@@ -1,0 +1,4 @@
+interface:
+  display_name: "North Star Sandbox"
+  short_description: "Start and verify North Star sandbox."
+  default_prompt: "Start or verify the North Star sandbox, confirm it uses mirror Supabase, and check mirror/live diffs when needed."
