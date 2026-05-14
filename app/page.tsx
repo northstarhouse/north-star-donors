@@ -5,6 +5,7 @@ import { LayoutDashboard, Plus, X, Check, Circle, Pencil, ChevronRight, Papercli
 import { supabase } from '@/lib/supabase'
 import { cacheRead, cacheWrite, TTL_SHORT } from '@/lib/cache'
 import Sidebar from '@/components/Sidebar'
+import { taskHref } from '@/lib/taskRoutes'
 
 /* â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Research' | 'Technical' | 'Editing' | 'Decision' | 'Other'
@@ -235,7 +236,7 @@ function TaskRow({
             </div>
           ) : (
             <Link
-              href={`/task?taskId=${task.id}`}
+              href={taskHref(task.id)}
               className="block text-sm text-stone-800 hover:text-amber-700"
             >
               {task.title}
@@ -299,7 +300,7 @@ function TaskRow({
           )}
 
           <Link
-            href={`/task?taskId=${task.id}`}
+            href={taskHref(task.id)}
             onClick={e => e.stopPropagation()}
             title="Open task detail"
             className="p-1 text-stone-300 hover:text-amber-600 hover:bg-amber-50 rounded"

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { FileText, Paperclip, Plus, X, Check, Circle, CalendarDays } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
+import { taskHref } from '@/lib/taskRoutes'
 
 type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Research' | 'Technical' | 'Editing' | 'Decision' | 'Other'
 type TaskStatus = 'todo' | 'in_progress' | 'done'
@@ -401,7 +402,7 @@ function ManualEntry({ entry, onDelete, onUpdate }: {
 function TaskCard({ task }: { task: Task }) {
   return (
     <div className="px-5 py-3.5 border-b border-stone-50 last:border-0">
-      <Link href={`/task?taskId=${task.id}`} className={`block text-sm leading-snug hover:text-amber-700 ${task.status === 'done' ? 'line-through text-stone-400' : 'text-stone-800'}`}>
+      <Link href={taskHref(task.id)} className={`block text-sm leading-snug hover:text-amber-700 ${task.status === 'done' ? 'line-through text-stone-400' : 'text-stone-800'}`}>
         {task.title}
       </Link>
       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
