@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Mail, Copy, Check, ChevronDown, ChevronUp, CalendarDays, X, Plus } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Mail, Copy, Check, ChevronDown, ChevronUp, CalendarDays, X, Plus, Upload } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
@@ -26,6 +26,9 @@ export default function EventEmailsPage() {
 
   const [newRecipName, setNewRecipName] = useState<Record<string, string>>({})
   const [newRecipEmail, setNewRecipEmail] = useState<Record<string, string>>({})
+  const [csvPreview, setCsvPreview] = useState<{ groupId: string; rows: { name: string; email: string }[] } | null>(null)
+  const [importingCsv, setImportingCsv] = useState(false)
+  const csvInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   const [modal, setModal] = useState<EventEmailGroup | null>(null)
   const [subject, setSubject] = useState('')
@@ -70,6 +73,52 @@ export default function EventEmailsPage() {
     const updated = group.recipients.filter((_, i) => i !== idx)
     await supabase.from('event_email_groups').update({ recipients: updated }).eq('id', group.id)
     setGroups(prev => prev.map(g => g.id === group.id ? { ...g, recipients: updated } : g))
+  }
+
+  function parseCsv(text: string): { name: string; email: string }[] {
+    const lines = text.split(/\r?\n/).filter(l => l.trim())
+    if (lines.length < 2) return []
+    const headers = lines[0].split(',').map(h => h.replace(/^"|"$/g, '').trim().toLowerCase())
+    const emailCol = headers.findIndex(h => h === 'email' || h === 'email address' || h === 'e-mail')
+    const firstNameCol = headers.findIndex(h => h === 'first name' || h === 'firstname' || h === 'first')
+    const lastNameCol = headers.findIndex(h => h === 'last name' || h === 'lastname' || h === 'last')
+    const nameCol = headers.findIndex(h => h === 'name' || h === 'full name' || h === 'fullname')
+    if (emailCol === -1) return []
+    return lines.slice(1).flatMap(line => {
+      const cols = line.split(',').map(c => c.replace(/^"|"$/g, '').trim())
+      const email = cols[emailCol] ?? ''
+      if (!email || !email.includes('@')) return []
+      let name = ''
+      if (nameCol !== -1) name = cols[nameCol] ?? ''
+      else if (firstNameCol !== -1 || lastNameCol !== -1)
+        name = [cols[firstNameCol] ?? '', cols[lastNameCol] ?? ''].filter(Boolean).join(' ')
+      return [{ name, email }]
+    })
+  }
+
+  function handleCsvFile(group: EventEmailGroup, file: File) {
+    const reader = new FileReader()
+    reader.onload = e => {
+      const rows = parseCsv(e.target?.result as string)
+      if (rows.length === 0) { alert('No valid email rows found. Make sure the CSV has an "Email" column header.'); return }
+      setCsvPreview({ groupId: group.id, rows })
+    }
+    reader.readAsText(file)
+  }
+
+  async function confirmCsvImport() {
+    if (!csvPreview) return
+    setImportingCsv(true)
+    const group = groups.find(g => g.id === csvPreview.groupId)
+    if (!group) { setImportingCsv(false); return }
+    const existing = new Set(group.recipients.map(r => r.email.toLowerCase()))
+    const newRows = csvPreview.rows.filter(r => !existing.has(r.email.toLowerCase()))
+    const updated = [...group.recipients, ...newRows]
+    await supabase.from('event_email_groups').update({ recipients: updated }).eq('id', group.id)
+    setGroups(prev => prev.map(g => g.id === group.id ? { ...g, recipients: updated } : g))
+    setExpandedGroups(prev => { const n = new Set(prev); n.add(group.id); return n })
+    setCsvPreview(null)
+    setImportingCsv(false)
   }
 
   function copyEmails(group: EventEmailGroup) {
@@ -188,6 +237,17 @@ export default function EventEmailsPage() {
                         </span>
                       </button>
                       <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <input
+                          type="file"
+                          accept=".csv"
+                          ref={el => { csvInputRefs.current[group.id] = el }}
+                          style={{ display: 'none' }}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) handleCsvFile(group, f); e.target.value = '' }}
+                        />
+                        <button onClick={() => csvInputRefs.current[group.id]?.click()}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs border border-stone-200 rounded-lg text-stone-500 hover:bg-stone-50 transition-colors">
+                          <Upload size={11} /> Import CSV
+                        </button>
                         <button onClick={() => copyEmails(group)} disabled={group.recipients.length === 0}
                           className="flex items-center gap-1 px-2.5 py-1.5 text-xs border border-stone-200 rounded-lg text-stone-500 hover:bg-stone-50 disabled:opacity-40 transition-colors">
                           {copied === group.id ? <><Check size={11} className="text-emerald-500" /> Copied</> : <><Copy size={11} /> Copy emails</>}
@@ -247,6 +307,54 @@ export default function EventEmailsPage() {
           )}
         </div>
       </div>
+
+      {/* CSV preview modal */}
+      {csvPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
+              <div>
+                <h2 className="font-semibold text-stone-800 text-sm">Import from CSV</h2>
+                <p className="text-xs text-stone-400 mt-0.5">
+                  {csvPreview.rows.length} row{csvPreview.rows.length !== 1 ? 's' : ''} found
+                  {(() => {
+                    const group = groups.find(g => g.id === csvPreview.groupId)
+                    const existing = new Set(group?.recipients.map(r => r.email.toLowerCase()) ?? [])
+                    const dupes = csvPreview.rows.filter(r => existing.has(r.email.toLowerCase())).length
+                    return dupes > 0 ? ` · ${dupes} duplicate${dupes !== 1 ? 's' : ''} will be skipped` : ''
+                  })()}
+                </p>
+              </div>
+              <button onClick={() => setCsvPreview(null)} className="p-1.5 text-stone-300 hover:text-stone-500 rounded-lg">
+                <X size={15} />
+              </button>
+            </div>
+            <div className="px-5 py-3 max-h-72 overflow-y-auto space-y-1">
+              {csvPreview.rows.map((r, i) => (
+                <div key={i} className="flex items-center gap-3 py-1.5 border-b border-stone-50">
+                  <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-white"
+                    style={{ background: 'var(--gold)' }}>
+                    {(r.name?.[0] ?? r.email[0] ?? '?').toUpperCase()}
+                  </div>
+                  <span className="text-xs font-medium text-stone-700 flex-1 truncate">{r.name || <span className="text-stone-300 italic">No name</span>}</span>
+                  <span className="text-[11px] text-stone-400 truncate max-w-[180px]">{r.email}</span>
+                </div>
+              ))}
+            </div>
+            <div className="px-5 py-4 flex gap-2 border-t border-stone-100">
+              <button onClick={confirmCsvImport} disabled={importingCsv}
+                className="flex-1 py-2 text-white text-sm rounded-lg font-medium disabled:opacity-40"
+                style={goldBtn}>
+                {importingCsv ? 'Importing…' : `Import ${csvPreview.rows.length} recipient${csvPreview.rows.length !== 1 ? 's' : ''}`}
+              </button>
+              <button onClick={() => setCsvPreview(null)} disabled={importingCsv}
+                className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200 disabled:opacity-40">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Send modal */}
       {modal && (
