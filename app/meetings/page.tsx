@@ -35,6 +35,19 @@ const MAY_7_POST_MEETING_BRIEF: MeetingFile = {
   path: '/meeting-briefs/post-meeting-brief-2026-05-07/',
   type: 'notes',
 }
+const MAY_14_DONOR_APP_BRIEF: MeetingFile = {
+  name: 'Donor app development brief - May 14, 2026',
+  path: '/meeting-briefs/donor-app-development-2026-05-14/',
+  type: 'notes',
+}
+const MAY_14_BUILT_IN_MEETING: Meeting = {
+  id: -20260514,
+  meeting_date: '2026-05-14',
+  meeting_time: '10:14',
+  files: [MAY_14_DONOR_APP_BRIEF],
+  suggestions: [],
+  created_at: '2026-05-14T17:14:00.000Z',
+}
 
 function fmtDate(d: string) {
   return new Date(d + 'T12:00:00').toLocaleDateString('en-US', {
@@ -61,7 +74,16 @@ function filesWithBuiltInNotes(meeting: Meeting) {
   if (meeting.meeting_date === '2026-05-07' && !files.some(f => f.type === 'notes')) {
     return [...files, MAY_7_POST_MEETING_BRIEF]
   }
+  if (meeting.meeting_date === '2026-05-14' && !files.some(f => f.type === 'notes')) {
+    return [...files, MAY_14_DONOR_APP_BRIEF]
+  }
   return files
+}
+
+function meetingsWithBuiltIns(meetings: Meeting[]) {
+  if (meetings.some(meeting => meeting.meeting_date === '2026-05-14')) return meetings
+  return [...meetings, MAY_14_BUILT_IN_MEETING]
+    .sort((a, b) => b.meeting_date.localeCompare(a.meeting_date))
 }
 
 export default function MeetingsPage() {
@@ -187,8 +209,9 @@ export default function MeetingsPage() {
   }
 
   const today = new Date().toISOString().slice(0, 10)
-  const upcoming = meetings?.filter(m => m.meeting_date >= today) ?? []
-  const past = meetings?.filter(m => m.meeting_date < today) ?? []
+  const visibleMeetings = meetings ? meetingsWithBuiltIns(meetings) : null
+  const upcoming = visibleMeetings?.filter(m => m.meeting_date >= today) ?? []
+  const past = visibleMeetings?.filter(m => m.meeting_date < today) ?? []
 
   const selectedFiles = selected ? filesWithBuiltInNotes(selected) : []
   const agendaFile = selectedFiles.find(f => f.type === 'agenda') ?? null
@@ -223,9 +246,9 @@ export default function MeetingsPage() {
         <div className="px-8 pb-8 flex gap-5 flex-1 min-h-0">
           {/* Meeting list */}
           <div className="w-64 flex-shrink-0 space-y-1 overflow-y-auto">
-            {meetings === null ? (
+            {visibleMeetings === null ? (
               <p className="text-sm text-stone-400 py-8 text-center">Loading...</p>
-            ) : meetings.length === 0 ? (
+            ) : visibleMeetings.length === 0 ? (
               <p className="text-sm text-stone-400 py-8 text-center">No meetings yet.</p>
             ) : (
               <>
