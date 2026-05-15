@@ -67,4 +67,20 @@ Live schema drift handled:
 
 ## Final Production Chrome Proof
 
-- Pending until GitHub Pages deploy completes.
+- GitHub Pages deployment for commit `e533534` completed successfully in run `25936856584`.
+- Production dashboard hard reload showed the bottom `Production Updates` sidebar link.
+- Production dashboard hard reload showed the promoted visible rows:
+  - `Add production changelog to donor app`
+  - `Design person-focused dashboard view`
+  - `Clean up North Star 2FA and third-party app mailbox ownership`
+  - `Plan postal follow-up workflow after email cohort results`
+  - `Add Constant Contact email analytics to Data section`
+- Production filters now include `Development` as an area and `Development Dashboard` as an initiative.
+- Production `/production-updates/` hard reload showed:
+  - `Production Updates`
+  - `Manual MVP`
+  - `Meeting-notes task batch promoted`
+  - `Production Updates surface added`
+  - `Sponsor tier decision recorded`
+
+Production dashboard counts after the scoped promotion were `To Do 8`, `In Progress 3`, `Done 11`. These do not exactly match sandbox's global counts because live already had unrelated task status/history differences; this promotion intentionally updated only the approved Linear/meeting-notes package rather than overwriting all live tasks.
