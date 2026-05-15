@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { FileText, Paperclip, Plus, X, Check, Circle, CalendarDays } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
-import { taskHref } from '@/lib/taskRoutes'
 
 type TaskLabel = 'Proof Reading' | 'Graphic Design' | 'Grant Writing' | 'Blog Post' | 'Brainstorming' | 'Research' | 'Technical' | 'Editing' | 'Decision' | 'Other'
 type TaskStatus = 'todo' | 'in_progress' | 'done'
@@ -46,6 +45,23 @@ const LABEL_COLORS: Record<TaskLabel, string> = {
   'Other':          'bg-stone-100 text-stone-500 border-stone-200',
 }
 
+const INITIATIVE_COLORS = [
+  'bg-blue-50 text-blue-700 border-blue-200',
+  'bg-teal-50 text-teal-700 border-teal-200',
+  'bg-violet-50 text-violet-700 border-violet-200',
+  'bg-orange-50 text-orange-700 border-orange-200',
+  'bg-rose-50 text-rose-700 border-rose-200',
+  'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
+  'bg-stone-100 text-stone-700 border-stone-200',
+]
+
+function initiativeColor(initiative: { title: string; area: string }) {
+  const seed = `${initiative.area}:${initiative.title}`
+  const index = [...seed].reduce((sum, char) => sum + char.charCodeAt(0), 0) % INITIATIVE_COLORS.length
+  return INITIATIVE_COLORS[index]
+}
+
 const MEMBER_META: Record<string, { display: string; initials: string; accent: string }> = {
   kaelen: { display: 'Kaelen', initials: 'K', accent: '#886c44' },
   haley:  { display: 'Haley',  initials: 'H', accent: '#5a7a8a' },
@@ -59,8 +75,7 @@ export default function TeamMemberClient({ member }: { member: string }) {
   const [addingTo, setAddingTo] = useState<Section | null>(null)
   const [newItem, setNewItem] = useState('')
   const [saving, setSaving] = useState(false)
-  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
-  const [photoError, setPhotoError] = useState(false)
+  const [photoErrorFor, setPhotoErrorFor] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const meta = MEMBER_META[member] ?? {
@@ -69,11 +84,9 @@ export default function TeamMemberClient({ member }: { member: string }) {
     accent: '#886c44',
   }
 
-  useEffect(() => {
-    const { data } = supabase.storage.from('team-photos').getPublicUrl(member)
-    setPhotoUrl(data.publicUrl)
-    setPhotoError(false)
-  }, [member])
+  const { data: photoData } = supabase.storage.from('team-photos').getPublicUrl(member)
+  const photoUrl = photoData.publicUrl
+  const photoError = photoErrorFor === photoUrl
 
   useEffect(() => {
     async function load() {
@@ -154,8 +167,8 @@ export default function TeamMemberClient({ member }: { member: string }) {
                   alt={meta.display}
                   className="absolute inset-0 w-full h-full object-cover"
                   style={{ display: photoError ? 'none' : 'block' }}
-                  onError={() => setPhotoError(true)}
-                  onLoad={() => setPhotoError(false)}
+                  onError={() => setPhotoErrorFor(photoUrl)}
+                  onLoad={() => setPhotoErrorFor(current => current === photoUrl ? null : current)}
                 />
               )}
             </div>
@@ -402,7 +415,7 @@ function ManualEntry({ entry, onDelete, onUpdate }: {
 function TaskCard({ task }: { task: Task }) {
   return (
     <div className="px-5 py-3.5 border-b border-stone-50 last:border-0">
-      <Link href={taskHref(task.id)} className={`block text-sm leading-snug hover:text-amber-700 ${task.status === 'done' ? 'line-through text-stone-400' : 'text-stone-800'}`}>
+      <Link href={`/task?taskId=${task.id}`} className={`block text-sm leading-snug hover:text-amber-700 ${task.status === 'done' ? 'line-through text-stone-400' : 'text-stone-800'}`}>
         {task.title}
       </Link>
       <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -412,7 +425,7 @@ function TaskCard({ task }: { task: Task }) {
           </span>
         )}
         {task.initiative && (
-          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-medium bg-blue-50 text-blue-700 border-blue-100">
+          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-medium ${initiativeColor(task.initiative)}`}>
             <FileText size={9} />{task.initiative.title}
           </span>
         )}

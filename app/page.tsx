@@ -54,9 +54,29 @@ const AREA_COLORS: Record<string, string> = {
   Membership: 'bg-amber-50 text-amber-700 border-amber-200',
   Donors: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   Sponsorships: 'bg-rose-50 text-rose-700 border-rose-200',
-  Grants: 'bg-sky-50 text-sky-700 border-sky-200',
+  Grants: 'bg-lime-50 text-lime-700 border-lime-200',
   'Earned Revenue': 'bg-violet-50 text-violet-700 border-violet-200',
-  'Infrastructure / Systems': 'bg-slate-100 text-slate-700 border-slate-200',
+  'Infrastructure / Systems': 'bg-cyan-50 text-cyan-700 border-cyan-200',
+  Development: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
+}
+
+const INITIATIVE_COLORS = [
+  'bg-blue-50 text-blue-700 border-blue-200',
+  'bg-teal-50 text-teal-700 border-teal-200',
+  'bg-violet-50 text-violet-700 border-violet-200',
+  'bg-orange-50 text-orange-700 border-orange-200',
+  'bg-rose-50 text-rose-700 border-rose-200',
+  'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
+  'bg-stone-100 text-stone-700 border-stone-200',
+]
+
+function colorIndex(seed: string) {
+  return [...seed].reduce((sum, char) => sum + char.charCodeAt(0), 0) % INITIATIVE_COLORS.length
+}
+
+function initiativeColor(initiative: Pick<Initiative, 'title' | 'area'>) {
+  return INITIATIVE_COLORS[colorIndex(`${initiative.area}:${initiative.title}`)]
 }
 
 const STATUS_CYCLE: Record<TaskStatus, TaskStatus> = { todo: 'in_progress', in_progress: 'done', done: 'todo' }
@@ -250,7 +270,7 @@ function TaskRow({
                 <span className={`inline-flex px-1.5 py-0.5 rounded border text-[10px] font-semibold ${AREA_COLORS[task.initiative.area] ?? 'bg-stone-100 text-stone-600 border-stone-200'}`}>
                   {task.initiative.area}
                 </span>
-                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-medium bg-blue-50 text-blue-700 border-blue-100">
+                <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border text-[10px] font-medium ${initiativeColor(task.initiative)}`}>
                   <FileText size={9} />{task.initiative.title}
                 </span>
               </>
@@ -996,12 +1016,12 @@ export default function Dashboard() {
                                                       onClick={() => selectInitiative(initiative)}
                                                       className={`w-full rounded border px-1.5 py-1 text-left transition-colors ${
                                                         filterInitiative === initiative.id
-                                                          ? 'border-blue-200 bg-blue-100'
-                                                          : 'border-blue-100 bg-blue-50 hover:border-blue-200'
+                                                          ? initiativeColor(initiative)
+                                                          : `${initiativeColor(initiative)} opacity-75 hover:opacity-100`
                                                       }`}
                                                     >
-                                                      <p className="truncate text-[10px] font-semibold text-blue-800">{initiative.title}</p>
-                                                      <p className="mt-0.5 text-[9px] font-medium text-blue-600">{countText(counts)}</p>
+                                                      <p className="truncate text-[10px] font-semibold">{initiative.title}</p>
+                                                      <p className="mt-0.5 text-[9px] font-medium opacity-75">{countText(counts)}</p>
                                                     </button>
                                                   )
                                                 })}

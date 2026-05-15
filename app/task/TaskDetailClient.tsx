@@ -46,6 +46,23 @@ const LABEL_COLORS: Record<TaskLabel, string> = {
   'Other':          'bg-stone-100 text-stone-500 border-stone-200',
 }
 
+const INITIATIVE_COLORS = [
+  'bg-blue-50 text-blue-700 border-blue-200',
+  'bg-teal-50 text-teal-700 border-teal-200',
+  'bg-violet-50 text-violet-700 border-violet-200',
+  'bg-orange-50 text-orange-700 border-orange-200',
+  'bg-rose-50 text-rose-700 border-rose-200',
+  'bg-emerald-50 text-emerald-700 border-emerald-200',
+  'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200',
+  'bg-stone-100 text-stone-700 border-stone-200',
+]
+
+function initiativeColor(initiative: { title: string; area: string }) {
+  const seed = `${initiative.area}:${initiative.title}`
+  const index = [...seed].reduce((sum, char) => sum + char.charCodeAt(0), 0) % INITIATIVE_COLORS.length
+  return INITIATIVE_COLORS[index]
+}
+
 const STATUS_LABELS: Record<TaskStatus, string> = {
   todo: 'To Do',
   in_progress: 'In Progress',
@@ -206,7 +223,7 @@ export default function TaskDetailClient({ taskId }: { taskId: string }) {
                         </span>
                       )}
                       {task.initiative && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] font-medium bg-blue-50 text-blue-700 border-blue-100">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded border text-[11px] font-medium ${initiativeColor(task.initiative)}`}>
                           <FileText size={10} />{task.initiative.title}
                         </span>
                       )}

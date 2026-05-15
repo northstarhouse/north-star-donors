@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { LayoutDashboard, Heart, List, Award, Megaphone, Lightbulb, BarChart2, CalendarDays, Ellipsis, ChevronRight, Users, ClipboardList } from 'lucide-react'
+import { useState } from 'react'
+import { LayoutDashboard, Heart, List, Award, Megaphone, Lightbulb, BarChart2, CalendarDays, Ellipsis, ChevronRight, Users, ClipboardList, LayoutList } from 'lucide-react'
 
 function CoordIcon({ size = 15, strokeWidth = 1.75 }: { size?: number; strokeWidth?: number }) {
   return (
@@ -30,7 +30,6 @@ const MORE_NAV = [
   { id: 'lists', label: 'Lists', icon: List, href: '/lists/' },
   { id: 'gifts', label: 'Gift Log', icon: Heart, href: '/gifts/' },
   { id: 'volunteers', label: 'Volunteer Emails', icon: Users, href: '/volunteers/' },
-  { id: 'event-emails', label: 'Event Emails', icon: Users, href: '/event-emails/' },
 ] as const
 
 const ASSET_BASE = process.env.NODE_ENV === 'production' ? '/north-star-donors' : ''
@@ -75,22 +74,19 @@ function NavLink({
 }
 
 export default function Sidebar({ activePage }: Props) {
-  const [moreOpen, setMoreOpen] = useState(activePage === 'lists' || activePage === 'gifts' || activePage === 'event-emails')
+  const [moreOpen, setMoreOpen] = useState(activePage === 'lists' || activePage === 'gifts')
 
-  useEffect(() => {
-    if (activePage === 'lists' || activePage === 'gifts' || activePage === 'event-emails') setMoreOpen(true)
-  }, [activePage])
-
-  const moreActive = activePage === 'lists' || activePage === 'gifts' || activePage === 'volunteers' || activePage === 'event-emails'
+  const moreActive = activePage === 'lists' || activePage === 'gifts' || activePage === 'volunteers'
+  const updatesActive = activePage === 'production-updates'
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', flexShrink: 0 }}>
-      <aside style={{ width: 220, background: '#2a2a2e', minHeight: '100vh', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+      <aside style={{ width: 220, background: '#2a2a2e', height: '100vh', position: 'sticky', top: 0, flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px 20px 14px' }}>
           <img src={`${ASSET_BASE}/assets/logo.png`} alt="North Star House" style={{ width: 195 }} />
         </div>
         <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)' }} />
-        <nav style={{ flex: 1, padding: '8px 8px 0' }}>
+        <nav style={{ flex: 1, minHeight: 0, padding: '8px 8px 0' }}>
           {MAIN_NAV.map(({ id, label, icon: Icon, href }) => (
             <NavLink key={id} href={href} label={label} active={activePage === id}>
               <Icon size={15} strokeWidth={1.75} />
@@ -123,6 +119,13 @@ export default function Sidebar({ activePage }: Props) {
             <ChevronRight size={14} strokeWidth={1.75} style={{ transform: moreOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
           </button>
         </nav>
+        <div style={{ padding: '0 8px 16px' }}>
+          <div style={{ borderTop: '0.5px solid rgba(255,255,255,0.08)', marginBottom: 8 }} />
+          <NavLink href="/production-updates/" label="Production Updates" active={updatesActive}>
+            <LayoutList size={15} strokeWidth={1.75} />
+            Production Updates
+          </NavLink>
+        </div>
       </aside>
 
       {moreOpen && (
