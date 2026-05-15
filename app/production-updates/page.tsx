@@ -35,6 +35,20 @@ const UPDATES: ProductionUpdateDay[] = [
     label: 'Today',
     items: [
       {
+        id: 'linear-followup-sandbox-batch',
+        time: '3:45 PM',
+        category: 'Tasks',
+        title: 'Second meeting-notes triage batch promoted',
+        summary: 'The remaining May 14 follow-up issues were moved from Linear through sandbox into the dashboard.',
+        details: [
+          'Added printer sponsorship, legacy giving, archive/delete, sponsor classification, and campaign-to-donor record rule tasks.',
+          'Updated grants to point toward a first-class Grants dashboard surface.',
+          'Marked the Touch 1 Constant Contact draft task done and folded Touch 1 monitoring into the existing reply-monitoring task.',
+          'Marked the production changelog MVP done; automatic row-level audit logging remains future work.',
+        ],
+        href: '/task/?taskId=354ec910-8afa-4000-9f6e-eeb32c06044b',
+      },
+      {
         id: 'sandbox-task-batch',
         time: '11:31 AM',
         category: 'Tasks',
