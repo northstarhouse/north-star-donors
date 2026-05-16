@@ -52,3 +52,17 @@ Production before promotion showed:
 
 - No Supabase data rows were promoted for this feature; the data is a static public snapshot.
 - Renewal attribution remains optional future enrichment and was not promoted.
+
+## Final Production Proof
+
+After pushing commit `1ee6c7f` to `upstream/master`, GitHub Pages run `25950143254` completed successfully.
+
+Production hard reload at `https://northstarhouse.github.io/north-star-donors/data/` showed:
+
+- `Orders` tab still present.
+- `Email Results` opens `Membership Email Performance`.
+- KPIs: Sent `143`, Opened `48`, Clicked `2`, Bounced `3`, Unsubscribed `0`.
+- Warm Touch 1 selected with `81` visible recipients.
+- Filters visible: All `81`, Clicked `1`, Opened `27`, Not opened `52`, Bounced `1`, Opted out `0`.
+- Recipient table visible with columns Person, Engagement, Last activity, Clicked link.
+- Clicked link rendered for the clicked recipient as `https://www.northstarhouse.org/donate`.
