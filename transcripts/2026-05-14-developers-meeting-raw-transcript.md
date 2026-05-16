@@ -1,12 +1,12 @@
 ---
 type: "raw-transcript"
 date: "2026-05-14"
-slug: "raw-donor-app-development-transcript"
+slug: "developers-meeting-raw-transcript"
 source: "/Users/ender/.codex/sessions/2026/05/14/rollout-2026-05-14T16-56-39-019e28eb-c299-7dc2-aa4a-f53e460b79c2.jsonl"
 created: "2026-05-15"
 ---
 
-# Raw Donor App Development Transcript - May 14, 2026
+# May 14 Developers Meeting Raw Transcript
 
 > Raw transcript recovered from the local Codex session log. This is intentionally messy and unedited.
 
