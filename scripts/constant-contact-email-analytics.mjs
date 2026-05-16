@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '..')
-const ENV_PATH = process.env.ENV_PATH || '/Users/ender/.claude/.env'
+const ENV_PATH = process.env.ENV_PATH || path.join(os.homedir(), '.claude', '.env')
 const OUT_PATH = path.join(ROOT, 'public/data/constant-contact-email-analytics.json')
 const API_BASE = 'https://api.cc.email/v3'
 const TOKEN_URL = 'https://authz.constantcontact.com/oauth2/default/v1/token'

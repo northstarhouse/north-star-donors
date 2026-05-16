@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-16T01:14:45.783Z",
+  "generated_at": "2026-05-16T02:30:26.940Z",
   "source": "Constant Contact API v3",
   "campaigns": [
     {
@@ -20,14 +20,14 @@
         "em_clicks_all_other": 0,
         "em_clicks_all_none": 0,
         "em_forwards": 0,
-        "em_not_opened": 52,
-        "em_opens": 28,
-        "em_opens_all": 33,
+        "em_not_opened": 48,
+        "em_opens": 32,
+        "em_opens_all": 39,
         "em_opens_all_computer": 4,
         "em_opens_all_mobile": 0,
         "em_opens_all_tablet": 0,
-        "em_opens_all_other": 11,
-        "em_opens_all_none": 18,
+        "em_opens_all_other": 14,
+        "em_opens_all_none": 21,
         "em_optouts": 0,
         "em_sends": 81,
         "em_abuse": 0,
@@ -103,13 +103,13 @@
           "first_name": "Cheryl",
           "last_name": "Belcher",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": null,
+          "opened_at": "2026-05-16T01:40:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
           "bounced_at": null,
           "opted_out_at": null,
-          "engagement_status": "Sent, not opened"
+          "engagement_status": "Opened"
         },
         {
           "contact_id": "6e59b41a-824c-11e9-a86f-d4ae52754055",
@@ -201,13 +201,13 @@
           "first_name": "Susan",
           "last_name": "Clarabut",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": null,
+          "opened_at": "2026-05-16T01:57:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
           "bounced_at": null,
           "opted_out_at": null,
-          "engagement_status": "Sent, not opened"
+          "engagement_status": "Opened"
         },
         {
           "contact_id": "97a7a61c-cf93-11ee-a5af-fa163e22e13c",
@@ -257,13 +257,13 @@
           "first_name": "Shirley",
           "last_name": "Dickard",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": null,
+          "opened_at": "2026-05-16T01:48:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
           "bounced_at": null,
           "opted_out_at": null,
-          "engagement_status": "Sent, not opened"
+          "engagement_status": "Opened"
         },
         {
           "contact_id": "6e5f29ae-824c-11e9-a86f-d4ae52754055",
@@ -537,13 +537,13 @@
           "first_name": "Judith",
           "last_name": "Immel Hutting",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": null,
+          "opened_at": "2026-05-16T01:55:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
           "bounced_at": null,
           "opted_out_at": null,
-          "engagement_status": "Sent, not opened"
+          "engagement_status": "Opened"
         },
         {
           "contact_id": "3cbda80a-42f2-11ea-98b0-d4ae52753a3b",
@@ -635,7 +635,7 @@
           "first_name": "Patrick",
           "last_name": "Leonhardt",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": "2026-05-15T22:04:00.000Z",
+          "opened_at": "2026-05-16T02:00:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
@@ -719,7 +719,7 @@
           "first_name": "Carole",
           "last_name": "Miller",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": "2026-05-15T22:47:00.000Z",
+          "opened_at": "2026-05-16T01:40:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
@@ -1195,14 +1195,14 @@
         "em_clicks_all_other": 0,
         "em_clicks_all_none": 0,
         "em_forwards": 0,
-        "em_not_opened": 23,
-        "em_opens": 11,
-        "em_opens_all": 13,
+        "em_not_opened": 20,
+        "em_opens": 14,
+        "em_opens_all": 16,
         "em_opens_all_computer": 0,
         "em_opens_all_mobile": 0,
         "em_opens_all_tablet": 0,
-        "em_opens_all_other": 4,
-        "em_opens_all_none": 9,
+        "em_opens_all_other": 5,
+        "em_opens_all_none": 11,
         "em_optouts": 0,
         "em_sends": 36,
         "em_abuse": 0,
@@ -1334,13 +1334,13 @@
           "first_name": "Ian",
           "last_name": "Carrus",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": null,
+          "opened_at": "2026-05-16T01:52:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
           "bounced_at": null,
           "opted_out_at": null,
-          "engagement_status": "Sent, not opened"
+          "engagement_status": "Opened"
         },
         {
           "contact_id": "3cb6ca6c-42f2-11ea-98b0-d4ae52753a3b",
@@ -1390,13 +1390,13 @@
           "first_name": "Susan",
           "last_name": "Crum",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": null,
+          "opened_at": "2026-05-16T02:24:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
           "bounced_at": null,
           "opted_out_at": null,
-          "engagement_status": "Sent, not opened"
+          "engagement_status": "Opened"
         },
         {
           "contact_id": "e66d6106-3e64-11eb-bbb7-fa163e1233be",
@@ -1446,13 +1446,13 @@
           "first_name": "Ann",
           "last_name": "Hendricks",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": null,
+          "opened_at": "2026-05-16T01:20:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
           "bounced_at": null,
           "opted_out_at": null,
-          "engagement_status": "Sent, not opened"
+          "engagement_status": "Opened"
         },
         {
           "contact_id": "ba85f360-8253-11e9-a1ed-d4ae52753a3b",
@@ -1740,14 +1740,14 @@
         "em_clicks_all_other": 0,
         "em_clicks_all_none": 0,
         "em_forwards": 0,
-        "em_not_opened": 17,
-        "em_opens": 9,
-        "em_opens_all": 14,
+        "em_not_opened": 16,
+        "em_opens": 10,
+        "em_opens_all": 15,
         "em_opens_all_computer": 5,
         "em_opens_all_mobile": 0,
         "em_opens_all_tablet": 0,
         "em_opens_all_other": 4,
-        "em_opens_all_none": 5,
+        "em_opens_all_none": 6,
         "em_optouts": 0,
         "em_sends": 26,
         "em_abuse": 0,
@@ -1837,13 +1837,13 @@
           "first_name": "Carl",
           "last_name": "Claybaugh",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": null,
+          "opened_at": "2026-05-16T01:35:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
           "bounced_at": null,
           "opted_out_at": null,
-          "engagement_status": "Sent, not opened"
+          "engagement_status": "Opened"
         },
         {
           "contact_id": "f18ca182-eedd-11ee-891c-fa163eed61c9",
@@ -1851,13 +1851,13 @@
           "first_name": "Heather",
           "last_name": "Co",
           "sent_at": "2026-05-15T22:03:00.000Z",
-          "opened_at": null,
+          "opened_at": "2026-05-16T02:08:00.000Z",
           "clicked_at": null,
           "click_count": 0,
           "last_click_url": null,
           "bounced_at": null,
           "opted_out_at": null,
-          "engagement_status": "Sent, not opened"
+          "engagement_status": "Opened"
         },
         {
           "contact_id": "3cb6f3b6-42f2-11ea-98b0-d4ae52753a3b",
