@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "import": "ts-node --project tsconfig.scripts.json -r dotenv/config scripts/import-donors.ts"
+    "import": "ts-node --project tsconfig.scripts.json -r dotenv/config scripts/import-donors.ts",
+    "sync:constant-contact": "node scripts/constant-contact-email-analytics.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.2",

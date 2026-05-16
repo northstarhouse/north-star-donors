@@ -1,6 +1,6 @@
 ﻿'use client'
 import { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
-import { BarChart2, Plus, X, Pencil, Trash2, Mail, Check, ChevronDown } from 'lucide-react'
+import { BarChart2, Check, CheckCircle2, ChevronDown, Mail, MailOpen, MousePointerClick, Plus, RotateCcw, Search, ShieldAlert, UserX, X, Pencil, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import Sidebar from '@/components/Sidebar'
 
@@ -15,6 +15,8 @@ const WIX_URL = 'https://script.google.com/macros/s/AKfycbzY3c6_xF2ucrZrQnZLa1bc
 const WIX_CLIENT_ID = '46191fb3-0113-44a7-9bd2-031200714fea'
 const HONEYBOOK_CACHE_KEY = 'north-star-donors:honeybook:v1'
 const HONEYBOOK_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7
+const BASE_PATH = '/north-star-donors'
+const CONSTANT_CONTACT_ANALYTICS_URL = `${BASE_PATH}/data/constant-contact-email-analytics.json`
 
 /* â”€â”€ Cache helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 const TTL_SCRIPT = 1000 * 60 * 30   // 30 min â€” Apps Script (slow external calls)
@@ -52,6 +54,7 @@ const CK = {
   orders:    'north-star-donors:orders:v1',
   analytics: 'north-star-donors:analytics:v1',
   feedback: 'north-star-donors:feedback:v1',
+  constantContactEmail: 'north-star-donors:constant-contact-email:v1',
 }
 
 
@@ -81,10 +84,27 @@ interface WixSubmission {
   internal_notes?: string | null
   fields: Record<string, string>
 }
-interface EmailEntry {
-  id: string; campaign_name: string; date: string | null; platform: string | null
-  sent: number | null; opened: number | null; clicked: number | null
-  unsubscribed: number | null; notes: string | null; created_at: string
+type ConstantContactEngagementStatus = 'Bounced' | 'Opted out' | 'Clicked' | 'Opened' | 'Sent, not opened'
+type ConstantContactRecipientFilter = 'All' | 'Clicked' | 'Opened' | 'Not opened' | 'Bounced' | 'Opted out'
+interface ConstantContactRecipient {
+  contact_id: string | null; email: string; first_name: string | null; last_name: string | null
+  sent_at: string | null; opened_at: string | null; clicked_at: string | null
+  click_count: number; last_click_url: string | null
+  bounced_at: string | null; opted_out_at: string | null
+  engagement_status: ConstantContactEngagementStatus
+}
+interface ConstantContactCampaign {
+  campaign_id: string; name: string; current_status: string
+  created_at: string | null; updated_at: string | null
+  activity_id: string; activity_role: string
+  stats: Record<string, number | null>
+  last_refresh_date: string | null
+  recipients?: ConstantContactRecipient[]
+}
+interface ConstantContactEmailReport {
+  generated_at: string
+  source: string
+  campaigns: ConstantContactCampaign[]
 }
 interface SocialEntry {
   id: string; platform: string; date: string | null; content: string | null
@@ -152,7 +172,6 @@ const inputCls = "w-full border border-stone-200 rounded-lg px-3 py-2 text-sm fo
 const goldBtn = { background: 'var(--gold)' }
 const fmt$ = (n: number) => n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 const fmtDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-const pct = (a: number | null, b: number | null) => (a && b && b > 0) ? `${Math.round((a / b) * 100)}%` : '-'
 
 let wixBundlePromise: Promise<WixBundle> | null = null
 
@@ -1030,176 +1049,241 @@ function FormsSection() {
 /* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    EMAIL SECTION
 â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
-const EMAIL_EMPTY = { campaign_name: '', date: '', platform: '', sent: '', opened: '', clicked: '', unsubscribed: '', notes: '' }
+function ccStat(campaign: ConstantContactCampaign, key: string) {
+  return campaign.stats?.[key] ?? 0
+}
 
-function EmailSection() {
-  const [rows, setRows] = useState<EmailEntry[] | null>(null)
-  const [selected, setSelected] = useState<EmailEntry | null>(null)
-  const [showAdd, setShowAdd] = useState(false)
-  const [form, setForm] = useState(EMAIL_EMPTY)
-  const [saving, setSaving] = useState(false)
-  const [editing, setEditing] = useState(false)
-  type EditEmailForm = Omit<Partial<EmailEntry>, 'sent' | 'opened' | 'clicked' | 'unsubscribed'> & { sent?: string; opened?: string; clicked?: string; unsubscribed?: string }
-  const [editForm, setEditForm] = useState<EditEmailForm>({})
-  const [editSaving, setEditSaving] = useState(false)
+function ccRate(numerator: number, denominator: number) {
+  if (!denominator) return '-'
+  return `${Math.round((numerator / denominator) * 100)}%`
+}
+
+function countStatus(recipients: ConstantContactRecipient[], status: ConstantContactEngagementStatus) {
+  return recipients.filter(recipient => recipient.engagement_status === status).length
+}
+
+function ConstantContactEmailAnalytics() {
+  const [report, setReport] = useState<ConstantContactEmailReport | null>(() => cacheRead<ConstantContactEmailReport>(CK.constantContactEmail))
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [recipientFilter, setRecipientFilter] = useState<ConstantContactRecipientFilter>('All')
+  const [recipientQuery, setRecipientQuery] = useState('')
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const cached = cacheRead<EmailEntry[]>(CK.email)
-    if (cached) setRows(cached)
-    supabase.from('data_email').select('*').order('date', { ascending: false })
-      .then(({ data }) => { if (data) { setRows(data as EmailEntry[]); cacheWrite(CK.email, data, TTL_DB) } })
+    const cached = cacheRead<ConstantContactEmailReport>(CK.constantContactEmail)
+
+    fetch(CONSTANT_CONTACT_ANALYTICS_URL, { cache: 'no-store' })
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json()
+      })
+      .then((json: ConstantContactEmailReport) => {
+        setReport(json)
+        setSelectedId(prev => prev ?? json.campaigns[0]?.activity_id ?? null)
+        cacheWrite(CK.constantContactEmail, json, TTL_DB)
+      })
+      .catch(e => {
+        if (!cached) setError(String(e))
+      })
   }, [])
 
-  const num = (s: string) => s ? parseInt(s) : null
-
-  async function submit(e: React.FormEvent) {
-    e.preventDefault(); if (!form.campaign_name) return
-    setSaving(true)
-    const { data } = await supabase.from('data_email').insert({
-      campaign_name: form.campaign_name.trim(), date: form.date || null, platform: form.platform.trim() || null,
-      sent: num(form.sent), opened: num(form.opened), clicked: num(form.clicked),
-      unsubscribed: num(form.unsubscribed), notes: form.notes.trim() || null,
-    }).select().single()
-    if (data) { setRows(prev => [data as EmailEntry, ...(prev ?? [])]); setSelected(data as EmailEntry) }
-    setForm(EMAIL_EMPTY); setShowAdd(false); setSaving(false)
+  if (!report && !error) return <div className="text-center py-10 text-stone-400 text-sm">Loading Constant Contact...</div>
+  if (!report || report.campaigns.length === 0) {
+    return (
+      <div className="bg-white border border-stone-300 shadow-sm flex flex-col items-center justify-center py-10 gap-2 text-stone-400">
+        <p className="text-sm">No Constant Contact analytics snapshot yet.</p>
+        <p className="text-xs text-center max-w-sm">Run scripts/constant-contact-email-analytics.mjs to refresh the local snapshot.</p>
+      </div>
+    )
   }
 
-  async function saveEdit() {
-    if (!selected) return; setEditSaving(true)
-    const { data } = await supabase.from('data_email').update({
-      campaign_name: editForm.campaign_name, date: editForm.date || null, platform: editForm.platform || null,
-      sent: editForm.sent ? parseInt(editForm.sent) : null, opened: editForm.opened ? parseInt(editForm.opened) : null,
-      clicked: editForm.clicked ? parseInt(editForm.clicked) : null, unsubscribed: editForm.unsubscribed ? parseInt(editForm.unsubscribed) : null,
-      notes: editForm.notes || null,
-    }).eq('id', selected.id).select().single()
-    if (data) { const u = data as EmailEntry; setSelected(u); setRows(prev => prev?.map(r => r.id === selected.id ? u : r) ?? null) }
-    setEditing(false); setEditSaving(false)
+  const campaigns = [...report.campaigns].sort((a, b) => (b.updated_at ?? '').localeCompare(a.updated_at ?? ''))
+  const selected = campaigns.find(campaign => campaign.activity_id === selectedId) ?? campaigns[0] ?? null
+  const recipients = selected?.recipients ?? []
+  const totals = campaigns.reduce((acc, campaign) => {
+    acc.sent += ccStat(campaign, 'em_sends')
+    acc.opens += ccStat(campaign, 'em_opens')
+    acc.clicks += ccStat(campaign, 'em_clicks')
+    acc.bounces += ccStat(campaign, 'em_bounces')
+    acc.optouts += ccStat(campaign, 'em_optouts')
+    return acc
+  }, { sent: 0, opens: 0, clicks: 0, bounces: 0, optouts: 0 })
+  const delivered = Math.max(totals.sent - totals.bounces, 0)
+  const fmtStamp = (ts: string | null) => ts ? new Date(ts).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-'
+  const prettyName = (name: string) => name.replace(/\s+-\s+Draft$/i, '')
+  const recipientFilters: ConstantContactRecipientFilter[] = ['All', 'Clicked', 'Opened', 'Not opened', 'Bounced', 'Opted out']
+  const statusBadge: Record<ConstantContactEngagementStatus, string> = {
+    Bounced: 'bg-red-100 text-red-800 border-red-200',
+    'Opted out': 'bg-stone-200 text-stone-800 border-stone-300',
+    Clicked: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    Opened: 'bg-blue-100 text-blue-800 border-blue-200',
+    'Sent, not opened': 'bg-amber-100 text-amber-800 border-amber-200',
   }
-
-  async function del(id: string) {
-    if (!confirm('Delete this entry?')) return
-    await supabase.from('data_email').delete().eq('id', id)
-    setRows(prev => prev?.filter(r => r.id !== id) ?? null)
-    if (selected?.id === id) setSelected(null)
-  }
+  const statusIcons = {
+    All: Mail,
+    Clicked: MousePointerClick,
+    Opened: MailOpen,
+    'Not opened': Mail,
+    Bounced: ShieldAlert,
+    'Opted out': UserX,
+  } satisfies Record<ConstantContactRecipientFilter, typeof Mail>
+  const recipientName = (recipient: ConstantContactRecipient) =>
+    [recipient.first_name, recipient.last_name].filter(Boolean).join(' ') || recipient.email
+  const recipientLastActivity = (recipient: ConstantContactRecipient) =>
+    recipient.opted_out_at || recipient.bounced_at || recipient.clicked_at || recipient.opened_at || recipient.sent_at
+  const visibleRecipients = recipients.filter(recipient => {
+    const matchesFilter = recipientFilter === 'All'
+      || (recipientFilter === 'Not opened' ? recipient.engagement_status === 'Sent, not opened' : recipient.engagement_status === recipientFilter)
+    const haystack = `${recipientName(recipient)} ${recipient.email} ${recipient.last_click_url ?? ''}`.toLowerCase()
+    return matchesFilter && haystack.includes(recipientQuery.trim().toLowerCase())
+  })
 
   return (
-    <div>
-      <div className="flex justify-end mb-4">
-        <button onClick={() => { setForm(EMAIL_EMPTY); setShowAdd(true) }}
-          className="flex items-center gap-2 px-4 py-2 text-white text-sm rounded-xl font-medium shadow-sm" style={goldBtn}>
-          <Plus size={15} /> Add Campaign
-        </button>
+    <div className="space-y-5">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--gold)' }}>Constant Contact</p>
+          <h2 className="text-base font-semibold text-stone-800">Membership Email Performance</h2>
+          <p className="text-xs text-stone-400 mt-1">Snapshot refreshed {fmtStamp(report.generated_at)} from {report.source}.</p>
+        </div>
+        {error && <p className="text-xs text-red-500 max-w-xs text-right">Showing cached data. Refresh failed: {error}</p>}
       </div>
-      {showAdd && (
-        <div className="bg-white rounded-xl border border-stone-200 shadow-sm p-5 mb-5">
-          <h3 className="text-sm font-semibold text-stone-700 mb-3">New Email Campaign</h3>
-          <form onSubmit={submit} className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2"><label className="text-xs text-stone-400 mb-1 block">Campaign Name *</label>
-                <input required className={inputCls} value={form.campaign_name} onChange={e => setForm(f => ({ ...f, campaign_name: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Date</label>
-                <input type="date" className={inputCls} value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Platform</label>
-                <input className={inputCls} placeholder="e.g. Mailchimp, Constant Contact" value={form.platform} onChange={e => setForm(f => ({ ...f, platform: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Sent</label>
-                <input type="number" className={inputCls} value={form.sent} onChange={e => setForm(f => ({ ...f, sent: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Opened</label>
-                <input type="number" className={inputCls} value={form.opened} onChange={e => setForm(f => ({ ...f, opened: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Clicked</label>
-                <input type="number" className={inputCls} value={form.clicked} onChange={e => setForm(f => ({ ...f, clicked: e.target.value }))} /></div>
-              <div><label className="text-xs text-stone-400 mb-1 block">Unsubscribed</label>
-                <input type="number" className={inputCls} value={form.unsubscribed} onChange={e => setForm(f => ({ ...f, unsubscribed: e.target.value }))} /></div>
-            </div>
-            <div><label className="text-xs text-stone-400 mb-1 block">Notes</label>
-              <textarea className={inputCls + ' resize-none'} rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></div>
-            <div className="flex gap-2">
-              <button type="submit" disabled={saving || !form.campaign_name} className="px-4 py-1.5 text-white text-sm rounded-lg disabled:opacity-40 font-medium" style={goldBtn}>{saving ? 'Saving...' : 'Add'}</button>
-              <button type="button" onClick={() => setShowAdd(false)} className="px-4 py-1.5 bg-stone-100 text-stone-600 text-sm rounded-lg hover:bg-stone-200">Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
-      {rows === null ? <div className="text-center py-16 text-stone-400 text-sm">Loading...</div> : (
-        <div className={`grid gap-5 ${selected ? 'grid-cols-[1fr_360px]' : 'grid-cols-1'}`}>
-          <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
-            {rows.length === 0 ? <div className="text-center py-16 text-stone-400 text-sm">No campaigns logged yet.</div> : (
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-stone-100">
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-left">Campaign</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Sent</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Open Rate</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Click Rate</th>
-                  <th className="px-4 py-3 text-xs font-semibold text-stone-400 uppercase tracking-wider text-right">Date</th>
-                </tr></thead>
-                <tbody>{rows.map(r => (
-                  <tr key={r.id} onClick={() => { setSelected(prev => prev?.id === r.id ? null : r); setEditing(false) }}
-                    className={`border-b border-stone-100 cursor-pointer transition-colors ${selected?.id === r.id ? 'bg-amber-50/80' : 'hover:bg-stone-50'}`}>
-                    <td className="px-4 py-3 font-medium text-stone-800">{r.campaign_name}
-                      {r.platform && <span className="ml-2 text-xs text-stone-400">{r.platform}</span>}</td>
-                    <td className="px-4 py-3 text-right text-stone-600">{r.sent?.toLocaleString() ?? <span className="text-stone-300">-</span>}</td>
-                    <td className="px-4 py-3 text-right font-medium text-stone-700">{pct(r.opened, r.sent)}</td>
-                    <td className="px-4 py-3 text-right text-stone-600">{pct(r.clicked, r.sent)}</td>
-                    <td className="px-4 py-3 text-right text-stone-400 text-xs">{r.date ? fmtDate(r.date) : '-'}</td>
-                  </tr>
-                ))}</tbody>
-              </table>
-            )}
-            <div className="px-4 py-2.5 text-xs text-stone-400 border-t border-stone-100">{rows.length} campaign{rows.length !== 1 ? 's' : ''}</div>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {([
+          { label: 'Sent', value: totals.sent.toLocaleString(), sub: `${delivered.toLocaleString()} delivered` },
+          { label: 'Opened', value: totals.opens.toLocaleString(), sub: `${ccRate(totals.opens, delivered)} of delivered` },
+          { label: 'Clicked', value: totals.clicks.toLocaleString(), sub: `${ccRate(totals.clicks, delivered)} of delivered` },
+          { label: 'Bounced', value: totals.bounces.toLocaleString(), sub: `${ccRate(totals.bounces, totals.sent)} of sent` },
+          { label: 'Unsubscribed', value: totals.optouts.toLocaleString(), sub: `${ccRate(totals.optouts, delivered)} of delivered` },
+        ]).map(({ label, value, sub }) => (
+          <div key={label} className="bg-white border border-stone-300 shadow-sm p-4">
+            <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-wider mb-2">{label}</p>
+            <p className="text-2xl font-bold text-stone-800 leading-none mb-1" style={{ fontFamily: 'var(--font-serif)' }}>{value}</p>
+            <p className="text-[10px] text-stone-400">{sub}</p>
           </div>
-          {selected ? (
-            <DetailPanel onClose={() => setSelected(null)}>
-              <div className="flex items-start justify-between mb-4">
-                <h2 className="font-bold text-stone-800 text-base leading-snug pr-2">{selected.campaign_name}</h2>
-                <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => { setEditForm({ ...selected, sent: selected.sent != null ? String(selected.sent) : '', opened: selected.opened != null ? String(selected.opened) : '', clicked: selected.clicked != null ? String(selected.clicked) : '', unsubscribed: selected.unsubscribed != null ? String(selected.unsubscribed) : '' }); setEditing(true) }}
-                    className="px-2.5 py-1 text-xs text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-50 flex items-center gap-1"><Pencil size={11} /> Edit</button>
-                  <button onClick={() => del(selected.id)} className="p-1 text-stone-300 hover:text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={14} /></button>
-                </div>
-              </div>
-              {editing ? (
-                <div className="space-y-3">
-                  <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Campaign Name</label>
-                    <input className={inputCls} value={editForm.campaign_name ?? ''} onChange={e => setEditForm(f => ({ ...f, campaign_name: e.target.value }))} /></div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Date</label>
-                      <input type="date" className={inputCls} value={editForm.date ?? ''} onChange={e => setEditForm(f => ({ ...f, date: e.target.value }))} /></div>
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Platform</label>
-                      <input className={inputCls} value={editForm.platform ?? ''} onChange={e => setEditForm(f => ({ ...f, platform: e.target.value }))} /></div>
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Sent</label>
-                      <input type="number" className={inputCls} value={editForm.sent ?? ''} onChange={e => setEditForm(f => ({ ...f, sent: e.target.value }))} /></div>
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Opened</label>
-                      <input type="number" className={inputCls} value={editForm.opened ?? ''} onChange={e => setEditForm(f => ({ ...f, opened: e.target.value }))} /></div>
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Clicked</label>
-                      <input type="number" className={inputCls} value={editForm.clicked ?? ''} onChange={e => setEditForm(f => ({ ...f, clicked: e.target.value }))} /></div>
-                    <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Unsubscribed</label>
-                      <input type="number" className={inputCls} value={editForm.unsubscribed ?? ''} onChange={e => setEditForm(f => ({ ...f, unsubscribed: e.target.value }))} /></div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-[300px_minmax(0,1fr)] gap-5 items-start">
+        <aside className="bg-white border border-stone-300 shadow-sm">
+          <div className="px-4 py-3 border-b border-stone-200">
+            <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Campaigns</p>
+            <p className="text-sm font-semibold text-stone-800 mt-1">Choose a cohort</p>
+          </div>
+          <div>
+            {campaigns.map(campaign => {
+              const isActive = selected?.activity_id === campaign.activity_id
+              const campaignRecipients = campaign.recipients ?? []
+              return (
+                <button
+                  key={campaign.activity_id}
+                  onClick={() => { setSelectedId(campaign.activity_id); setRecipientFilter('All'); setRecipientQuery('') }}
+                  className={`w-full text-left px-4 py-3 border-b border-stone-100 transition-colors ${isActive ? 'bg-stone-900 text-white' : 'hover:bg-stone-50 text-stone-700'}`}
+                >
+                  <p className="text-sm font-semibold leading-snug">{prettyName(campaign.name)}</p>
+                  <p className={`text-xs mt-1 ${isActive ? 'text-stone-300' : 'text-stone-500'}`}>
+                    {campaignRecipients.length} recipients - {countStatus(campaignRecipients, 'Clicked')} clicked
+                  </p>
+                </button>
+              )
+            })}
+          </div>
+        </aside>
+
+        <section className="bg-white border border-stone-300 shadow-sm min-w-0">
+          <div className="px-5 py-4 border-b border-stone-200 flex items-start justify-between gap-5">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-stone-500">Selected campaign</p>
+              <h3 className="text-xl font-semibold text-stone-900 mt-1" style={{ fontFamily: 'var(--font-serif)' }}>{selected ? prettyName(selected.name) : 'Loading...'}</h3>
+              <p className="text-xs text-stone-500 mt-1">Recipient-level Constant Contact events only.</p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-2">
+              <CheckCircle2 size={14} />
+              Renewal matching deferred
+            </div>
+          </div>
+
+          <div className="grid grid-cols-6 border-b border-stone-200">
+            {recipientFilters.map(filter => {
+              const Icon = statusIcons[filter]
+              const count = filter === 'All' ? recipients.length : filter === 'Not opened' ? countStatus(recipients, 'Sent, not opened') : countStatus(recipients, filter)
+              return (
+                <button key={filter} onClick={() => setRecipientFilter(filter)}
+                  className={`px-4 py-3 text-left border-r border-stone-100 last:border-r-0 transition-colors ${recipientFilter === filter ? 'bg-[#fff9ea]' : 'hover:bg-stone-50'}`}
+                >
+                  <div className="flex items-center gap-2 text-stone-600">
+                    <Icon size={14} strokeWidth={1.75} />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider">{filter}</span>
                   </div>
-                  <div><label className="text-[10px] text-stone-400 uppercase tracking-wide mb-1 block">Notes</label>
-                    <textarea className={inputCls + ' resize-none'} rows={3} value={editForm.notes ?? ''} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} /></div>
-                  <div className="flex gap-2">
-                    <button onClick={saveEdit} disabled={editSaving} className="flex-1 py-2 text-white text-sm rounded-lg font-medium" style={goldBtn}>{editSaving ? 'Saving...' : 'Save'}</button>
-                    <button onClick={() => setEditing(false)} className="px-4 py-2 bg-stone-100 text-stone-600 text-sm rounded-lg">Cancel</button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <Field label="Platform" value={selected.platform} />
-                  <Field label="Date" value={selected.date ? fmtDate(selected.date) : null} />
-                  <div className="grid grid-cols-2 gap-3 bg-stone-50 rounded-xl p-3">
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Sent</p><p className="text-sm font-semibold text-stone-800">{selected.sent?.toLocaleString() ?? '-'}</p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Opened</p><p className="text-sm font-semibold text-stone-800">{selected.opened?.toLocaleString() ?? '-'} <span className="text-stone-400 font-normal text-xs">({pct(selected.opened, selected.sent)})</span></p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Clicked</p><p className="text-sm font-semibold text-stone-800">{selected.clicked?.toLocaleString() ?? '-'} <span className="text-stone-400 font-normal text-xs">({pct(selected.clicked, selected.sent)})</span></p></div>
-                    <div><p className="text-[10px] text-stone-400 uppercase tracking-wider mb-0.5">Unsubscribed</p><p className="text-sm font-semibold text-stone-800">{selected.unsubscribed?.toLocaleString() ?? '-'}</p></div>
-                  </div>
-                  <Field label="Notes" value={selected.notes} />
-                </div>
-              )}
-            </DetailPanel>
-          ) : null}
-        </div>
-      )}
+                  <p className="text-2xl font-semibold text-stone-900 mt-1" style={{ fontFamily: 'var(--font-serif)' }}>{count}</p>
+                </button>
+              )
+            })}
+          </div>
+
+          <div className="px-5 py-4 flex items-center gap-3 border-b border-stone-200">
+            <div className="relative flex-1 max-w-md">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              <input
+                value={recipientQuery}
+                onChange={event => setRecipientQuery(event.target.value)}
+                className="w-full border border-stone-300 bg-white pl-9 pr-3 py-2 text-sm text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-300"
+                placeholder="Search recipients, emails, links"
+              />
+            </div>
+            <button onClick={() => { setRecipientFilter('All'); setRecipientQuery('') }} className="inline-flex items-center gap-2 border border-stone-300 px-3 py-2 text-xs font-medium text-stone-600 hover:bg-stone-50">
+              <RotateCcw size={13} />
+              Reset
+            </button>
+            <p className="ml-auto text-xs text-stone-500">{visibleRecipients.length} visible of {recipients.length}</p>
+          </div>
+
+          <div className="overflow-auto max-h-[48vh]">
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-stone-50 border-b border-stone-200">
+                <tr>
+                  <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-500 text-left">Person</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-500 text-left">Engagement</th>
+                  <th className="px-4 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-500 text-left">Last activity</th>
+                  <th className="px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-stone-500 text-left">Clicked link</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleRecipients.map(recipient => (
+                  <tr key={recipient.email} className="border-b border-stone-100 hover:bg-stone-50">
+                    <td className="px-5 py-3">
+                      <p className="font-medium text-stone-800">{recipientName(recipient)}</p>
+                      <p className="text-xs text-stone-500 mt-0.5">{recipient.email}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`inline-flex border px-2 py-1 text-[11px] font-medium ${statusBadge[recipient.engagement_status]}`}>
+                        {recipient.engagement_status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-stone-600 whitespace-nowrap">{fmtStamp(recipientLastActivity(recipient))}</td>
+                    <td className="px-5 py-3 max-w-[320px] truncate">
+                      {recipient.last_click_url ? (
+                        <a href={recipient.last_click_url} target="_blank" rel="noopener noreferrer" className="text-blue-700 hover:underline">{recipient.last_click_url}</a>
+                      ) : <span className="text-stone-300">-</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {visibleRecipients.length === 0 && (
+              <div className="py-12 text-center text-sm text-stone-400">No recipients match this bucket/search.</div>
+            )}
+          </div>
+        </section>
+      </div>
     </div>
+  )
+}
+
+function EmailSection() {
+  return (
+    <ConstantContactEmailAnalytics />
   )
 }
 
@@ -2435,4 +2519,3 @@ function OrdersSection() {
     </div>
   )
 }
-
